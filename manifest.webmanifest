@@ -1,0 +1,30 @@
+{
+  "name": "Atlas del cuerpo",
+  "short_name": "Atlas Gym",
+  "description": "Músculos, articulaciones, ejercicios animados y qué entrenar cada día.",
+  "lang": "es-AR",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1D2326",
+  "theme_color": "#1D2326",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
