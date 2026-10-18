@@ -430,6 +430,45 @@ body.con-descanso .foot{padding-bottom:84px}
 .hist table{width:100%;border-collapse:collapse;margin:0 0 12px;font-size:14px}
 .hist td{padding:6px 0;border-top:1px solid var(--line);vertical-align:top}
 .hist td:first-child{color:var(--muted);width:72px;white-space:nowrap}
+.festejo{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top,0px));transform:translate(-50%,-140%);z-index:60;width:min(92vw,420px);box-sizing:border-box;background:var(--yellow);color:#1D2326;border-radius:16px;padding:12px 16px;display:flex;gap:12px;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,.25);transition:transform .35s cubic-bezier(.2,.9,.3,1.3)}
+.festejo.on{transform:translate(-50%,0)}
+.festejo i{font-style:normal;font-size:34px;line-height:1}
+.festejo b{display:block;font:800 19px/1.15 var(--display)}
+.festejo span{font-size:14px}
+.recs{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.recs li{display:flex;justify-content:space-between;gap:10px;align-items:baseline;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.recs li span{min-width:0}
+.recs li small{display:block;color:var(--muted);font-size:13px}
+.recs li b{font:800 22px/1 var(--display);white-space:nowrap}
+.rec-nuevo{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:99px;background:var(--yellow);color:#1D2326;font-size:11px;font-weight:700;vertical-align:2px}
+.mes{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;margin-top:8px}
+.mes .h3{margin-top:0}
+.mes .stats{margin-bottom:8px}
+.mes .stat{background:var(--bg)}
+.mes p{margin:6px 0 0;font-size:15px}
+.mes ul{margin:6px 0 0;padding-left:20px}
+.hoy-pend{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.hoy-pend p{margin:0 0 8px}
+.hoy-pend .bk-acts{margin-top:6px}
+.discos{margin:10px 0 0}
+.ex-mas .discos{margin:8px 0 4px}
+.discos summary{cursor:pointer;font-weight:600;font-size:14px;color:var(--blue)}
+.discos-in{margin-top:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.discos-in p{margin:0 0 6px;font-size:15px}
+.discos-in svg{display:block;width:100%;max-width:340px;height:auto;margin:4px 0 8px}
+.discos-in .barras{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--muted)}
+.discos-in .barras button{height:34px;padding:0 10px;border-radius:99px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:600 13px var(--text)}
+.discos-in .barras button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.mas-medidas{margin:0 0 10px}
+.mas-medidas summary{cursor:pointer;font-weight:600;font-size:14px;color:var(--blue);margin-bottom:8px}
+.medidas{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px;margin:8px 0}
+.medidas p{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;color:var(--muted)}
+.medidas p b{display:block;font:800 20px/1.1 var(--display);color:var(--ink)}
+.fotos-comp{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.fotos-comp figure{margin:0}
+.fotos-comp img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:12px;background:var(--sunk);display:block}
+.fotos-comp figcaption{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:4px;font-size:13px;color:var(--muted)}
+.fotos-comp select{max-width:100%;height:34px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;font:600 13px var(--text)}
 .empty-prog{background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:16px;color:var(--muted)}
 .backup{margin-top:8px}
 .bk-txt{color:var(--muted);margin:0 0 12px;max-width:62ch}
@@ -727,6 +766,8 @@ body.con-descanso .foot{padding-bottom:84px}
 
   <p class="foot">Información general para entrenar. Si tenés dolor, una lesión o una condición médica, que te evalúe un traumatólogo o kinesiólogo antes de seguir.</p>
 </main>
+
+<div class="festejo" id="festejo" role="status" aria-live="polite"><i aria-hidden="true">🏆</i><div><b id="festejo-t"></b><span id="festejo-s"></span></div></div>
 
 <div class="tour" id="tour" role="dialog" aria-modal="true" aria-labelledby="tour-t" hidden>
   <div class="tour-card"><p class="tour-paso" id="tour-paso"></p><h2 id="tour-t"></h2><div id="tour-txt"></div>
@@ -2927,6 +2968,60 @@ function recHTML(esq, prev, seriesHoy){
   return `<p class="ex-rec">Recomendado: <b>${fmtNum(r.kg)} kg</b> por serie, buscando ${r.rg[0] === r.rg[1] ? r.rg[0] : `${r.rg[0]} a ${r.rg[1]}`} repeticiones <small>(${por}).${nota}</small></p>`;
 }
 
+/* Récords: el mayor peso de cada ejercicio. Se festeja cuando una serie supera todo lo anterior */
+const kgsDe = r => r.s.filter(x => x.r != null && x.kg).map(x => x.kg);
+const mejorAntes = nombre => Math.max(0, ...(LOG[nombre] || []).filter(x => x.f < FECHA).flatMap(kgsDe));
+function records(){
+  return Object.entries(LOG).map(([n, regs]) => {
+    let mejor = null;
+    regs.forEach(r => r.s.forEach(x => { if(x.r != null && x.kg && (!mejor || x.kg > mejor.kg || (x.kg === mejor.kg && x.r > mejor.r && r.f === mejor.f))) mejor = {kg:x.kg, r:x.r, f:r.f}; }));
+    return mejor && Object.assign({n}, mejor);
+  }).filter(Boolean).sort((a, b) => b.f.localeCompare(a.f) || b.kg - a.kg);
+}
+let FESTEJO = 0;
+function festejar(titulo, sub){
+  $('#festejo-t').textContent = titulo; $('#festejo-s').textContent = sub;
+  const el = $('#festejo'); el.classList.add('on');
+  try{ if(navigator.vibrate) navigator.vibrate([60, 40, 120]); } catch(e){}
+  clearTimeout(FESTEJO); FESTEJO = setTimeout(() => el.classList.remove('on'), 4500);
+}
+// s: series de hoy; j: la que se acaba de marcar. Récord = más peso que cualquier día anterior y que las otras series de hoy
+function chequearRecord(nombre, s, j){
+  const x = s[j]; if(!x || !x.ok || !x.kg) return;
+  const antes = mejorAntes(nombre), hoy = Math.max(0, ...s.filter((y, k) => k !== j && y.ok && y.r != null && y.kg).map(y => y.kg));
+  if(antes && x.kg > antes && x.kg > hoy) festejar(`¡Nuevo récord en ${nombre}!`, `${fmtNum(x.kg)} kg × ${x.r}. Tu máximo era ${fmtNum(antes)} kg.`);
+}
+
+/* Qué discos poner en la barra */
+const DISCOS = [25, 20, 15, 10, 5, 2.5, 1.25];
+const COLOR_DISCO = {25:'#CF342B', 20:'#1F5FAF', 15:'#D99E0B', 10:'#237A40', 5:'#E7ECEA', 2.5:'#566064', 1.25:'#9CA6AA'};
+function esBarra(nombre){
+  const a = DEMO.DEMO_ALIAS[nombre], mov = a && DEMO.DEMOS[a[0]], v = mov && mov.vars.find(x => x.id === a[1]);
+  return (v && v.eq === 'Barra') || /con barra|hip thrust/i.test(nombre);
+}
+function discos(kg, barra){
+  let lado = (kg - barra) / 2; if(lado < 0) return null;
+  const out = []; DISCOS.forEach(d => { while(lado >= d - 1e-9){ out.push(d); lado -= d; } });
+  return {out, resto:Math.round(lado * 2 * 100) / 100};
+}
+function discosIn(kg){
+  const barra = store.get('atlas.barra', 20), r = kg ? discos(kg, barra) : null;
+  const barras = `<div class="barras">Tu barra pesa: ${[20, 15, 10].map(b => `<button type="button" data-barra="${b}" aria-pressed="${b === barra}">${b} kg</button>`).join('')}</div>`;
+  if(!kg) return `<p>Escribí los kilos y te digo qué discos van.</p>${barras}`;
+  if(!r) return `<p>${fmtNum(kg)} kg es menos que la barra (${barra} kg). Usá una barra más liviana o mancuernas.</p>${barras}`;
+  if(!r.out.length) return `<p>${fmtNum(kg)} kg: <b>la barra sola</b>, sin discos.</p>${barras}`;
+  // Dibujo de un lado de la barra: los discos más pesados, más grandes y adentro
+  let x = 46; const alto = d => ({25:64, 20:64, 15:56, 10:48, 5:36, 2.5:28, 1.25:22})[d], ancho = d => d >= 10 ? 13 : 9;
+  const placas = r.out.map(d => { const h = alto(d), w = ancho(d), g = `<rect x="${x}" y="${40 - h / 2}" width="${w}" height="${h}" rx="2" fill="${COLOR_DISCO[d]}" stroke="rgba(0,0,0,.35)"/>`; x += w + 2; return g; }).join('');
+  const svg = `<svg viewBox="0 0 ${Math.max(200, x + 30)} 80" role="img" aria-label="Por lado: ${r.out.map(fmtNum).join(', ')} kg">
+    <rect x="0" y="36" width="40" height="8" rx="2" fill="var(--muted)"/><rect x="38" y="30" width="8" height="20" rx="2" fill="var(--muted)"/>
+    <rect x="46" y="35" width="${Math.max(120, x - 30)}" height="10" rx="2" fill="var(--line)"/>${placas}</svg>`;
+  const cuenta = {}; r.out.forEach(d => { cuenta[d] = (cuenta[d] || 0) + 1; });
+  return `<p>Para <b>${fmtNum(kg)} kg</b>: barra de ${barra} kg y <b>de cada lado</b> ${Object.entries(cuenta).sort((a, b) => b[0] - a[0]).map(([d, n]) => `${n > 1 ? n + ' × ' : ''}${fmtNum(Number(d))} kg`).join(' + ')}.</p>
+    ${svg}${r.resto ? `<p><small>No se llega exacto: faltan ${fmtNum(r.resto)} kg. Quedate con este peso.</small></p>` : ''}${barras}`;
+}
+const discosHTML = (nombre, kg) => esBarra(nombre) ? `<details class="discos"${S.discos ? ' open' : ''}><summary>Qué discos pongo</summary><div class="discos-in" data-discos="${kg || ''}">${discosIn(kg)}</div></details>` : '';
+
 function logHTML(e, k){
   const [nombre, esq] = e, seg = enSegundos(esq), n = nSeries(esq);
   const prev = anterior(nombre), hoy = deHoy(nombre), B = bloque();
@@ -2942,7 +3037,7 @@ function logHTML(e, k){
   }).join('');
   const hechas = hoy ? hoy.s.filter(x => x.ok).length : 0;
   return (prev ? `<p class="ex-last">La vez pasada · ${fmtFecha(prev.f)}: <b>${resumen(prev, seg)}</b></p>` : '') +
-    `<div class="ex-rec-box">${recHTML(esq, prev, hoy && hoy.s)}</div>` +
+    `<div class="ex-rec-box">${recHTML(esq, prev, hoy && hoy.s)}</div>` + discosHTML(nombre, rec && rec.kg) +
     (!B.descarga && estancado(nombre) ? `<p class="ex-alerta"><b>Sin progreso en 3 sesiones.</b> Bajá ~10% el peso y volvé a subir de a poco, o probá otra variante con “⇄ Cambiar”. Revisá también descanso y sueño.</p>` : '') +
     `<details class="log" data-k="${k}" open><summary>Anotar series <span class="cnt${hechas>=n?' full':''}">${hechas}/${n}</span></summary><div class="sets">${filas}</div></details>`;
 }
@@ -2985,6 +3080,8 @@ function guardarSerie(det){
   const esq = ejerciciosDe(S.plan, S.dia)[Number(det.dataset.k)][1], prev = anterior(nombre), r = recomendacion(esq, prev, s);
   const box = det.closest('li').querySelector('.ex-rec-box'); if(box) box.innerHTML = recHTML(esq, prev, s);
   if(r) det.querySelectorAll('.kg').forEach(i => { if(!i.value) i.placeholder = fmtNum(r.kg); });
+  const dz = det.closest('li').querySelector('.discos-in'); if(dz && r){ dz.dataset.discos = r.kg; dz.innerHTML = discosIn(r.kg); }
+  return {nombre, s};
 }
 
 /* Cambiar ejercicios del plan: atlas.swap = { '4-TA-0': 'Press inclinado con barra' } */
@@ -3092,6 +3189,7 @@ function renderModo(){
         <span class="modo-x">×</span>
         <label><input id="m-r" inputmode="numeric" placeholder="${phR}" value="${cur.r != null ? cur.r : ''}" aria-label="${seg ? 'Segundos' : 'Repeticiones'}"><span>${seg ? 'seg' : 'reps'}</span></label>
       </div>
+      ${discosHTML(nombre, numero(cur.kg != null ? cur.kg : phKg))}
       <button class="modo-ok" id="m-ok">✓ Serie hecha</button>
       <p class="modo-ayuda">Si hiciste lo que está en gris, tocá directo el botón.</p>
     </div>` : `<div class="modo-fin-ej"><b>¡Ejercicio completo!</b> ${hechas} series anotadas.</div>`}
@@ -3110,6 +3208,7 @@ function serieHecha(){
   if(r == null){ rI.focus(); return; }
   s[j] = Object.assign({}, kg != null ? {kg} : {}, {r, ok:true});
   guardarRegistro(nombre, s);
+  chequearRecord(nombre, s, j);
   MODO.j = j + 1; MODO.auto = true; store.set('atlas.modo', MODO);
   iniciarDescanso(descansoDe(esq));
   renderModo();
@@ -3227,6 +3326,39 @@ function sparkSVG(regs){
     <polyline points="${xy.map(p => p.map(v => v.toFixed(1)).join(',')).join(' ')}"/>
     ${xy.map((p, i) => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${p === last ? 4 : 0}"><title>${fmtFecha(pts[i].f)}: ${fmtNum(pts[i].kg)} kg</title></circle>`).join('')}</svg>`;
 }
+function resumenMesHTML(dias){
+  if(!dias.size) return '';
+  const hoy = new Date(), ini = isoDe(new Date(hoy.getFullYear(), hoy.getMonth(), 1)), iniPas = isoDe(new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1));
+  const lista = [...dias], esteMes = lista.filter(f => f >= ini).length, mesPas = lista.filter(f => f >= iniPas && f < ini).length;
+  // Racha: semanas seguidas con al menos 2 entrenamientos (la semana en curso suma si ya llegó, pero no corta)
+  const meta = Math.min(2, PERFIL ? PERFIL.dias : S.plan), L = lunesDe(hoy);
+  const enSemana = k => { const a = new Date(L.getTime() - 7 * k * 864e5), b = new Date(a.getTime() + 6 * 864e5); return lista.filter(f => f >= isoDe(a) && f <= isoDe(b)).length; };
+  let racha = enSemana(0) >= meta ? 1 : 0;
+  for(let k = 1; k < 260 && enSemana(k) >= meta; k++) racha++;
+  const subas = Object.entries(LOG).map(([n, regs]) => {
+    const ahora = Math.max(0, ...regs.filter(r => r.f >= ini).flatMap(kgsDe)), antes = Math.max(0, ...regs.filter(r => r.f < ini).flatMap(kgsDe));
+    return ahora > antes && antes ? {n, d:Math.round((ahora - antes) * 10) / 10, kg:ahora} : null;
+  }).filter(Boolean).sort((a, b) => b.d - a.d);
+  const cu = store.get('atlas.cuerpo', []).filter(x => x.peso), ult = cu[cu.length - 1], base = cu.filter(x => x.f < ini).pop() || cu.find(x => x.f >= ini);
+  const dP = ult && base && ult !== base && ult.f >= ini ? Math.round((ult.peso - base.peso) * 10) / 10 : null;
+  const mes = hoy.toLocaleDateString('es-AR', {month:'long'});
+  return `<section class="mes"><h3 class="h3">Tu ${mes}</h3>
+    <div class="stats">
+      <div class="stat"><b>${esteMes}</b><span>días entrenados${mesPas ? ` (el mes pasado ${mesPas})` : ''}</span></div>
+      <div class="stat"><b>${racha}</b><span>${racha === 1 ? 'semana' : 'semanas'} seguidas entrenando</span></div>
+      <div class="stat"><b>${dP == null ? '—' : `${dP > 0 ? '+' : dP < 0 ? '−' : ''}${fmtNum(Math.abs(dP))}`}</b><span>${dP == null ? 'anotá tu peso' : 'kg de peso corporal'}</span></div>
+    </div>
+    ${subas.length ? `<p>Este mes subiste en:</p><ul>${subas.slice(0, 5).map(x => `<li>${esc(x.n)}: <b>${fmtNum(x.kg)} kg</b> (+${fmtNum(x.d)})</li>`).join('')}</ul>`
+      : `<p>${esteMes ? 'Todavía no superaste pesos este mes: seguí la recomendación de cada ejercicio y van a llegar.' : 'Arrancá este mes: con 2 entrenamientos por semana ya empezás la racha.'}</p>`}
+    ${racha >= 4 ? `<p>🔥 <b>${racha} semanas seguidas.</b> Esto es lo que hace la diferencia.</p>` : ''}</section>`;
+}
+function recordsHTML(){
+  const rs = records(); if(!rs.length) return '';
+  const hace7 = isoDe(new Date(Date.now() - 7 * 864e5));
+  const li = x => `<li><span>${esc(x.n)}${x.f > hace7 ? '<em class="rec-nuevo">nuevo</em>' : ''}<small>${x.r} ${x.r === 1 ? 'repetición' : 'repeticiones'} · ${fmtFecha(x.f)}</small></span><b>${fmtNum(x.kg)} kg</b></li>`;
+  return `<h3 class="h3">Tus récords</h3><ul class="recs">${rs.slice(0, 5).map(li).join('')}</ul>
+    ${rs.length > 5 ? `<details class="hist"><summary><span class="hn"><b>Ver todos (${rs.length})</b></span></summary><ul class="recs">${rs.slice(5).map(li).join('')}</ul></details>` : ''}`;
+}
 function renderProgreso(){
   const dias = new Set();
   Object.values(LOG).forEach(regs => regs.forEach(r => { if(conSeries(r)) dias.add(r.f); }));
@@ -3244,7 +3376,7 @@ function renderProgreso(){
     return `<span class="d${cls}" title="${fmtFecha(f)}${dias.has(f) ? ': entrenaste' : ''}">${d.getDate()}</span>`;
   }).join('');
   const meses = [...new Set([ini, hoy].map(d => d.toLocaleDateString('es-AR', {month:'long'})))].join(' – ');
-  $('#prog').innerHTML = cuerpoHTML() + nutriHTML() + cardioHTML() + `
+  $('#prog').innerHTML = resumenMesHTML(dias) + cuerpoHTML() + fotosHTML() + nutriHTML() + cardioHTML() + `
     <h3 class="h3">Entrenamientos</h3>
     <div class="stats">
       <div class="stat"><b>${semana}</b><span>días esta semana</span></div>
@@ -3254,6 +3386,7 @@ function renderProgreso(){
     <h3 class="h3">Días que entrenaste</h3>
     <p class="cal-mes">${meses}</p>
     <div class="cal">${['L','M','M','J','V','S','D'].map(l => `<span class="h">${l}</span>`).join('')}${celdas}</div>
+    ${recordsHTML()}
     <h3 class="h3">Por ejercicio</h3>
     ${ejercicios.length ? `<div class="hists">${ejercicios.map(([n, regs]) => {
       const seg = /plancha/i.test(n) && !regs.some(r => r.s.some(x => x.kg));
@@ -3262,6 +3395,7 @@ function renderProgreso(){
         <span class="hb">${mejor ? `<b>${fmtNum(mejor)}</b><small>kg máx.</small>` : `<b>${regs.length}</b><small>${regs.length === 1 ? 'sesión' : 'sesiones'}</small>`}</span></summary>
         <table><tbody>${regs.slice().reverse().map(r => `<tr data-n="${esc(n)}" data-f="${r.f}"><td>${fmtFecha(r.f)}</td><td>${resumen(r, seg)}</td><td class="h-acc"><button class="h-btn" data-hed aria-label="Corregir ${esc(n)} del ${fmtFecha(r.f)}">Corregir</button><button class="h-btn del" data-hdel aria-label="Borrar ${esc(n)} del ${fmtFecha(r.f)}">Borrar</button></td></tr>`).join('')}</tbody></table></details>`;
     }).join('')}</div>` : `<p class="empty-prog">Todavía no anotaste nada. En <b>Mi semana</b>, abrí “Anotar series” en un ejercicio y acá vas a ver tu progreso.</p>`}`;
+  renderFotos();
 }
 
 /* Tu entrenador: resumen semanal */
@@ -3462,20 +3596,70 @@ function nutriHTML(){
       : `<p class="pf-ayuda">Pesate una vez por semana: con dos semanas de datos te digo si conviene ajustar.</p>`}`;
 }
 
+const MEDIDAS = [['cintura', 'Cintura'], ['brazo', 'Brazo'], ['pecho', 'Pecho'], ['cadera', 'Cadera'], ['muslo', 'Muslo']];
 function cuerpoHTML(){
   const lista = store.get('atlas.cuerpo', []), hoy = lista.find(x => x.f === FECHA) || {};
-  const pesos = lista.filter(x => x.peso).map(x => ({f:x.f, v:x.peso})), cints = lista.filter(x => x.cintura).map(x => ({f:x.f, v:x.cintura}));
+  const serie = k => lista.filter(x => x[k]).map(x => ({f:x.f, v:x[k]})), pesos = serie('peso');
   const delta = (arr, u) => arr.length > 1 ? (d => `${d > 0 ? '+' : d < 0 ? '−' : ''}${fmtNum(Math.abs(d))} ${u} desde el ${fmtFecha(arr[0].f)}`)(Math.round((arr[arr.length - 1].v - arr[0].v) * 10) / 10) : '';
+  const campo = (k, n, u) => { const a = serie(k); return `<label>${n}<span><input name="${k}" inputmode="decimal" value="${hoy[k] != null ? fmtNum(hoy[k]) : ''}" placeholder="${a.length ? fmtNum(a[a.length - 1].v) : u}"> ${u}</span></label>`; };
+  const medidas = MEDIDAS.map(([k, n]) => [n, serie(k)]).filter(([, a]) => a.length);
+  const texto = x => [x.peso ? fmtNum(x.peso) + ' kg' : ''].concat(MEDIDAS.map(([k, n]) => x[k] ? `${n.toLowerCase()} ${fmtNum(x[k])} cm` : '')).filter(Boolean).join(' · ');
   return `<h3 class="h3">Tu cuerpo</h3>
     <form class="cuerpo-form" id="cuerpo-form">
-      <label>Peso<span><input name="peso" inputmode="decimal" value="${hoy.peso != null ? fmtNum(hoy.peso) : ''}" placeholder="${pesos.length ? fmtNum(pesos[pesos.length - 1].v) : 'kg'}"> kg</span></label>
-      <label>Cintura<span><input name="cintura" inputmode="decimal" value="${hoy.cintura != null ? fmtNum(hoy.cintura) : ''}" placeholder="${cints.length ? fmtNum(cints[cints.length - 1].v) : 'cm'}"> cm</span></label>
+      ${campo('peso', 'Peso', 'kg')}${campo('cintura', 'Cintura', 'cm')}
       <button class="ghost" type="submit">Guardar hoy</button>
     </form>
+    <details class="mas-medidas"><summary>Más medidas (brazo, pecho, cadera, muslo)</summary>
+      <form class="cuerpo-form" id="medidas-form">${MEDIDAS.slice(1).map(([k, n]) => campo(k, n, 'cm')).join('')}<button class="ghost" type="submit">Guardar</button></form>
+      <p class="pf-ayuda">Medí con cinta, relajado: brazo en la parte más ancha, pecho a la altura de los pezones, cadera en lo más ancho de la cola y muslo a mitad de camino entre rodilla y cadera. Una vez por mes alcanza.</p></details>
     <p class="pf-ayuda">Pesate una vez por semana, en ayunas y a la misma hora: el peso de un día a otro varía 1–2 kg por agua y comida.</p>
-    ${pesos.length ? `<div class="cuerpo-res"><p><b>${fmtNum(pesos[pesos.length - 1].v)} kg</b>${pesos.length > 1 ? ` <span>${delta(pesos, 'kg')}</span>` : ''}</p>${cints.length ? `<p><b>${fmtNum(cints[cints.length - 1].v)} cm</b> de cintura${cints.length > 1 ? ` <span>${delta(cints, 'cm')}</span>` : ''}</p>` : ''}</div>
-      ${lineaSVG(pesos, 'kg') ? `<p class="graf-tit">Peso corporal (kg)</p>${lineaSVG(pesos, 'kg')}` : ''}
-      <details class="hist"><summary><span class="hn"><b>Ver registros</b></span></summary><table><tbody>${lista.slice().reverse().map(x => `<tr data-cf="${x.f}"><td>${fmtFecha(x.f)}</td><td>${[x.peso ? fmtNum(x.peso) + ' kg' : '', x.cintura ? fmtNum(x.cintura) + ' cm de cintura' : ''].filter(Boolean).join(' · ')}</td><td class="h-acc"><button class="h-btn del" data-cdel aria-label="Borrar el registro del ${fmtFecha(x.f)}">Borrar</button></td></tr>`).join('')}</tbody></table></details>` : ''}`;
+    ${pesos.length ? `<div class="cuerpo-res"><p><b>${fmtNum(pesos[pesos.length - 1].v)} kg</b>${pesos.length > 1 ? ` <span>${delta(pesos, 'kg')}</span>` : ''}</p></div>` : ''}
+    ${medidas.length ? `<div class="medidas">${medidas.map(([n, a]) => `<p>${n}<b>${fmtNum(a[a.length - 1].v)} cm</b>${a.length > 1 ? delta(a, 'cm') : ''}</p>`).join('')}</div>` : ''}
+    ${lineaSVG(pesos, 'kg') ? `<p class="graf-tit">Peso corporal (kg)</p>${lineaSVG(pesos, 'kg')}` : ''}
+    ${lista.length ? `<details class="hist"><summary><span class="hn"><b>Ver registros</b></span></summary><table><tbody>${lista.slice().reverse().map(x => `<tr data-cf="${x.f}"><td>${fmtFecha(x.f)}</td><td>${texto(x)}</td><td class="h-acc"><button class="h-btn del" data-cdel aria-label="Borrar el registro del ${fmtFecha(x.f)}">Borrar</button></td></tr>`).join('')}</tbody></table></details>` : ''}`;
+}
+
+/* Fotos de progreso: quedan solo en este celular (IndexedDB), no se suben a la nube */
+function fotosDB(){
+  return new Promise((ok, mal) => {
+    const r = indexedDB.open('atlas-fotos', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('fotos', {keyPath:'f'});
+    r.onsuccess = () => ok(r.result); r.onerror = () => mal(r.error);
+  });
+}
+async function fotosTx(modo, fn){
+  const db = await fotosDB();
+  return new Promise((ok, mal) => { const t = db.transaction('fotos', modo), req = fn(t.objectStore('fotos')); t.oncomplete = () => ok(req.result); t.onerror = () => mal(t.error); });
+}
+const listarFotos = () => fotosTx('readonly', st => st.getAll());
+const guardarFoto = (f, blob) => fotosTx('readwrite', st => st.put({f, blob}));
+const borrarFoto = f => fotosTx('readwrite', st => st.delete(f));
+// Se achica a 1000 px de lado para que no ocupe mucho
+async function achicarFoto(file){
+  const bmp = await createImageBitmap(file, {imageOrientation:'from-image'}), k = Math.min(1, 1000 / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+  return new Promise(ok => c.toBlob(ok, 'image/jpeg', .82));
+}
+let FOTO_URLS = [], FOTO_SEL = null;
+const fotosHTML = () => `<section id="fotos"></section>`;
+async function renderFotos(msg){
+  const el = $('#fotos'); if(!el) return;
+  let fotos = [];
+  try{ fotos = (await listarFotos()).sort((a, b) => a.f.localeCompare(b.f)); } catch(e){ el.innerHTML = ''; return; }
+  FOTO_URLS.forEach(u => URL.revokeObjectURL(u)); FOTO_URLS = [];
+  const url = {}; fotos.forEach(x => { url[x.f] = URL.createObjectURL(x.blob); FOTO_URLS.push(url[x.f]); });
+  const ult = fotos[fotos.length - 1], dias = ult ? Math.round((new Date(FECHA) - new Date(ult.f)) / 864e5) : null;
+  const hay = f => fotos.some(x => x.f === f);
+  const sel = fotos.length < 2 ? (ult ? [ult.f] : []) : FOTO_SEL && hay(FOTO_SEL[0]) && hay(FOTO_SEL[1]) ? FOTO_SEL : [fotos[0].f, ult.f];
+  const opts = v => fotos.map(x => `<option value="${x.f}"${x.f === v ? ' selected' : ''}>${fmtFecha(x.f)}</option>`).join('');
+  el.innerHTML = `<h3 class="h3">Fotos de progreso</h3>
+    <p class="pf-ayuda">${!fotos.length ? 'Sacate una foto de frente cada 2 semanas, con la misma luz, lugar y ropa. A veces la balanza no se mueve pero el cuerpo sí cambia.'
+      : dias >= 14 ? `<b>Hace ${dias} días de la última foto: sacate otra.</b>` : `Última foto: ${fmtFecha(ult.f)}.${dias ? ` La próxima, en ${14 - dias} días.` : ''}`} Quedan <b>solo en este celular</b>, no se suben a ningún lado.</p>
+    ${sel.length ? `<div class="fotos-comp">${sel.map((f, i) => `<figure><img src="${url[f]}" alt="Foto del ${fmtFecha(f)}">
+      <figcaption>${fotos.length > 1 ? `<select data-foto-sel="${i}" aria-label="${i ? 'Foto de la derecha' : 'Foto de la izquierda'}">${opts(f)}</select>` : fmtFecha(f)}<button class="h-btn del" data-foto-del="${f}" aria-label="Borrar la foto del ${fmtFecha(f)}">Borrar</button></figcaption></figure>`).join('')}</div>` : ''}
+    <div class="bk-acts"><button class="ghost" id="foto-nueva">${hay(FECHA) ? 'Cambiar la foto de hoy' : 'Agregar foto de hoy'}</button></div>
+    <input type="file" id="foto-file" accept="image/*" hidden>${msg ? `<p class="bk-msg">${esc(msg)}</p>` : ''}`;
 }
 
 /* Nube: los datos se guardan en Supabase (proyecto de Finanzas-app, tabla gym_datos, una fila por usuario).
@@ -3690,13 +3874,37 @@ async function importar(file){
 }
 
 /* Semana */
+// Rutinas que tocaban de lunes a ayer y no se hicieron (si hiciste menos de la mitad de sus ejercicios esta semana)
+function pendientes(){
+  const desde = isoDe(lunesDe(new Date())), hasta = (HOY + 6) % 7;   // días pasados de la semana (0 = lunes)
+  const omit = store.get('atlas.pendOmit', {}), omitidos = omit.f === desde ? omit.d : [];
+  const hechos = new Set(), primero = Object.values(LOG).flat().filter(conSeries).map(r => r.f).sort()[0];
+  Object.entries(LOG).forEach(([n, regs]) => { if(regs.some(r => r.f >= desde && conSeries(r))) hechos.add(n); });
+  const out = [];
+  for(let k = 0; k < hasta; k++){
+    const dia = (k + 1) % 7, d = diaDe(S.plan, dia), f = isoDe(new Date(new Date(desde + 'T12:00').getTime() + k * 864e5));
+    if(d.descanso || omitidos.includes(dia) || !primero || primero >= f) continue;   // sin historial previo no se reclama nada
+    if(d === diaDe(S.plan, HOY)) continue;
+    const ej = ejerciciosDe(S.plan, dia);
+    if(ej.filter(e => hechos.has(e[0])).length < Math.ceil(ej.length / 2)) out.push({dia, d});
+  }
+  return out;
+}
+function pendHTML(descanso){
+  const p = pendientes()[0]; if(!p) return '';
+  const nd = DIAS.find(x => x.i === p.dia).n.toLowerCase();
+  return `<div class="hoy-pend"><p>${descanso ? `<b>Te quedó pendiente ${p.d.titulo}</b> del ${nd}. Hoy es día libre: es un buen momento para recuperarla.`
+      : `Te quedó pendiente <b>${p.d.titulo}</b> del ${nd}. Hacé la de hoy y recuperala en tu próximo día libre.`}</p>
+    ${descanso ? `<button class="modo-start" data-pend="${p.dia}">Hacer ${p.d.titulo}<small>Te guío paso a paso, igual que siempre</small></button>` : ''}
+    <div class="bk-acts">${descanso ? '' : `<button class="plain" data-pend="${p.dia}">Hacerla ahora</button>`}<button class="plain" data-pend-no="${p.dia}">Saltearla esta semana</button></div></div>`;
+}
 // Lo primero que se ve: qué toca hoy y un botón para empezar
 function renderHoy(){
-  const d = diaDe(S.plan, HOY), g = store.get('atlas.modo', null), hecho = g && g.f === FECHA && g.fin;
+  const d = diaDe(S.plan, HOY), g = store.get('atlas.modo', null), hecho = g && g.f === FECHA && g.fin && g.dia === HOY;
   let h;
   if(d.descanso){
     h = `<div class="hoy-card descanso"><p class="hoy-k">Hoy · ${DIAS.find(x => x.i === HOY).n}</p><h2>${d.titulo}</h2><p>${d.texto}</p>
-      <details class="hoy-igual"><summary>Entrené igual: elegir rutina</summary><div class="igual-op">${Object.entries(planes()[S.plan].dias).map(([k, r]) => `<button class="plain" data-hoy-rutina="${k}">${r.titulo}<small>${r.sub}</small></button>`).join('')}</div></details></div>`;
+      ${pendHTML(true)}<details class="hoy-igual"><summary>Entrené igual: elegir rutina</summary><div class="igual-op">${Object.entries(planes()[S.plan].dias).map(([k, r]) => `<button class="plain" data-hoy-rutina="${k}">${r.titulo}<small>${r.sub}</small></button>`).join('')}</div></details></div>`;
   } else {
     const ej = ejerciciosDe(S.plan, HOY), series = ej.reduce((a, e) => a + nSeries(e[1]), 0);
     const min = PERFIL && PERFIL.min ? PERFIL.min : Math.round((10 + series * 2.6) / 5) * 5;
@@ -3704,7 +3912,7 @@ function renderHoy(){
     h = `<div class="hoy-card"><p class="hoy-k">Hoy · ${DIAS.find(x => x.i === HOY).n}</p><h2>${d.titulo}</h2>
       <p>${ej.length} ejercicios · ${series} series · unos ${min} minutos</p>
       ${hecho ? `<p class="hoy-ok">✓ Ya entrenaste hoy. ¡Bien ahí!</p><button class="plain" data-hoy-ver>Ver lo que hiciste</button>`
-        : `<button class="modo-start" data-hoy-empezar>${enCurso && enCurso.dia === HOY ? 'Seguir entrenamiento' : 'Empezar entrenamiento'}<small>Te guío paso a paso: calentamiento, cada serie, descanso y estiramientos</small></button>`}</div>`;
+        : `<button class="modo-start" data-hoy-empezar>${enCurso && enCurso.dia === HOY ? 'Seguir entrenamiento' : 'Empezar entrenamiento'}<small>Te guío paso a paso: calentamiento, cada serie, descanso y estiramientos</small></button>`}${pendHTML(false)}</div>`;
   }
   $('#hoy-card').innerHTML = h;
 }
@@ -4124,6 +4332,10 @@ $('#ir-hoy').addEventListener('click', () => { S.dia = HOY; renderPlan(); });
 $('#hoy-card').addEventListener('click', e => {
   if(e.target.closest('[data-hoy-empezar]')){ S.dia = HOY; renderPlan(); abrirModo(); return; }
   if(e.target.closest('[data-hoy-ver]')){ S.dia = HOY; renderPlan(); const ej = $('#day .exlist'); if(ej) ej.scrollIntoView({block:'center'}); return; }
+  const pe = e.target.closest('[data-pend]');
+  if(pe){ S.dia = Number(pe.dataset.pend); S.entrenar = true; renderPlan(); abrirModo(); return; }
+  const pn = e.target.closest('[data-pend-no]');
+  if(pn){ const desde = isoDe(lunesDe(new Date())), o = store.get('atlas.pendOmit', {}); store.set('atlas.pendOmit', {f:desde, d:(o.f === desde ? o.d : []).concat(Number(pn.dataset.pendNo))}); renderHoy(); return; }
   const ru = e.target.closest('[data-hoy-rutina]');
   if(ru){ S.dia = DIAS.find(x => PLANES[S.plan].semana[x.i] === ru.dataset.hoyRutina).i; S.entrenar = true; renderPlan(); abrirModo(); }
 });
@@ -4178,6 +4390,18 @@ $('#modo-body').addEventListener('click', e => {
   }
   if(e.target.closest('[data-mterminar]')){ const m = store.get('atlas.modo', {}); m.fin = true; store.set('atlas.modo', m); cerrarModo(false); }
 });
+$('#modo-body').addEventListener('input', e => {
+  if(e.target.id !== 'm-kg') return;
+  const dz = $('#modo-body .discos-in'); if(dz) dz.innerHTML = discosIn(numero(e.target.value || e.target.placeholder));
+});
+// Discos: abrir/cerrar se recuerda, y elegir el peso de la barra
+document.addEventListener('toggle', e => { if(e.target.classList && e.target.classList.contains('discos')) S.discos = e.target.open; }, true);
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-barra]'); if(!b) return;
+  store.set('atlas.barra', Number(b.dataset.barra));
+  const dz = b.closest('.discos-in'), kgI = dz.closest('#modo-body') && $('#m-kg');
+  dz.innerHTML = discosIn(kgI ? numero(kgI.value || kgI.placeholder) : numero(dz.dataset.discos));
+});
 $('#modo-body').addEventListener('keydown', e => { if(e.key === 'Enter' && (e.target.id === 'm-kg' || e.target.id === 'm-r')){ e.preventDefault(); serieHecha(); } });
 $('#day').addEventListener('toggle', e => { if(e.target.id === 'cal') S.calAbierto = e.target.open; if(e.target.id === 'est') S.estAbierto = e.target.open; }, true);
 $('#entrenador').addEventListener('toggle', e => { S.coach = e.target.open; }, true);
@@ -4206,6 +4430,9 @@ $('#prog').addEventListener('click', e => {
     return;
   }
   if(e.target.closest('[data-hcancel]')) renderProgreso();
+  if(e.target.closest('#foto-nueva')){ $('#foto-file').click(); return; }
+  const fd = e.target.closest('[data-foto-del]');
+  if(fd){ if(confirm(`¿Borrar la foto del ${fmtFecha(fd.dataset.fotoDel)}?`)) borrarFoto(fd.dataset.fotoDel).then(() => renderFotos()); return; }
   if(e.target.closest('[data-cardio-del]')){ if(confirm('¿Borrar este registro de cardio?')){ borrarCardio(tr.dataset.cid); renderProgreso(); } return; }
   const aj = e.target.closest('[data-nutri-aj]');
   if(aj){ const n = store.get('atlas.nutri', {}); n.ajuste = (n.ajuste || 0) + Number(aj.dataset.nutriAj); n.f = FECHA; store.set('atlas.nutri', n); renderProgreso(); }
@@ -4226,9 +4453,19 @@ $('#prog').addEventListener('submit', e => {
     renderProgreso(); return;
   }
   e.preventDefault();
-  const f = new FormData(e.target), peso = numero(f.get('peso')), cintura = numero(f.get('cintura'));
-  if(peso == null && cintura == null) return;
-  anotarCuerpo({peso, cintura}); renderProgreso();
+  const f = new FormData(e.target), d = {};
+  ['peso'].concat(MEDIDAS.map(m => m[0])).forEach(k => { if(f.has(k)) d[k] = numero(f.get(k)); });
+  if(Object.values(d).every(v => v == null)) return;
+  anotarCuerpo(d); renderProgreso();
+});
+$('#prog').addEventListener('change', async e => {
+  const sl = e.target.closest('[data-foto-sel]');
+  if(sl){ const v = [...$$('[data-foto-sel]')].map(x => x.value); FOTO_SEL = v; renderFotos(); return; }
+  if(e.target.id === 'foto-file'){
+    const file = e.target.files[0]; e.target.value = ''; if(!file) return;
+    try{ await guardarFoto(FECHA, await achicarFoto(file)); FOTO_SEL = null; renderFotos('Foto guardada.'); }
+    catch(err){ renderFotos('No se pudo guardar la foto. Probá con otra.'); }
+  }
 });
 $('#aviso-copia').addEventListener('click', e => {
   if(e.target.closest('#aviso-exportar')) exportar();
@@ -4272,7 +4509,8 @@ $('#day').addEventListener('click', e => {
   if(hecha) fila.querySelectorAll('input').forEach(i => { if(!i.value && /\d/.test(i.placeholder)) i.value = i.placeholder; });
   ok.setAttribute('aria-pressed', String(hecha)); fila.classList.toggle('done', hecha);
   const det = ok.closest('.log');
-  guardarSerie(det);
+  const g = guardarSerie(det);
+  if(hecha) chequearRecord(g.nombre, g.s, Number(fila.dataset.i));
   if(hecha) iniciarDescanso(descansoDe(ejerciciosDe(S.plan, S.dia)[Number(det.dataset.k)][1]));
 });
 $('#hoy-btn').addEventListener('click', () => {
