@@ -2522,7 +2522,7 @@ const store = {
   set(k,v){
     try{ localStorage.setItem(k, JSON.stringify(v)); } catch(e){}
     // Un cambio de datos (no de la sesión) marca la hora y se sube a la nube en unos segundos
-    if(k.startsWith('atlas.') && !['atlas.sesion', 'atlas.modificado', 'atlas.nube'].includes(k) && typeof programarSubida === 'function'){
+    if(k.startsWith('atlas.') && !['atlas.sesion', 'atlas.modificado', 'atlas.nube', 'atlas.modo'].includes(k) && typeof programarSubida === 'function'){
       try{ localStorage.setItem('atlas.modificado', String(Date.now())); } catch(e){}
       programarSubida();
     }
@@ -2974,14 +2974,22 @@ async function pantallaEncendida(on){
 function abrirModo(){
   const g = modoGuardado();
   MODO = g && g.plan === S.plan && g.dia === S.dia ? g : {f:FECHA, plan:S.plan, dia:S.dia, i:-1, j:0, ini:Date.now()};
+  // El reloj no cuenta el tiempo que estuviste fuera del modo (saliste o se cerró la app)
+  const fuera = Date.now() - (MODO.ult || MODO.ini);
+  if(fuera > 60000) MODO.ini += fuera;
+  MODO.ult = Date.now();
   store.set('atlas.modo', MODO);
   $('#modo').hidden = false; document.body.classList.add('en-modo');
   history.pushState({modo:true}, '');
-  clearInterval(MODO_RELOJ); MODO_RELOJ = setInterval(() => { $('#modo-reloj').textContent = fmtDur(Date.now() - MODO.ini); }, 1000);
+  clearInterval(MODO_RELOJ); MODO_RELOJ = setInterval(() => {
+    $('#modo-reloj').textContent = fmtDur(Date.now() - MODO.ini);
+    MODO.ult = Date.now(); try{ localStorage.setItem('atlas.modo', JSON.stringify(MODO)); } catch(e){}   // última vez activo
+  }, 1000);
   pantallaEncendida(true); renderModo();
 }
 function cerrarModo(desdeAtras){
   if(!MODO) return;
+  MODO.ult = Date.now(); try{ localStorage.setItem('atlas.modo', JSON.stringify(MODO)); } catch(e){}
   $('#modo').hidden = true; document.body.classList.remove('en-modo');
   clearInterval(MODO_RELOJ); pantallaEncendida(false); MODO = null;
   if(!desdeAtras && history.state && history.state.modo) history.back();
@@ -3397,7 +3405,7 @@ function cuerpoHTML(){
 /* Nube: los datos se guardan en Supabase (proyecto de Finanzas-app, tabla gym_datos, una fila por usuario).
    Se entra con la misma cuenta de Finanzas. Se sincroniza al abrir la app, al volver a ella y unos segundos después de cada cambio. */
 const NUBE = {url:'https://myrisuhmuhiavpqeinku.supabase.co', key:'sb_publishable_mBRtNw5YQ6denBYIq7Et8Q_blmvkaBZ'};
-const NO_SYNC = new Set(['atlas.sesion', 'atlas.modificado', 'atlas.nube']);   // propias de cada dispositivo
+const NO_SYNC = new Set(['atlas.sesion', 'atlas.modificado', 'atlas.nube', 'atlas.modo']);   // propias de cada dispositivo
 let SUBIDA = 0, SINC_EN_CURSO = null, ULT_TRAIDA = 0;
 const sesion = () => store.get('atlas.sesion', null);
 const guardarSesion = j => store.set('atlas.sesion', {access:j.access_token, refresh:j.refresh_token, exp:Date.now() + j.expires_in * 1000, email:j.user.email, uid:j.user.id});
