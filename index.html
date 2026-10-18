@@ -184,8 +184,28 @@ svg.fig.off{display:none}
 .warm li{margin:5px 0}
 .warm li::marker{color:var(--muted);font-weight:600}
 .exlist{list-style:none;counter-reset:ex;margin:0;padding:0;border-top:1px solid var(--line)}
-.exlist li{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);counter-increment:ex}
-.exlist li::before{content:counter(ex);font:700 17px/1 var(--display);color:var(--muted);width:18px;flex:none}
+.exlist li{padding:12px 0;border-bottom:1px solid var(--line);counter-increment:ex}
+.exlist .row{display:flex;align-items:center;gap:12px}
+.exlist .row::before{content:counter(ex);font:700 17px/1 var(--display);color:var(--muted);width:18px;flex:none}
+/* Registro de series */
+.ex-last,.ex-sug{margin:8px 0 0 30px;font-size:13px;line-height:1.35;color:var(--muted)}
+.ex-last b{color:var(--ink);font-weight:600}
+.ex-sug{color:var(--green);font-weight:600}
+.log{margin:8px 0 0 30px}
+.log,.log *{box-sizing:border-box}
+.log summary{display:flex;width:fit-content;align-items:center;gap:8px;list-style:none;cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 13px;font:600 14px/1 var(--text);min-height:36px}
+.log summary::-webkit-details-marker{display:none}
+.log .cnt{color:var(--muted);font-weight:500}
+.log .cnt.full{color:var(--green);font-weight:700}
+.sets{display:grid;gap:6px;margin-top:10px}
+.set{display:flex;align-items:center;gap:6px}
+.set .i{width:16px;flex:none;font:700 15px/1 var(--display);color:var(--muted)}
+.set input{width:66px;height:40px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:0 6px;font:600 16px var(--text);text-align:center}
+.set input::placeholder{color:var(--muted);font-weight:400}
+.set .u{font-size:13px;color:var(--muted)}
+.set .ok{appearance:none;margin-left:auto;width:40px;height:40px;flex:none;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);font:700 17px/1 var(--text);cursor:pointer}
+.set .ok[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:#fff}
+.set.done input{border-color:var(--green)}
 .exlist .n{flex:1;font-weight:500;min-width:0}
 .exlist .s{text-align:right;white-space:nowrap}
 .exlist .s b{display:block;font:800 28px/1 var(--display)}
@@ -2176,6 +2196,68 @@ function renderMusculos(){
 function renderArt(){ $('#lista-art').innerHTML = J.map(j => rowJ(j)).join(''); }
 function syncObj(){ $$('[data-obj]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.obj === S.obj))); }
 
+/* Registro de series: atlas.log = { 'Press de banca': [{f:'2026-10-18', s:[{kg:60, r:8, ok:true}]}] } */
+const LOG = store.get('atlas.log', {});
+const pad2 = n => String(n).padStart(2, '0');
+const FECHA = (d => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`)(new Date());
+const numero = v => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) && n >= 0 ? n : null; };
+const fmtNum = n => n.toLocaleString('es-AR', {maximumFractionDigits:2});
+const fmtFecha = f => new Date(f + 'T12:00').toLocaleDateString('es-AR', {day:'numeric', month:'short'});
+const nSeries = esq => parseInt(esq, 10) || 3;
+const enSegundos = esq => /\bs$/.test(esq.trim());
+function repsTope(esq){ const m = esq.match(/×\s*(\d+)(?:–(\d+))?$/); return m ? Number(m[2] || m[1]) : 0; }
+const deHoy = nombre => (LOG[nombre] || []).find(x => x.f === FECHA);
+const anterior = nombre => (LOG[nombre] || []).filter(x => x.f < FECHA && x.s.some(s => s.r != null)).pop();
+function resumen(reg, seg){
+  // Agrupa series seguidas con el mismo peso: "50 kg × 6, 6 · 47,5 kg × 5, 4"
+  const u = seg ? ' s' : '', grupos = [];
+  reg.s.filter(x => x.r != null).forEach(x => {
+    const g = grupos[grupos.length-1];
+    if(g && g.kg === x.kg) g.r.push(x.r); else grupos.push({kg:x.kg, r:[x.r]});
+  });
+  return grupos.map(g => (g.kg ? `${fmtNum(g.kg)} kg × ` : '') + g.r.join(', ') + (g.kg ? u : (u || ' reps'))).join(' · ');
+}
+// Si la vez pasada completó todas las series en el tope de repeticiones, sugerir subir el peso
+function sugerencia(esq, prev){
+  const tope = repsTope(esq), s = prev ? prev.s.filter(x => x.r != null) : [];
+  if(!tope || s.length < nSeries(esq) || !s.every(x => x.kg && x.r >= tope)) return null;
+  const kg = Math.max(...s.map(x => x.kg));
+  return kg + (kg < 20 ? 1 : 2.5);
+}
+function logHTML(e, k){
+  const [nombre, esq] = e, seg = enSegundos(esq), n = nSeries(esq);
+  const prev = anterior(nombre), hoy = deHoy(nombre), sug = sugerencia(esq, prev);
+  const filas = Array.from({length:n}, (_, i) => {
+    const h = (hoy && hoy.s[i]) || {}, p = (prev && prev.s[i]) || {};
+    const phKg = sug != null ? fmtNum(sug) : (p.kg ? fmtNum(p.kg) : '');
+    const phR = p.r != null ? p.r : (repsTope(esq) || (esq.match(/(\d+)\s*s$/) || [])[1] || '');
+    return `<div class="set${h.ok?' done':''}" data-i="${i}"><span class="i">${i+1}</span>
+      <input class="kg" inputmode="decimal" aria-label="Serie ${i+1}: kilos" placeholder="${phKg || 'kg'}" value="${h.kg != null ? fmtNum(h.kg) : ''}"><span class="u">kg ×</span>
+      <input class="rp" inputmode="numeric" aria-label="Serie ${i+1}: ${seg?'segundos':'repeticiones'}" placeholder="${phR}" value="${h.r != null ? h.r : ''}"><span class="u">${seg?'s':'reps'}</span>
+      <button class="ok" aria-pressed="${!!h.ok}" aria-label="Serie ${i+1} hecha">✓</button></div>`;
+  }).join('');
+  const hechas = hoy ? hoy.s.filter(x => x.ok).length : 0;
+  return (prev ? `<p class="ex-last">La vez pasada · ${fmtFecha(prev.f)}: <b>${resumen(prev, seg)}</b></p>` : '') +
+    (sug != null ? `<p class="ex-sug">Completaste todo: probá con ${fmtNum(sug)} kg</p>` : '') +
+    `<details class="log" data-k="${k}"${hoy ? ' open' : ''}><summary>Anotar series <span class="cnt${hechas>=n?' full':''}">${hechas}/${n}</span></summary><div class="sets">${filas}</div></details>`;
+}
+function guardarSerie(det){
+  const nombre = diaDe(S.plan, S.dia).ej[Number(det.dataset.k)][0];
+  const s = Array.from(det.querySelectorAll('.set'), f => {
+    const kg = numero(f.querySelector('.kg').value), r = numero(f.querySelector('.rp').value), o = {};
+    if(kg != null) o.kg = kg;
+    if(r != null) o.r = r;
+    if(f.querySelector('.ok').getAttribute('aria-pressed') === 'true') o.ok = true;
+    return o;
+  });
+  const lista = (LOG[nombre] || []).filter(x => x.f !== FECHA);
+  if(s.some(x => Object.keys(x).length)) lista.push({f: FECHA, s});
+  if(lista.length) LOG[nombre] = lista; else delete LOG[nombre];
+  store.set('atlas.log', LOG);
+  const hechas = s.filter(x => x.ok).length, cnt = det.querySelector('.cnt');
+  cnt.textContent = `${hechas}/${s.length}`; cnt.classList.toggle('full', hechas >= s.length);
+}
+
 /* Semana */
 function renderHoyBtn(){
   const d = diaDe(S.plan, HOY);
@@ -2205,7 +2287,7 @@ function renderPlan(){
       <h3 class="h3">Calentamiento</h3>
       <ol class="warm">${CAL[d.cal].map(x=>`<li>${x}</li>`).join('')}</ol>
       <h3 class="h3">Ejercicios</h3>
-      <ol class="exlist">${d.ej.map(e => `<li><span class="n">${e[0]}<span class="acts">${demoBtn(e[0], 'sm', 'Ver')}${vid(e[0] + ' técnica', 'Video', 'sm')}</span></span><span class="s"><b>${e[1]}</b>${e[2]?`<small>${e[2]}</small>`:''}</span></li>`).join('')}</ol>`;
+      <ol class="exlist">${d.ej.map((e, k) => `<li><div class="row"><span class="n">${e[0]}<span class="acts">${demoBtn(e[0], 'sm', 'Ver')}${vid(e[0] + ' técnica', 'Video', 'sm')}</span></span><span class="s"><b>${e[1]}</b>${e[2]?`<small>${e[2]}</small>`:''}</span></div>${logHTML(e, k)}</li>`).join('')}</ol>`;
   }
   renderHoyBtn();
 }
@@ -2468,6 +2550,15 @@ $('#sheet-close').addEventListener('click', closeSheet);
 scrim.addEventListener('click', closeSheet);
 $('#sheet-back').addEventListener('click', () => { S.stack.pop(); renderSheet(); });
 $('#ir-hoy').addEventListener('click', () => { S.dia = HOY; renderPlan(); });
+$('#day').addEventListener('input', e => { const det = e.target.closest('.log'); if(det) guardarSerie(det); });
+$('#day').addEventListener('click', e => {
+  const ok = e.target.closest('.set .ok'); if(!ok) return;
+  const fila = ok.closest('.set'), hecha = ok.getAttribute('aria-pressed') !== 'true';
+  // Al marcar una serie vacía, se completa con lo sugerido (la vez pasada o el objetivo)
+  if(hecha) fila.querySelectorAll('input').forEach(i => { if(!i.value && /\d/.test(i.placeholder)) i.value = i.placeholder; });
+  ok.setAttribute('aria-pressed', String(hecha)); fila.classList.toggle('done', hecha);
+  guardarSerie(ok.closest('.log'));
+});
 $('#hoy-btn').addEventListener('click', () => {
   S.dia = HOY; renderPlan(); setTab('semana');
   window.scrollTo({top:0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
