@@ -270,6 +270,12 @@ body.en-modo{overflow:hidden}
 .modo-ok{appearance:none;border:0;border-radius:14px;background:var(--green);color:#fff;font:800 22px/1 var(--display);padding:16px 18px;min-height:56px;cursor:pointer}
 .modo-serie .modo-ok{width:100%;margin-top:14px}
 .modo-ayuda{margin:8px 0 0;font-size:13px;color:var(--muted)}
+.modo-desc{display:flex;flex-direction:column;align-items:center;gap:2px;margin:14px 0 4px;padding:14px;border-radius:16px;background:var(--ink);color:var(--bg);text-align:center}
+.modo-desc[hidden]{display:none}
+.modo-desc span{font-size:14px;opacity:.8}
+.modo-desc b{font:800 56px/1 var(--display);font-variant-numeric:tabular-nums}
+.modo-desc small{font-size:13px;opacity:.8}
+.modo-desc.fin{background:var(--green);color:#fff}
 .modo-fin-ej{margin:16px 0 10px;padding:14px 16px;border-radius:14px;background:var(--surface);border-left:4px solid var(--green);font-size:15px}
 .modo-chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 14px}
 .mchip-s{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:7px 12px;font:600 14px/1 var(--text);cursor:pointer;min-height:36px}
@@ -3030,6 +3036,7 @@ function renderModo(){
     <p class="modo-sub"><b>${esq}</b>${nota ? ` ${nota}` : ''} · descanso ${fmtDur(descansoDe(esq) * 1000)}</p>
     <div class="acts">${demoBtn(nombre, 'sm', 'Ver cómo se hace')}</div>
     <div class="modo-rec">${recHTML(esq, prev, s)}${prev ? `<p class="ex-last">La vez pasada · ${fmtFecha(prev.f)}: <b>${resumen(prev, seg)}</b></p>` : ''}</div>
+    <div class="modo-desc" id="modo-desc"${REST.id ? '' : ' hidden'}><span>Descansá</span><b id="modo-desc-t">${$('#rest-t').textContent}</b><small>${j >= 0 ? `Después: serie ${j + 1} de ${s.length}` : 'Después: siguiente ejercicio'}</small></div>
     ${j >= 0 ? `<div class="modo-serie">
       <p class="modo-sn">Serie ${j + 1} de ${s.length}</p>
       <div class="modo-in">
@@ -3115,6 +3122,7 @@ function iniciarDescanso(seg, lbl = 'Descanso'){
 function tickDescanso(){
   const q = Math.max(0, Math.ceil((REST.fin - Date.now()) / 1000));
   $('#rest-t').textContent = `${Math.floor(q / 60)}:${pad2(q % 60)}`;
+  const md = document.getElementById('modo-desc'); if(md){ md.hidden = false; md.classList.remove('fin'); $('#modo-desc-t').textContent = $('#rest-t').textContent; }
   $('#rest-bar').style.transform = `scaleX(${REST.total ? Math.min(1, q / REST.total) : 0})`;
   if(q === 0) finDescanso();
 }
@@ -3129,12 +3137,14 @@ function pitido(){
 function finDescanso(){
   clearInterval(REST.id); REST.id = 0;
   $('#rest').classList.add('fin'); $('#rest-lbl').textContent = REST.lbl === 'Descanso' ? '¡A la próxima serie!' : '¡Listo! Seguí con el paso siguiente';
+  const md = document.getElementById('modo-desc'); if(md){ md.classList.add('fin'); md.querySelector('span').textContent = '¡A la próxima serie!'; }
   try{ if(navigator.vibrate) navigator.vibrate([250, 120, 250]); } catch(e){}
   pitido();
   setTimeout(() => { if(!REST.id) cerrarDescanso(); }, 5000);
 }
 function cerrarDescanso(){
   clearInterval(REST.id); REST.id = 0;
+  const md = document.getElementById('modo-desc'); if(md) md.hidden = true;
   $('#rest').hidden = true; document.body.classList.remove('con-descanso');
 }
 
