@@ -241,6 +241,48 @@ svg.fig.off{display:none}
 .linea .eje{stroke:var(--line);stroke-width:1}
 .linea text{fill:var(--muted);font:500 11px var(--text)}
 .seg[hidden]{display:none}
+/* Modo entrenamiento */
+.modo-start{appearance:none;display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;margin:14px 0 0;padding:14px 16px;border:0;border-radius:14px;background:var(--green);color:#fff;font:800 24px/1.05 var(--display);text-align:left;cursor:pointer}
+.modo-start small{font:500 13px/1.3 var(--text);opacity:.92}
+.modo{position:fixed;inset:0;z-index:18;background:var(--bg);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+.modo[hidden]{display:none}
+body.en-modo{overflow:hidden}
+.modo-top{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);max-width:720px;width:100%;margin:0 auto;box-sizing:border-box}
+.modo-tit{flex:1;min-width:0}
+.modo-tit b{display:block;font:800 22px/1 var(--display)}
+.modo-tit small{color:var(--muted);font-size:13px}
+.modo-reloj{font:700 18px/1 var(--display);font-variant-numeric:tabular-nums;color:var(--muted)}
+.modo-barra{height:4px;background:var(--sunk)}
+.modo-barra span{display:block;height:100%;width:0;background:var(--green);transition:width .3s}
+.modo-body{flex:1;overflow-y:auto;padding:16px 16px 120px;max-width:720px;width:100%;margin:0 auto;box-sizing:border-box}
+.modo-ej{font:800 clamp(34px,10vw,52px)/.95 var(--display);margin:4px 0 8px}
+.modo-sub{color:var(--muted);margin:0 0 10px;font-size:15px}
+.modo-sub b{color:var(--ink)}
+.modo-rec .ex-rec,.modo-rec .ex-last{margin-left:0}
+.modo-rec{margin:6px 0 4px}
+.modo-serie{margin:16px 0 10px;padding:16px;border-radius:16px;background:var(--surface);border:1px solid var(--line)}
+.modo-sn{margin:0 0 10px;font:800 26px/1 var(--display)}
+.modo-in{display:flex;align-items:center;gap:10px}
+.modo-in label{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:14px}
+.modo-in input{width:100px;height:60px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;font:700 28px var(--text);text-align:center;padding:0 6px;box-sizing:border-box}
+.modo-in input::placeholder{color:var(--muted);font-weight:500}
+.modo-x{font:700 24px/1 var(--display);color:var(--muted)}
+.modo-ok{appearance:none;border:0;border-radius:14px;background:var(--green);color:#fff;font:800 22px/1 var(--display);padding:16px 18px;min-height:56px;cursor:pointer}
+.modo-serie .modo-ok{width:100%;margin-top:14px}
+.modo-ayuda{margin:8px 0 0;font-size:13px;color:var(--muted)}
+.modo-fin-ej{margin:16px 0 10px;padding:14px 16px;border-radius:14px;background:var(--surface);border-left:4px solid var(--green);font-size:15px}
+.modo-chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 14px}
+.mchip-s{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:7px 12px;font:600 14px/1 var(--text);cursor:pointer;min-height:36px}
+.mchip-s.ok{background:var(--green);border-color:var(--green);color:#fff}
+.mchip-s.cur{outline:2px solid var(--ink);outline-offset:1px}
+.mchip-s.mas{color:var(--muted);border-style:dashed}
+.modo-nav{display:flex;justify-content:space-between;gap:10px;margin-top:18px}
+.modo-nav > *{flex:1}
+.modo-nav .plain{min-height:52px;border-radius:14px}
+.modo-recs{padding-left:20px;margin:0 0 12px}
+.modo-recs li{margin:6px 0}
+.modo .stats{margin-bottom:12px}
+.modo .stat b{font-size:28px}
 /* Bloques y entrenador */
 .bloque{margin:12px 0 0;padding:10px 14px;border-radius:12px;background:var(--surface);border-left:4px solid var(--ink);font-size:14px;line-height:1.4}
 .bloque.descarga{border-left-color:var(--yellow)}
@@ -306,7 +348,7 @@ svg.fig.off{display:none}
 .more-pop button{width:100%;justify-content:flex-start;text-align:left}
 .back{margin-bottom:14px}
 /* Temporizador de descanso */
-.rest{position:fixed;left:0;right:0;bottom:0;z-index:15;background:var(--ink);color:var(--bg);padding-bottom:env(safe-area-inset-bottom,0px);box-shadow:var(--shadow)}
+.rest{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--ink);color:var(--bg);padding-bottom:env(safe-area-inset-bottom,0px);box-shadow:var(--shadow)}
 .rest[hidden]{display:none}
 .rest-in{max-width:980px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:8px}
 .rest-main{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
@@ -615,6 +657,16 @@ body.con-descanso .foot{padding-bottom:84px}
 
   <p class="foot">Información general para entrenar. Si tenés dolor, una lesión o una condición médica, que te evalúe un traumatólogo o kinesiólogo antes de seguir.</p>
 </main>
+
+<div class="modo" id="modo" role="dialog" aria-modal="true" aria-labelledby="modo-dia" hidden>
+  <div class="modo-top">
+    <button class="plain" id="modo-salir">Salir</button>
+    <div class="modo-tit"><b id="modo-dia"></b><small id="modo-prog"></small></div>
+    <span class="modo-reloj" id="modo-reloj" aria-label="Tiempo de entrenamiento"></span>
+  </div>
+  <div class="modo-barra"><span id="modo-barra"></span></div>
+  <div class="modo-body" id="modo-body"></div>
+</div>
 
 <div class="rest" id="rest" role="timer" aria-live="off" hidden>
   <div class="rest-in">
@@ -2794,6 +2846,13 @@ function logHTML(e, k){
     (!B.descarga && estancado(nombre) ? `<p class="ex-alerta"><b>Sin progreso en 3 sesiones.</b> Bajá ~10% el peso y volvé a subir de a poco, o probá otra variante con “⇄ Cambiar”. Revisá también descanso y sueño.</p>` : '') +
     `<details class="log" data-k="${k}"${hoy || S.dia === HOY || S.entrenar ? ' open' : ''}><summary>Anotar series <span class="cnt${hechas>=n?' full':''}">${hechas}/${n}</span></summary><div class="sets">${filas}</div></details>`;
 }
+// Guarda las series de hoy de un ejercicio (s: [{kg, r, ok}, ...])
+function guardarRegistro(nombre, s){
+  const lista = (LOG[nombre] || []).filter(x => x.f !== FECHA);
+  if(s.some(x => Object.keys(x).length)) lista.push(bloque().descarga ? {f: FECHA, s, d: true} : {f: FECHA, s});
+  if(lista.length) LOG[nombre] = lista; else delete LOG[nombre];
+  store.set('atlas.log', LOG);
+}
 function guardarSerie(det){
   const nombre = ejerciciosDe(S.plan, S.dia)[Number(det.dataset.k)][0];
   const s = Array.from(det.querySelectorAll('.set'), f => {
@@ -2803,10 +2862,7 @@ function guardarSerie(det){
     if(f.querySelector('.ok').getAttribute('aria-pressed') === 'true') o.ok = true;
     return o;
   });
-  const lista = (LOG[nombre] || []).filter(x => x.f !== FECHA);
-  if(s.some(x => Object.keys(x).length)) lista.push(bloque().descarga ? {f: FECHA, s, d: true} : {f: FECHA, s});
-  if(lista.length) LOG[nombre] = lista; else delete LOG[nombre];
-  store.set('atlas.log', LOG);
+  guardarRegistro(nombre, s);
   const hechas = s.filter(x => x.ok).length, cnt = det.querySelector('.cnt');
   cnt.textContent = `${hechas}/${s.length}`; cnt.classList.toggle('full', hechas >= s.length);
   const esq = ejerciciosDe(S.plan, S.dia)[Number(det.dataset.k)][1], prev = anterior(nombre), r = recomendacion(esq, prev, s);
@@ -2838,6 +2894,114 @@ function swapHTML(e, k){
   if(!alts.length) return '';
   const op = (n, txt) => `<option value="${n}"${n === e[0] ? ' selected' : ''}>${txt || n}</option>`;
   return `<label class="swap">⇄ Cambiar<select data-swap="${k}" aria-label="Cambiar ${e[0]} por otro ejercicio">${op(orig, orig + ' (del plan)')}${alts.map(n => op(n)).join('')}</select></label>`;
+}
+
+/* Modo entrenamiento: un paso por vez. atlas.modo = {f, plan, dia, i, j, ini} (i: -1 calentamiento, N resumen; j: serie) */
+let MODO = null, MODO_RELOJ = 0, WAKE = null;
+const modoGuardado = () => { const m = store.get('atlas.modo', null); return m && m.f === FECHA && !m.fin ? m : null; };
+const fmtDur = ms => { const m = Math.floor(ms / 60000), sg = Math.floor(ms / 1000) % 60; return m >= 60 ? `${Math.floor(m / 60)} h ${pad2(m % 60)} min` : `${m}:${pad2(sg)}`; };
+const nSeriesModo = (nombre, esq) => nSeries(esq) + ((MODO && MODO.extra && MODO.extra[nombre]) || 0);
+const seriesHoy = (nombre, n) => { const h = deHoy(nombre), s = h ? h.s.map(x => Object.assign({}, x)) : []; while(s.length < n) s.push({}); return s.slice(0, Math.max(n, s.length)); };
+async function pantallaEncendida(on){
+  try{
+    if(on && 'wakeLock' in navigator && !WAKE){ WAKE = await navigator.wakeLock.request('screen'); WAKE.addEventListener('release', () => { WAKE = null; }); }
+    if(!on && WAKE){ await WAKE.release(); WAKE = null; }
+  } catch(e){}
+}
+function abrirModo(){
+  const g = modoGuardado();
+  MODO = g && g.plan === S.plan && g.dia === S.dia ? g : {f:FECHA, plan:S.plan, dia:S.dia, i:-1, j:0, ini:Date.now()};
+  store.set('atlas.modo', MODO);
+  $('#modo').hidden = false; document.body.classList.add('en-modo');
+  history.pushState({modo:true}, '');
+  clearInterval(MODO_RELOJ); MODO_RELOJ = setInterval(() => { $('#modo-reloj').textContent = fmtDur(Date.now() - MODO.ini); }, 1000);
+  pantallaEncendida(true); renderModo();
+}
+function cerrarModo(desdeAtras){
+  if(!MODO) return;
+  $('#modo').hidden = true; document.body.classList.remove('en-modo');
+  clearInterval(MODO_RELOJ); pantallaEncendida(false); MODO = null;
+  if(!desdeAtras && history.state && history.state.modo) history.back();
+  renderPlan();
+}
+function irModo(i, j = 0){
+  const N = ejerciciosDe(MODO.plan, MODO.dia).length;
+  MODO.i = Math.max(-1, Math.min(N, i)); MODO.j = j;
+  store.set('atlas.modo', MODO); renderModo(); $('#modo-body').scrollTop = 0;
+}
+function renderModo(){
+  const d = diaDe(MODO.plan, MODO.dia), ej = ejerciciosDe(MODO.plan, MODO.dia), N = ej.length, i = MODO.i;
+  $('#modo-dia').textContent = d.titulo;
+  $('#modo-prog').textContent = i < 0 ? 'Calentamiento' : i >= N ? 'Resumen' : `Ejercicio ${i + 1} de ${N}`;
+  $('#modo-reloj').textContent = fmtDur(Date.now() - MODO.ini);
+  $('#modo-barra').style.width = `${Math.max(0, Math.min(1, (i + 1) / (N + 1))) * 100}%`;
+  const body = $('#modo-body');
+  if(i < 0){
+    body.innerHTML = `<h2 class="modo-ej">Calentamiento</h2><p class="modo-sub">Unos 10 minutos para preparar el cuerpo. Marcá cada paso al terminarlo.</p>
+      <ol class="calent">${CAL[d.cal].map((x, k) => { const ok = calHecho(d.cal, k); return `<li class="${ok ? 'hecho' : ''}">
+        <div class="cal-top"><span class="cal-n">${k + 1}</span><span class="cal-t"><b>${x.t}</b><small>${x.d}</small></span>
+          <button class="ok cal-ok" data-cal="${d.cal}" data-i="${k}" aria-pressed="${ok}" aria-label="${x.t}: hecho">✓</button></div>
+        <p class="cal-como">${x.como}</p>
+        ${x.demo || x.min ? `<div class="acts">${x.demo ? demoBtn(x.demo, 'sm', 'Ver cómo se hace') : ''}${x.min ? `<button class="plain sm-btn" data-cal-min="${x.min}" data-cal-t="${x.t}">Iniciar ${x.min} min</button>` : ''}</div>` : ''}</li>`; }).join('')}</ol>
+      <div class="modo-nav"><button class="plain" data-mir="0">Saltar calentamiento</button><button class="modo-ok" data-mir="0">Empezar ejercicios</button></div>`;
+    return;
+  }
+  if(i >= N){ body.innerHTML = resumenModo(ej); return; }
+  const [nombre, esq, nota] = ej[i], seg = enSegundos(esq), n = nSeriesModo(nombre, esq), prev = anterior(nombre);
+  const s = seriesHoy(nombre, n), hechas = s.filter(x => x.ok).length;
+  let j = MODO.j; if(j >= s.length || (s[j] && s[j].ok && MODO.auto !== false)) j = s.findIndex(x => !x.ok);
+  const rec = recomendacion(esq, prev, s), p = (prev && prev.s[Math.max(0, j)]) || {};
+  const phKg = rec ? fmtNum(rec.kg) : (p.kg ? fmtNum(p.kg) : ''), phR = p.r != null ? p.r : (repsTope(esq) || (esq.match(/(\d+)\s*s$/) || [])[1] || '');
+  const cur = j >= 0 ? s[j] : null;
+  body.innerHTML = `<h2 class="modo-ej">${nombre}</h2>
+    <p class="modo-sub"><b>${esq}</b>${nota ? ` ${nota}` : ''} · descanso ${fmtDur(descansoDe(esq) * 1000)}</p>
+    <div class="acts">${demoBtn(nombre, 'sm', 'Ver cómo se hace')}</div>
+    <div class="modo-rec">${recHTML(esq, prev, s)}${prev ? `<p class="ex-last">La vez pasada · ${fmtFecha(prev.f)}: <b>${resumen(prev, seg)}</b></p>` : ''}</div>
+    ${j >= 0 ? `<div class="modo-serie">
+      <p class="modo-sn">Serie ${j + 1} de ${s.length}</p>
+      <div class="modo-in">
+        <label><input id="m-kg" inputmode="decimal" placeholder="${phKg || '—'}" value="${cur.kg != null ? fmtNum(cur.kg) : ''}" aria-label="Kilos"><span>kg</span></label>
+        <span class="modo-x">×</span>
+        <label><input id="m-r" inputmode="numeric" placeholder="${phR}" value="${cur.r != null ? cur.r : ''}" aria-label="${seg ? 'Segundos' : 'Repeticiones'}"><span>${seg ? 'seg' : 'reps'}</span></label>
+      </div>
+      <button class="modo-ok" id="m-ok">✓ Serie hecha</button>
+      <p class="modo-ayuda">Si hiciste lo que está en gris, tocá directo el botón.</p>
+    </div>` : `<div class="modo-fin-ej"><b>¡Ejercicio completo!</b> ${hechas} series anotadas.</div>`}
+    <div class="modo-chips">${s.map((x, k) => `<button class="mchip-s${x.ok ? ' ok' : ''}${k === j ? ' cur' : ''}" data-mserie="${k}" aria-label="Serie ${k + 1}">${k + 1}: ${x.r != null ? `${x.kg ? fmtNum(x.kg) + '×' : ''}${x.r}` : '—'}</button>`).join('')}
+      <button class="mchip-s mas" data-mmas aria-label="Agregar una serie">+ serie</button></div>
+    <div class="modo-nav"><button class="plain" data-mir="${i - 1}">‹ Anterior</button>
+      <button class="${j < 0 ? 'modo-ok' : 'plain'}" data-mir="${i + 1}">${i + 1 >= N ? 'Terminar' : j < 0 ? 'Siguiente ejercicio ›' : 'Saltar ›'}</button></div>`;
+}
+function serieHecha(){
+  const ej = ejerciciosDe(MODO.plan, MODO.dia), [nombre, esq] = ej[MODO.i], n = nSeriesModo(nombre, esq), s = seriesHoy(nombre, n);
+  let j = MODO.j; if(j >= s.length || s[j].ok) j = s.findIndex(x => !x.ok);
+  if(j < 0) return;
+  const kgI = $('#m-kg'), rI = $('#m-r');
+  // Vacío = lo que está en gris (recomendado o la vez pasada)
+  const kg = numero(kgI.value || kgI.placeholder), r = numero(rI.value || rI.placeholder);
+  if(r == null){ rI.focus(); return; }
+  s[j] = Object.assign({}, kg != null ? {kg} : {}, {r, ok:true});
+  guardarRegistro(nombre, s);
+  MODO.j = j + 1; MODO.auto = true; store.set('atlas.modo', MODO);
+  iniciarDescanso(descansoDe(esq));
+  renderModo();
+}
+function resumenModo(ej){
+  const dur = Date.now() - MODO.ini;
+  let series = 0, volumen = 0; const recs = [];
+  ej.forEach(([nombre]) => {
+    const h = deHoy(nombre); if(!h) return;
+    const ok = h.s.filter(x => x.ok && x.r != null);
+    series += ok.length; ok.forEach(x => { volumen += (x.kg || 0) * x.r; });
+    const hoyMax = Math.max(0, ...ok.filter(x => x.kg).map(x => x.kg));
+    const antes = Math.max(0, ...(LOG[nombre] || []).filter(x => x.f < FECHA).flatMap(x => x.s.filter(y => y.kg && y.r != null).map(y => y.kg)));
+    if(hoyMax && antes && hoyMax > antes) recs.push(`${esc(nombre)}: <b>${fmtNum(hoyMax)} kg</b> (antes ${fmtNum(antes)})`);
+  });
+  return `<h2 class="modo-ej">¡Entrenamiento terminado!</h2>
+    <div class="stats"><div class="stat"><b>${dur < 3600000 ? `${Math.max(1, Math.round(dur / 60000))} min` : fmtDur(dur)}</b><span>de entrenamiento</span></div><div class="stat"><b>${series}</b><span>series hechas</span></div><div class="stat"><b>${volumen ? fmtNum(Math.round(volumen)) : '—'}</b><span>kg levantados en total</span></div></div>
+    ${recs.length ? `<h3 class="h3">Récords de hoy</h3><ul class="modo-recs">${recs.map(r => `<li>${r}</li>`).join('')}</ul>` : `<p class="modo-sub">La constancia es lo que más hace progresar. ¡Bien ahí!</p>`}
+    <p class="modo-sub">Estirá 5 minutos los músculos que trabajaste y tomá agua.</p>
+    <div class="modo-nav"><button class="plain" data-mir="${ej.length - 1}">‹ Volver</button><button class="modo-ok" data-mterminar>Listo</button></div>`;
 }
 
 /* Calentamiento: pasos hechos hoy. atlas.cal = {f:'2026-10-18', hechos:['torso-0', ...]} */
@@ -3134,7 +3298,9 @@ function renderPlan(){
     const bq = B.descarga
       ? `<p class="bloque descarga"><b>Semana liviana (5 de 5).</b> Hacé la mitad de las series con un poco menos de peso. Sirve para recuperarte; la semana que viene arranca una etapa nueva.</p>`
       : `<p class="bloque"><b>Semana ${B.sem} de ${SEMANAS_BLOQUE}${B.n > 1 ? ` · etapa ${B.n}` : ''}.</b> Esta semana: ${RIR[B.sem - 1]}.</p>`;
-    $('#day').innerHTML = `${when}<h2 class="day-title">${d.titulo}</h2><p class="day-sub">${d.sub}</p>${bq}
+    const enCurso = modoGuardado();
+    const btnModo = `<button class="modo-start" data-modo>${enCurso && enCurso.dia === S.dia ? 'Seguir entrenamiento' : 'Empezar entrenamiento'}<small>Un ejercicio por vez, con el peso y el descanso</small></button>`;
+    $('#day').innerHTML = `${when}<h2 class="day-title">${d.titulo}</h2><p class="day-sub">${d.sub}</p>${bq}${btnModo}
       <details class="plegable" id="cal"${S.calAbierto ? ' open' : ''}><summary>Calentamiento <small id="cal-cnt">${calHechos(d.cal)} de ${CAL[d.cal].length} hechos</small></summary>
         <p class="cal-intro">Unos 10 minutos. Hacelo en este orden y marcá cada paso al terminarlo.</p>
         <ol class="calent">${CAL[d.cal].map((x, i) => { const ok = calHecho(d.cal, i); return `<li class="${ok ? 'hecho' : ''}">
@@ -3516,6 +3682,29 @@ $('#rest-menos').addEventListener('click', () => { REST.fin -= 15000; tickDescan
 $('#rest-mas').addEventListener('click', () => { if(!REST.id) return iniciarDescanso(15); REST.fin += 15000; REST.total += 15; tickDescanso(); });
 $('#rest-saltar').addEventListener('click', cerrarDescanso);
 $('#exportar').addEventListener('click', exportar);
+$('#modo-salir').addEventListener('click', () => cerrarModo(false));
+window.addEventListener('popstate', () => { if(MODO) cerrarModo(true); });
+document.addEventListener('visibilitychange', () => { if(MODO && document.visibilityState === 'visible') pantallaEncendida(true); });
+$('#modo-body').addEventListener('click', e => {
+  const co = e.target.closest('.cal-ok');
+  if(co){ marcarCal(co.dataset.cal, Number(co.dataset.i)); renderModo(); return; }
+  const cm = e.target.closest('[data-cal-min]');
+  if(cm){ iniciarDescanso(Number(cm.dataset.calMin) * 60, cm.dataset.calT); return; }
+  if(e.target.closest('#m-ok')){ serieHecha(); return; }
+  const ir = e.target.closest('[data-mir]');
+  if(ir){ irModo(Number(ir.dataset.mir)); return; }
+  const ms = e.target.closest('[data-mserie]');
+  if(ms){ MODO.j = Number(ms.dataset.mserie); MODO.auto = false; renderModo(); return; }
+  if(e.target.closest('[data-mmas]')){
+    // Serie de más: se suma al ejercicio actual y queda seleccionada para anotarla
+    const [nombre, esq] = ejerciciosDe(MODO.plan, MODO.dia)[MODO.i];
+    MODO.extra = Object.assign({}, MODO.extra, {[nombre]:((MODO.extra || {})[nombre] || 0) + 1});
+    MODO.j = seriesHoy(nombre, nSeriesModo(nombre, esq)).length - 1; MODO.auto = false;
+    store.set('atlas.modo', MODO); renderModo(); return;
+  }
+  if(e.target.closest('[data-mterminar]')){ const m = store.get('atlas.modo', {}); m.fin = true; store.set('atlas.modo', m); cerrarModo(false); }
+});
+$('#modo-body').addEventListener('keydown', e => { if(e.key === 'Enter' && (e.target.id === 'm-kg' || e.target.id === 'm-r')){ e.preventDefault(); serieHecha(); } });
 $('#day').addEventListener('toggle', e => { if(e.target.id === 'cal') S.calAbierto = e.target.open; }, true);
 $('#entrenador').addEventListener('toggle', e => { S.coach = e.target.open; }, true);
 $('#perfil-btn').addEventListener('click', () => { setTab('perfil'); window.scrollTo({top:0}); });
@@ -3543,6 +3732,7 @@ $('#volver-musc').addEventListener('click', () => setTab('musculos'));
 document.addEventListener('click', e => { const m = $('#more'); if(m.open && !m.contains(e.target)) m.open = false; });
 $('#day').addEventListener('input', e => { const det = e.target.closest('.log'); if(det) guardarSerie(det); });
 $('#day').addEventListener('click', e => {
+  if(e.target.closest('[data-modo]')){ abrirModo(); return; }
   const co = e.target.closest('.cal-ok');
   if(co){
     marcarCal(co.dataset.cal, Number(co.dataset.i));
