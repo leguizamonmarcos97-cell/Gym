@@ -453,6 +453,9 @@ body.con-descanso .foot{padding-bottom:84px}
 .nube{margin-top:8px}
 .nube-ok p{margin:0 0 12px}
 .nube-ok span{font-size:14px;color:var(--muted)}
+.recor{margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
+.recor-h{display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)}
+.recor-h select{height:44px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:0 10px;font:400 16px var(--text)}
 .nube-form{display:flex;flex-wrap:wrap;gap:8px}
 .nube-form input{flex:1 1 180px;height:44px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:0 12px;font:400 16px var(--text)}
 .exlist .n{flex:1;font-weight:500;min-width:0}
@@ -2573,7 +2576,7 @@ const store = {
   set(k,v){
     try{ localStorage.setItem(k, JSON.stringify(v)); } catch(e){}
     // Un cambio de datos (no de la sesión) marca la hora y se sube a la nube en unos segundos
-    if(k.startsWith('atlas.') && !['atlas.sesion', 'atlas.modificado', 'atlas.nube', 'atlas.modo'].includes(k) && typeof programarSubida === 'function'){
+    if(k.startsWith('atlas.') && !['atlas.sesion', 'atlas.modificado', 'atlas.nube', 'atlas.modo', 'atlas.push'].includes(k) && typeof programarSubida === 'function'){
       try{ localStorage.setItem('atlas.modificado', String(Date.now())); } catch(e){}
       programarSubida();
     }
@@ -3478,7 +3481,7 @@ function cuerpoHTML(){
 /* Nube: los datos se guardan en Supabase (proyecto de Finanzas-app, tabla gym_datos, una fila por usuario).
    Se entra con la misma cuenta de Finanzas. Se sincroniza al abrir la app, al volver a ella y unos segundos después de cada cambio. */
 const NUBE = {url:'https://myrisuhmuhiavpqeinku.supabase.co', key:'sb_publishable_mBRtNw5YQ6denBYIq7Et8Q_blmvkaBZ'};
-const NO_SYNC = new Set(['atlas.sesion', 'atlas.modificado', 'atlas.nube', 'atlas.modo']);   // propias de cada dispositivo
+const NO_SYNC = new Set(['atlas.sesion', 'atlas.modificado', 'atlas.nube', 'atlas.modo', 'atlas.push']);   // propias de cada dispositivo
 let SUBIDA = 0, SINC_EN_CURSO = null, ULT_TRAIDA = 0;
 const sesion = () => store.get('atlas.sesion', null);
 const guardarSesion = j => store.set('atlas.sesion', {access:j.access_token, refresh:j.refresh_token, exp:Date.now() + j.expires_in * 1000, email:j.user.email, uid:j.user.id});
@@ -3585,7 +3588,63 @@ function renderNube(msg){
          <input type="email" name="email" autocomplete="username" placeholder="Email" value="${esc(NUBE.email || '')}" required>
          <input type="password" name="pass" autocomplete="current-password" placeholder="Contraseña" required>
          <button class="ghost" type="submit">Entrar</button>
-       </form>`) + (msg ? `<p class="bk-msg">${esc(msg)}</p>` : '');
+       </form>`) + (msg ? `<p class="bk-msg">${esc(msg)}</p>` : '') + (ss ? recorHTML() : '');
+}
+
+/* Recordatorios: notificación los días de entrenamiento (la manda el servidor a la hora elegida) */
+const VAPID = 'BHk-E_hl2KbZQSBv3SuLL7zZVyavLuhqyv6jG7ThviLzJUp2XDnOcxHLXOPSiZWJU5jGqDPw4tMnZ8SD1p20KUQ';
+const pushPosible = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+const esIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) && !matchMedia('(display-mode: standalone)').matches;
+let RECOR_MSG = '';
+function recorHTML(){
+  const pu = store.get('atlas.push', {}), hora = pu.hora == null ? 18 : pu.hora;
+  const horas = Array.from({length:18}, (_, i) => i + 6).map(h => `<option value="${h}"${h === hora ? ' selected' : ''}>${String(h).padStart(2, '0')}:00</option>`).join('');
+  let cuerpo;
+  if(!pushPosible()) cuerpo = `<p class="bk-txt">${esIOS() ? 'En iPhone primero agregá la app a la pantalla de inicio (Compartir → “Agregar a inicio”) y abrila desde ahí.' : 'Este navegador no permite notificaciones.'}</p>`;
+  else if(pu.on) cuerpo = `<p class="bk-txt"><b>Activados.</b> Los días que te toca entrenar te avisa a las <b>${String(hora).padStart(2, '0')}:00</b> (si ya entrenaste, no molesta). Si hace 3 días que no vas, te lo recuerda.</p>
+      <div class="bk-acts"><label class="recor-h">Hora <select id="recor-hora">${horas}</select></label><button class="ghost" id="recor-probar">Probar</button><button class="plain" id="recor-off">Desactivar</button></div>`;
+  else cuerpo = `<p class="bk-txt">Te avisa al celular los días que te toca: <i>“Hoy te toca Torso A”</i>. Y si hace 3 días que no entrenás, también.</p>
+      <div class="bk-acts"><label class="recor-h">Hora <select id="recor-hora">${horas}</select></label><button class="ghost" id="recor-on">Activar recordatorios</button></div>`;
+  return `<div class="recor"><h3 class="h3">Recordatorios</h3>${cuerpo}${RECOR_MSG ? `<p class="bk-msg">${esc(RECOR_MSG)}</p>` : ''}</div>`;
+}
+function avisoRecor(m){ RECOR_MSG = m; renderNube(); }
+const b64 = s => { const t = (s + '='.repeat((4 - s.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/'), r = atob(t); return Uint8Array.from(r, c => c.charCodeAt(0)); };
+async function guardarSub(sub, hora){
+  const j = sub.toJSON(), ss = sesion();
+  await rest('gym_push', {method:'POST', headers:{Prefer:'resolution=merge-duplicates,return=minimal'}, body:JSON.stringify({endpoint:j.endpoint, user_id:ss.uid, p256dh:j.keys.p256dh, auth:j.keys.auth, hora, tz:Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Argentina/Buenos_Aires', activo:true})});
+}
+async function activarRecor(){
+  const hora = Number($('#recor-hora').value);
+  avisoRecor('Activando…');
+  try{
+    if(await Notification.requestPermission() !== 'granted') return avisoRecor('No diste permiso para notificaciones. Activalo en los ajustes del navegador para esta página y probá de nuevo.');
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription() || await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64(VAPID)});
+    await guardarSub(sub, hora);
+    store.set('atlas.push', {on:true, hora});
+    avisoRecor('¡Listo! Tocá “Probar” para ver cómo llega.');
+  } catch(e){ avisoRecor('No se pudo activar. Revisá tu internet y probá de nuevo.'); }
+}
+async function cambiarHoraRecor(hora){
+  store.set('atlas.push', Object.assign({}, store.get('atlas.push', {}), {hora}));
+  try{ const sub = await (await navigator.serviceWorker.ready).pushManager.getSubscription(); if(sub) await guardarSub(sub, hora); avisoRecor(`Hora cambiada a las ${String(hora).padStart(2, '0')}:00.`); }
+  catch(e){ avisoRecor('No se pudo guardar la hora. Revisá tu internet.'); }
+}
+async function probarRecor(){
+  avisoRecor('Mandando…');
+  try{
+    const r = await fetch(`${NUBE.url}/functions/v1/gym-recordatorios`, {method:'POST', headers:{apikey:NUBE.key, Authorization:`Bearer ${await token()}`, 'Content-Type':'application/json'}, body:JSON.stringify({modo:'prueba'})});
+    const j = await r.json().catch(() => ({}));
+    avisoRecor(j.enviados ? 'Enviada. Te tiene que llegar en unos segundos.' : 'No llegó a ningún celular. Desactivá y volvé a activar.');
+  } catch(e){ avisoRecor('No se pudo mandar. Revisá tu internet.'); }
+}
+async function desactivarRecor(){
+  try{
+    const sub = await (await navigator.serviceWorker.ready).pushManager.getSubscription();
+    if(sub){ await rest(`gym_push?endpoint=eq.${encodeURIComponent(sub.endpoint)}`, {method:'DELETE'}).catch(() => {}); await sub.unsubscribe(); }
+  } catch(e){}
+  store.set('atlas.push', Object.assign({}, store.get('atlas.push', {}), {on:false}));
+  avisoRecor('Recordatorios desactivados.');
 }
 
 /* Copia de seguridad */
@@ -4082,7 +4141,11 @@ $('#nube').addEventListener('submit', e => { e.preventDefault(); const f = new F
 $('#nube').addEventListener('click', e => {
   if(e.target.closest('#nube-sinc')){ renderNube('Sincronizando…'); sincronizar(true); }
   if(e.target.closest('#nube-salir')) desconectar();
+  if(e.target.closest('#recor-on')) activarRecor();
+  if(e.target.closest('#recor-probar')) probarRecor();
+  if(e.target.closest('#recor-off')) desactivarRecor();
 });
+$('#nube').addEventListener('change', e => { if(e.target.id === 'recor-hora' && store.get('atlas.push', {}).on) cambiarHoraRecor(Number(e.target.value)); });
 window.addEventListener('online', () => sincronizar(false));
 document.addEventListener('visibilitychange', () => {
   if(document.visibilityState === 'visible' && Date.now() - ULT_TRAIDA > 60000) sincronizar(true);
@@ -4239,6 +4302,11 @@ renderPlan();
 if(!PERFIL && !store.get('atlas.perfilOmitido', false)) setTab('perfil');
 else if(!store.get('atlas.tour', false)) mostrarTour();
 if(sesion()) sincronizar(true);
+// Llegó desde la notificación: abrir directo el entrenamiento de hoy
+if(new URLSearchParams(location.search).has('empezar')){
+  history.replaceState(null, '', location.pathname);
+  if(!diaDe(S.plan, HOY).descanso){ setTab('semana'); S.dia = HOY; renderPlan(); abrirModo(); }
+}
 </script>
 </body>
 </html>
