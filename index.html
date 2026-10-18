@@ -994,6 +994,24 @@ const W = {
   sentadilla:{t:'Sentadilla sin peso', d:'2 × 10', demo:'Sentadilla sin peso', como:'Pies al ancho de los hombros. Bajá como sentándote en una silla, rodillas hacia afuera y pecho arriba. Lento, buscando bajar cada vez un poco más.'},
   aprox:{t:'Series de aproximación', d:'1–2 series', como:'Con el primer ejercicio del día: hacé 8 repeticiones con la mitad del peso que vas a usar y después 3 con tres cuartos. No te tienen que cansar: son para practicar el movimiento.'}
 };
+// Estiramientos para después de entrenar, según lo que trabajaste (seg: segundos para el temporizador)
+const E = {
+  pecho:{t:'Pecho en el marco de una puerta', d:'30 s por lado', seg:30, como:'Apoyá el antebrazo en el marco de una puerta, con el codo a la altura del hombro, y dá un paso adelante hasta sentir que se estira el pecho. Respirá lento.'},
+  dorsal:{t:'Dorsal con las manos en un banco', d:'30 s', seg:30, como:'Apoyá las manos en un banco o una barra baja, brazos estirados, y llevá la cadera hacia atrás dejando caer el pecho. Se estira la espalda ancha.'},
+  hombro:{t:'Hombro cruzado', d:'30 s por lado', seg:30, como:'Cruzá un brazo estirado por delante del pecho y apretalo suave con el otro antebrazo. Se estira la parte de atrás del hombro.'},
+  triceps:{t:'Tríceps detrás de la cabeza', d:'30 s por lado', seg:30, como:'Llevá una mano a la espalda por detrás de la cabeza y con la otra empujá suave el codo hacia abajo.'},
+  biceps:{t:'Bíceps contra la pared', d:'30 s por lado', seg:30, como:'Apoyá la palma en la pared con el brazo estirado hacia atrás y girá el cuerpo despacio hacia el otro lado.'},
+  cuad:{t:'Cuádriceps de pie', d:'30 s por lado', seg:30, como:'Agarrate el empeine y llevá el talón hacia la cola, con las rodillas juntas y la cola apretada. Si te cuesta el equilibrio, apoyate en la pared.'},
+  isquio:{t:'Parte de atrás del muslo', d:'30 s por lado', seg:30, como:'Apoyá el talón en un banco bajo con la pierna estirada e inclinate hacia adelante con la espalda recta, hasta sentir el estiramiento.'},
+  gluteo:{t:'Glúteo en forma de 4', d:'30 s por lado', seg:30, como:'Acostado boca arriba, apoyá un tobillo sobre la rodilla contraria y tirá del muslo de abajo hacia el pecho.'},
+  psoas:{t:'Flexor de cadera', d:'30 s por lado', seg:30, como:'Con una rodilla en el piso y la otra pierna adelante, apretá la cola y llevá la cadera hacia adelante. Se estira la parte de adelante de la cadera.'},
+  gemelo:{t:'Pantorrilla en la pared', d:'30 s por lado', seg:30, como:'Manos en la pared, una pierna atrás bien estirada y el talón apoyado en el piso. Inclinate hacia la pared.'}
+};
+const ESTIR = {
+  torso:[E.pecho, E.dorsal, E.hombro, E.triceps, E.biceps],
+  piernas:[E.cuad, E.isquio, E.gluteo, E.psoas, E.gemelo],
+  full:[E.cuad, E.isquio, E.gluteo, E.pecho, E.dorsal]
+};
 const CAL = {
   torso:[W.cardio, W.rotacion, W.facepull, W.aprox],
   piernas:[W.bici, W.pared, W.puente, W.lateral, W.sentadilla, W.aprox],
@@ -2939,27 +2957,29 @@ function cerrarModo(desdeAtras){
 }
 function irModo(i, j = 0){
   const N = ejerciciosDe(MODO.plan, MODO.dia).length;
-  MODO.i = Math.max(-1, Math.min(N, i)); MODO.j = j;
+  MODO.i = Math.max(-1, Math.min(N + 1, i)); MODO.j = j;
   store.set('atlas.modo', MODO); renderModo(); $('#modo-body').scrollTop = 0;
 }
 function renderModo(){
   const d = diaDe(MODO.plan, MODO.dia), ej = ejerciciosDe(MODO.plan, MODO.dia), N = ej.length, i = MODO.i;
   $('#modo-dia').textContent = d.titulo;
-  $('#modo-prog').textContent = i < 0 ? 'Calentamiento' : i >= N ? 'Resumen' : `Ejercicio ${i + 1} de ${N}`;
+  $('#modo-prog').textContent = i < 0 ? 'Calentamiento' : i === N ? 'Estiramientos' : i > N ? 'Resumen' : `Ejercicio ${i + 1} de ${N}`;
   $('#modo-reloj').textContent = fmtDur(Date.now() - MODO.ini);
-  $('#modo-barra').style.width = `${Math.max(0, Math.min(1, (i + 1) / (N + 1))) * 100}%`;
+  $('#modo-barra').style.width = `${Math.max(0, Math.min(1, (i + 1) / (N + 2))) * 100}%`;
   const body = $('#modo-body');
   if(i < 0){
     body.innerHTML = `<h2 class="modo-ej">Calentamiento</h2><p class="modo-sub">Unos 10 minutos para preparar el cuerpo. Marcá cada paso al terminarlo.</p>
-      <ol class="calent">${CAL[d.cal].map((x, k) => { const ok = calHecho(d.cal, k); return `<li class="${ok ? 'hecho' : ''}">
-        <div class="cal-top"><span class="cal-n">${k + 1}</span><span class="cal-t"><b>${x.t}</b><small>${x.d}</small></span>
-          <button class="ok cal-ok" data-cal="${d.cal}" data-i="${k}" aria-pressed="${ok}" aria-label="${x.t}: hecho">✓</button></div>
-        <p class="cal-como">${x.como}</p>
-        ${x.demo || x.min ? `<div class="acts">${x.demo ? demoBtn(x.demo, 'sm', 'Ver cómo se hace') : ''}${x.min ? `<button class="plain sm-btn" data-cal-min="${x.min}" data-cal-t="${x.t}">Iniciar ${x.min} min</button>` : ''}</div>` : ''}</li>`; }).join('')}</ol>
+      ${pasosHTML(d.cal)}
       <div class="modo-nav"><button class="plain" data-mir="0">Saltar calentamiento</button><button class="modo-ok" data-mir="0">Empezar ejercicios</button></div>`;
     return;
   }
-  if(i >= N){ body.innerHTML = resumenModo(ej); return; }
+  if(i === N){
+    body.innerHTML = `<h2 class="modo-ej">Estiramientos</h2><p class="modo-sub">5 minutos para soltar lo que trabajaste. Sin rebotar y sin dolor: solo tensión suave.</p>
+      ${pasosHTML('est-' + d.cal)}
+      <div class="modo-nav"><button class="plain" data-mir="${N + 1}">Saltar</button><button class="modo-ok" data-mir="${N + 1}">Terminar</button></div>`;
+    return;
+  }
+  if(i > N){ body.innerHTML = resumenModo(ej); return; }
   const [nombre, esq, nota] = ej[i], seg = enSegundos(esq), n = nSeriesModo(nombre, esq), prev = anterior(nombre);
   const s = seriesHoy(nombre, n), hechas = s.filter(x => x.ok).length;
   let j = MODO.j; if(j >= s.length || (s[j] && s[j].ok && MODO.auto !== false)) j = s.findIndex(x => !x.ok);
@@ -2983,7 +3003,7 @@ function renderModo(){
     <div class="modo-chips">${s.map((x, k) => `<button class="mchip-s${x.ok ? ' ok' : ''}${k === j ? ' cur' : ''}" data-mserie="${k}" aria-label="Serie ${k + 1}">${k + 1}: ${x.r != null ? `${x.kg ? fmtNum(x.kg) + '×' : ''}${x.r}` : '—'}</button>`).join('')}
       <button class="mchip-s mas" data-mmas aria-label="Agregar una serie">+ serie</button></div>
     <div class="modo-nav"><button class="plain" data-mir="${i - 1}">‹ Anterior</button>
-      <button class="${j < 0 ? 'modo-ok' : 'plain'}" data-mir="${i + 1}">${i + 1 >= N ? 'Terminar' : j < 0 ? 'Siguiente ejercicio ›' : 'Saltar ›'}</button></div>`;
+      <button class="${j < 0 ? 'modo-ok' : 'plain'}" data-mir="${i + 1}">${i + 1 >= N ? (j < 0 ? 'Estiramientos ›' : 'Saltar ›') : j < 0 ? 'Siguiente ejercicio ›' : 'Saltar ›'}</button></div>`;
 }
 function serieHecha(){
   const ej = ejerciciosDe(MODO.plan, MODO.dia), [nombre, esq] = ej[MODO.i], n = nSeriesModo(nombre, esq), s = seriesHoy(nombre, n);
@@ -3013,14 +3033,23 @@ function resumenModo(ej){
   return `<h2 class="modo-ej">¡Entrenamiento terminado!</h2>
     <div class="stats"><div class="stat"><b>${dur < 3600000 ? `${Math.max(1, Math.round(dur / 60000))} min` : fmtDur(dur)}</b><span>de entrenamiento</span></div><div class="stat"><b>${series}</b><span>series hechas</span></div><div class="stat"><b>${volumen ? fmtNum(Math.round(volumen)) : '—'}</b><span>kg levantados en total</span></div></div>
     ${recs.length ? `<h3 class="h3">Récords de hoy</h3><ul class="modo-recs">${recs.map(r => `<li>${r}</li>`).join('')}</ul>` : `<p class="modo-sub">La constancia es lo que más hace progresar. ¡Bien ahí!</p>`}
-    <p class="modo-sub">Estirá 5 minutos los músculos que trabajaste y tomá agua.</p>
-    <div class="modo-nav"><button class="plain" data-mir="${ej.length - 1}">‹ Volver</button><button class="modo-ok" data-mterminar>Listo</button></div>`;
+    <p class="modo-sub">Tomá agua y comé algo con proteína en las próximas horas.</p>
+    <div class="modo-nav"><button class="plain" data-mir="${ej.length}">‹ Volver</button><button class="modo-ok" data-mterminar>Listo</button></div>`;
 }
 
 /* Calentamiento: pasos hechos hoy. atlas.cal = {f:'2026-10-18', hechos:['torso-0', ...]} */
 function calEstado(){ const c = store.get('atlas.cal', {}); return c.f === FECHA ? c : {f:FECHA, hechos:[]}; }
 const calHecho = (cal, i) => calEstado().hechos.includes(`${cal}-${i}`);
-const calHechos = cal => CAL[cal].filter((_, i) => calHecho(cal, i)).length;
+const pasosDe = cal => cal.startsWith('est-') ? ESTIR[cal.slice(4)] : CAL[cal];
+const calHechos = cal => pasosDe(cal).filter((_, i) => calHecho(cal, i)).length;
+// Lista de pasos con explicación, ✓, animación o temporizador (sirve para calentamiento y estiramientos)
+function pasosHTML(cal){
+  return `<ol class="calent">${pasosDe(cal).map((x, i) => { const ok = calHecho(cal, i); return `<li class="${ok ? 'hecho' : ''}">
+    <div class="cal-top"><span class="cal-n">${i + 1}</span><span class="cal-t"><b>${x.t}</b><small>${x.d}</small></span>
+      <button class="ok cal-ok" data-cal="${cal}" data-i="${i}" aria-pressed="${ok}" aria-label="${x.t}: hecho">✓</button></div>
+    <p class="cal-como">${x.como}</p>
+    ${x.demo || x.min || x.seg ? `<div class="acts">${x.demo ? demoBtn(x.demo, 'sm', 'Ver cómo se hace') : ''}${x.min ? `<button class="plain sm-btn" data-cal-min="${x.min}" data-cal-t="${x.t}">Iniciar ${x.min} min</button>` : ''}${x.seg ? `<button class="plain sm-btn" data-cal-seg="${x.seg}" data-cal-t="${x.t}">Iniciar ${x.seg} s</button>` : ''}</div>` : ''}</li>`; }).join('')}</ol>`;
+}
 function marcarCal(cal, i){
   const c = calEstado(), k = `${cal}-${i}`;
   c.hechos = c.hechos.includes(k) ? c.hechos.filter(x => x !== k) : c.hechos.concat(k);
@@ -3420,17 +3449,15 @@ function renderPlan(){
     const enCurso = modoGuardado();
     const btnModo = `<button class="modo-start" data-modo>${enCurso && enCurso.dia === S.dia ? 'Seguir entrenamiento' : 'Empezar entrenamiento'}<small>Un ejercicio por vez, con el peso y el descanso</small></button>`;
     $('#day').innerHTML = `${when}<h2 class="day-title">${d.titulo}</h2><p class="day-sub">${d.sub}</p>${bq}${btnModo}
-      <details class="plegable" id="cal"${S.calAbierto ? ' open' : ''}><summary>Calentamiento <small id="cal-cnt">${calHechos(d.cal)} de ${CAL[d.cal].length} hechos</small></summary>
+      <details class="plegable" id="cal"${S.calAbierto ? ' open' : ''}><summary>Calentamiento <small class="paso-cnt">${calHechos(d.cal)} de ${CAL[d.cal].length} hechos</small></summary>
         <p class="cal-intro">Unos 10 minutos. Hacelo en este orden y marcá cada paso al terminarlo.</p>
-        <ol class="calent">${CAL[d.cal].map((x, i) => { const ok = calHecho(d.cal, i); return `<li class="${ok ? 'hecho' : ''}">
-          <div class="cal-top"><span class="cal-n">${i + 1}</span><span class="cal-t"><b>${x.t}</b><small>${x.d}</small></span>
-            <button class="ok cal-ok" data-cal="${d.cal}" data-i="${i}" aria-pressed="${ok}" aria-label="${x.t}: hecho">✓</button></div>
-          <p class="cal-como">${x.como}</p>
-          ${x.demo || x.min ? `<div class="acts">${x.demo ? demoBtn(x.demo, 'sm', 'Ver cómo se hace') : ''}${x.min ? `<button class="plain sm-btn" data-cal-min="${x.min}" data-cal-t="${x.t}">Iniciar ${x.min} min</button>` : ''}</div>` : ''}
-        </li>`; }).join('')}</ol></details>
+        ${pasosHTML(d.cal)}</details>
       <h3 class="h3">Ejercicios</h3>${nota}${ayuda}
       <ol class="exlist">${ejerciciosDe(S.plan, S.dia).map((e, k) => `<li><div class="row"><span class="n">${e[0]}${e[3]?`<small class="ex-orig">En lugar de ${e[3]}${e[4]?`, ${e[4]}`:''}</small>`:''}<span class="acts">${demoBtn(e[0], 'sm', 'Ver')}${vid(e[0] + ' técnica', 'Video', 'sm')}${swapHTML(e, k)}</span></span><span class="s"><b>${e[1]}</b>${e[2]?`<small>${e[2]}</small>`:''}</span></div>${logHTML(e, k)}</li>`).join('')}</ol>
       ${d.cardio ? `<p class="cardio"><b>Cardio.</b> ${d.cardio}</p>` : ''}
+      <details class="plegable" id="est"${S.estAbierto ? ' open' : ''}><summary>Estiramientos al terminar <small class="paso-cnt">${calHechos('est-' + d.cal)} de ${ESTIR[d.cal].length} hechos</small></summary>
+        <p class="cal-intro">5 minutos, sin rebotar y sin dolor: solo tensión suave.</p>
+        ${pasosHTML('est-' + d.cal)}</details>
       <details class="plegable"><summary>Músculos y articulaciones que trabajás</summary>
         <div class="chip-wrap">${d.mus.map(id => { const m = mBy(id); return `<button class="mchip" data-m="${id}" style="--c:${ZONAS[m.zona].c}">${m.nombre}</button>`; }).join('')}</div>
         <div class="chip-wrap" style="margin-top:8px">${d.art.map(id => `<button class="mchip jchip" data-j="${id}" style="--c:var(--green)">${jBy(id).nombre}</button>`).join('')}</div></details>`;
@@ -3819,6 +3846,8 @@ $('#modo-body').addEventListener('click', e => {
   if(co){ marcarCal(co.dataset.cal, Number(co.dataset.i)); renderModo(); return; }
   const cm = e.target.closest('[data-cal-min]');
   if(cm){ iniciarDescanso(Number(cm.dataset.calMin) * 60, cm.dataset.calT); return; }
+  const cs = e.target.closest('[data-cal-seg]');
+  if(cs){ iniciarDescanso(Number(cs.dataset.calSeg), cs.dataset.calT); return; }
   if(e.target.closest('#m-ok')){ serieHecha(); return; }
   const ir = e.target.closest('[data-mir]');
   if(ir){ irModo(Number(ir.dataset.mir)); return; }
@@ -3834,7 +3863,7 @@ $('#modo-body').addEventListener('click', e => {
   if(e.target.closest('[data-mterminar]')){ const m = store.get('atlas.modo', {}); m.fin = true; store.set('atlas.modo', m); cerrarModo(false); }
 });
 $('#modo-body').addEventListener('keydown', e => { if(e.key === 'Enter' && (e.target.id === 'm-kg' || e.target.id === 'm-r')){ e.preventDefault(); serieHecha(); } });
-$('#day').addEventListener('toggle', e => { if(e.target.id === 'cal') S.calAbierto = e.target.open; }, true);
+$('#day').addEventListener('toggle', e => { if(e.target.id === 'cal') S.calAbierto = e.target.open; if(e.target.id === 'est') S.estAbierto = e.target.open; }, true);
 $('#entrenador').addEventListener('toggle', e => { S.coach = e.target.open; }, true);
 $('#perfil-btn').addEventListener('click', () => { setTab('perfil'); window.scrollTo({top:0}); });
 document.addEventListener('click', e => { if(e.target.closest('[data-ir-perfil]')){ setTab('perfil'); window.scrollTo({top:0}); } });
@@ -3867,11 +3896,13 @@ $('#day').addEventListener('click', e => {
     marcarCal(co.dataset.cal, Number(co.dataset.i));
     const hecho = co.getAttribute('aria-pressed') !== 'true';
     co.setAttribute('aria-pressed', String(hecho)); co.closest('li').classList.toggle('hecho', hecho);
-    $('#cal-cnt').textContent = `${calHechos(co.dataset.cal)} de ${CAL[co.dataset.cal].length} hechos`;
+    co.closest('details').querySelector('.paso-cnt').textContent = `${calHechos(co.dataset.cal)} de ${pasosDe(co.dataset.cal).length} hechos`;
     return;
   }
   const cm = e.target.closest('[data-cal-min]');
   if(cm){ iniciarDescanso(Number(cm.dataset.calMin) * 60, cm.dataset.calT); return; }
+  const cs = e.target.closest('[data-cal-seg]');
+  if(cs){ iniciarDescanso(Number(cs.dataset.calSeg), cs.dataset.calT); return; }
   if(e.target.closest('#ayuda-ok')){ store.set('atlas.ayuda', true); $('#ayuda').remove(); return; }
   const ru = e.target.closest('[data-rutina]');
   if(ru){
