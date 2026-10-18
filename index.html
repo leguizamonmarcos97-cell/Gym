@@ -192,7 +192,7 @@ svg.fig.off{display:none}
 .ex-last b{color:var(--ink);font-weight:600}
 .ex-sug{color:var(--green);font-weight:600}
 .log{margin:8px 0 0 30px}
-.coach,.coach *,.pf,.pf *,.cuerpo-form *,.pp *,.log,.log *,.plegable,.plegable *,.igual,.igual *,.aviso *{box-sizing:border-box}
+.coach,.coach *,.calent,.calent *,.pf,.pf *,.cuerpo-form *,.pp *,.log,.log *,.plegable,.plegable *,.igual,.igual *,.aviso *{box-sizing:border-box}
 .log summary{display:flex;width:fit-content;align-items:center;gap:8px;list-style:none;cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 13px;font:600 14px/1 var(--text);min-height:36px}
 .log summary::-webkit-details-marker{display:none}
 .log .cnt{color:var(--muted);font-weight:500}
@@ -260,6 +260,21 @@ svg.fig.off{display:none}
 .plegable[open] summary::after{transform:translateY(2px) rotate(-135deg)}
 .plegable > :not(summary){margin:0 14px 14px}
 .plegable .warm{padding-left:22px}
+.cal-intro{font-size:14px;color:var(--muted);margin-top:-4px !important}
+.calent{list-style:none;padding:0 !important}
+.calent li{padding:12px 0;border-top:1px solid var(--line)}
+.cal-top{display:flex;align-items:center;gap:10px}
+.cal-n{font:700 18px/1 var(--display);color:var(--muted);width:16px;flex:none}
+.cal-t{flex:1;min-width:0}
+.cal-t b{display:block;font-weight:600}
+.cal-t small{color:var(--muted);font-size:13px}
+.calent .ok{appearance:none;width:40px;height:40px;flex:none;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);font:700 17px/1 var(--text);cursor:pointer}
+.calent .ok[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:#fff}
+.cal-como{margin:6px 0 0 26px;font-size:14px;line-height:1.45;color:var(--ink)}
+.calent .acts{margin:8px 0 0 26px}
+.calent li.hecho .cal-t b{color:var(--muted);text-decoration:line-through}
+.calent li.hecho .cal-como,.calent li.hecho .acts{display:none}
+.sm-btn{min-height:30px;padding:4px 11px;font-size:12px}
 .nota-fecha{margin:-4px 0 10px;font-size:13px;color:var(--muted)}
 .ayuda{display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin:0 0 12px;padding:12px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--green)}
 .ayuda p{margin:0;font-size:14px;line-height:1.45}
@@ -899,10 +914,22 @@ const J = [
    alarma:['Dolor que baja por la pierna por debajo de la rodilla.','Hormigueo o pérdida de fuerza en la pierna.','Adormecimiento en la zona genital o problemas para controlar la orina: urgencia, andá a la guardia.']}
 ];
 
+// Cada paso: qué es, cuánto, cómo se hace y, si hay, su animación (demo) o un temporizador (min)
+const W = {
+  cardio:{t:'Cardio suave', d:'5 min', min:5, como:'Bici, cinta o escaladora a un ritmo en el que puedas hablar sin agitarte. Sube la temperatura del cuerpo y prepara el corazón.'},
+  bici:{t:'Bici suave', d:'5 min', min:5, como:'Pedaleá tranquilo, sin mucha resistencia. Calienta rodillas y cadera antes de las piernas.'},
+  rotacion:{t:'Rotación externa con banda', d:'2 × 15', demo:'Rotación externa con banda', como:'Agarrá una banda con las dos manos, codos pegados al cuerpo y doblados a 90°. Abrí las manos hacia afuera sin despegar los codos y volvé lento. Activa los músculos chicos que protegen el hombro.'},
+  facepull:{t:'Face pull liviano', d:'2 × 15', demo:'Face pull', como:'Polea o banda a la altura de la cara. Tirá la soga hacia la frente abriendo los codos hacia arriba. Peso muy liviano: es para activar, no para cansarte.'},
+  pared:{t:'Rodilla a la pared', d:'10 por lado', como:'Parate mirando una pared con la punta del pie a unos 10 cm. Llevá la rodilla a tocar la pared sin despegar el talón del piso y volvé. Si tocás fácil, alejá el pie. Suelta el tobillo para bajar mejor en la sentadilla.'},
+  puente:{t:'Puente de glúteo', d:'2 × 12', demo:'Puente de glúteo', como:'Acostado boca arriba, rodillas dobladas y pies apoyados. Subí la cadera apretando la cola hasta quedar en línea con el torso y bajá lento. Despierta los glúteos.'},
+  lateral:{t:'Caminata lateral con banda', d:'2 × 10 pasos por lado', demo:'Caminata lateral con banda', como:'Banda alrededor de las rodillas, rodillas un poco dobladas. Dá pasos cortos de costado sin juntar los pies. Activa el glúteo que estabiliza la rodilla.'},
+  sentadilla:{t:'Sentadilla sin peso', d:'2 × 10', demo:'Sentadilla sin peso', como:'Pies al ancho de los hombros. Bajá como sentándote en una silla, rodillas hacia afuera y pecho arriba. Lento, buscando bajar cada vez un poco más.'},
+  aprox:{t:'Series de aproximación', d:'1–2 series', como:'Con el primer ejercicio del día: hacé 8 repeticiones con la mitad del peso que vas a usar y después 3 con tres cuartos. No te tienen que cansar: son para practicar el movimiento.'}
+};
 const CAL = {
-  torso:['5 min de cardio suave','Rotación externa con banda: 2 × 15','Face pull liviano: 2 × 15','1–2 series de aproximación del primer ejercicio con poco peso'],
-  piernas:['5 min de bici','Rodilla a la pared: 10 por lado','Puente de glúteo: 2 × 12','Caminata lateral con banda: 2 × 10 pasos por lado','Sentadilla sin peso: 2 × 10'],
-  full:['5 min de cardio suave','Rotación externa con banda: 2 × 12','Puente de glúteo: 2 × 12','Sentadilla sin peso: 2 × 10','Series de aproximación con poco peso']
+  torso:[W.cardio, W.rotacion, W.facepull, W.aprox],
+  piernas:[W.bici, W.pared, W.puente, W.lateral, W.sentadilla, W.aprox],
+  full:[W.cardio, Object.assign({}, W.rotacion, {d:'2 × 12'}), W.puente, W.sentadilla, W.aprox]
 };
 
 const ACTIVO = {descanso:true, corto:'Activo', titulo:'Descanso activo',
@@ -2182,6 +2209,18 @@ DEMOS.pajaros = {nombre:'Pájaros', con:'Abrí los brazos', ecc:'Bajá lento', c
    cues:['Pecho apoyado en el respaldo, mirando a la máquina.','Abrí los brazos hasta la línea de los hombros.','Volvé lento sin que se toquen las placas.']}
  ]};
 
+/* ---------- Rotación externa con banda ---------- */
+DEMOS.rotacion = {nombre:'Rotación externa', con:'Abrí las manos hacia afuera', ecc:'Volvé lento', conAB:true,
+ en:{A:'Codos pegados al cuerpo, a 90°', B:'Abierto: sin despegar los codos'},
+ mus:['Infraespinoso (manguito rotador)','Redondo menor','Deltoides posterior'],
+ vars:[
+  {id:'banda', eq:'Banda', nombre:'Rotación externa con banda', view:'front', hl:['delt'],
+   // Los antebrazos arrancan apuntando hacia la cámara (por eso se ven cortos) y se abren hacia los costados
+   A:FS({uL:182, fL:168, ffL:.28, uR:182, fR:168, ffR:.28}), B:FS({uL:182, fL:262, ffL:1, uR:182, fR:262, ffR:1}),
+   front:J => EQ.band(J.aL.wrist, J.aR.wrist, 0),
+   cues:['Codos pegados al cuerpo y doblados a 90°.','Abrí las manos hacia afuera estirando la banda.','Liviano y lento: es para activar el hombro.']}
+ ]};
+
 /* ---------- Pallof press y curl de muñeca ---------- */
 DEMOS.abdominales.vars.push({id:'pallof', eq:'Polea', nombre:'Pallof press', view:'front', hl:['abs'], en:{A:'Agarre en el pecho, abdomen firme', B:'Brazos estirados: que el cable no te gire'},
   A:FS({handL:[127, 110], handR:[133, 110], ffL:1, ffR:1}), B:FS({handL:[128, 113], handR:[132, 113], ffL:.22, ffR:.22}),
@@ -2194,7 +2233,7 @@ DEMOS.curl.vars.push({id:'muneca', eq:'Mancuerna', nombre:'Curl de muñeca', hl:
   back:J => EQ.bench(54, 122, 178),
   front:J => EQ.db(ad(J.wrist, V(ang(J.elbow, J.wrist) + J.wf, 9))),
   cues:['Sentado, antebrazo apoyado en el muslo y la muñeca afuera de la rodilla.','Solo se mueve la muñeca: subí y bajá lento.','Palma arriba para los flexores; palma abajo para los extensores.']});
-Object.assign(DEMO_ALIAS, {'Pájaros':['pajaros','mancuernas'], 'Pájaros en máquina':['pajaros','maquina'], 'Pallof press':['abdominales','pallof'], 'Curl de muñeca':['curl','muneca']});
+Object.assign(DEMO_ALIAS, {'Rotación externa con banda':['rotacion','banda'], 'Pájaros':['pajaros','mancuernas'], 'Pájaros en máquina':['pajaros','maquina'], 'Pallof press':['abdominales','pallof'], 'Curl de muñeca':['curl','muneca']});
 
 /* ---------- Errores comunes en los básicos ---------- */
 const sqErr = (a, b, dt) => { const P0 = squatBar(a, b), t = P0.t + dt; const P = mk(P0, {t, h:t*.4}); return arm(P, barBack(fk(P)), (e, J) => e[1] - (e[0] - J.sh[0])*.3); };
@@ -2712,7 +2751,7 @@ function guardarSerie(det){
 /* Cambiar ejercicios del plan: atlas.swap = { '4-TA-0': 'Press inclinado con barra' } */
 const SWAP = store.get('atlas.swap', {});
 // Nombres repetidos o genéricos que no conviene ofrecer como reemplazo
-const SIN_OFRECER = new Set(['Curl de muñeca','Remos','Remo','Remo sentado','Fondos','Curl femoral','Elevación de talones','Elevación sentado','Abducción','Encogimientos','Press inclinado','Sentadilla profunda','Sentadilla con barra','Dominadas o jalón al pecho','Extensión sobre la cabeza con mancuerna','Sentadilla sumo profunda','Elevación de rodillas colgado']);
+const SIN_OFRECER = new Set(['Rotación externa con banda','Curl de muñeca','Remos','Remo','Remo sentado','Fondos','Curl femoral','Elevación de talones','Elevación sentado','Abducción','Encogimientos','Press inclinado','Sentadilla profunda','Sentadilla con barra','Dominadas o jalón al pecho','Extensión sobre la cabeza con mancuerna','Sentadilla sumo profunda','Elevación de rodillas colgado']);
 function grupoDe(nombre){
   const a = DEMO.DEMO_ALIAS[nombre], mov = a && DEMO.DEMOS[a[0]], P = mov && PARTES[mov.mus[0]];
   return P ? P.g : null;
@@ -2735,6 +2774,16 @@ function swapHTML(e, k){
   return `<label class="swap">⇄ Cambiar<select data-swap="${k}" aria-label="Cambiar ${e[0]} por otro ejercicio">${op(orig, orig + ' (del plan)')}${alts.map(n => op(n)).join('')}</select></label>`;
 }
 
+/* Calentamiento: pasos hechos hoy. atlas.cal = {f:'2026-10-18', hechos:['torso-0', ...]} */
+function calEstado(){ const c = store.get('atlas.cal', {}); return c.f === FECHA ? c : {f:FECHA, hechos:[]}; }
+const calHecho = (cal, i) => calEstado().hechos.includes(`${cal}-${i}`);
+const calHechos = cal => CAL[cal].filter((_, i) => calHecho(cal, i)).length;
+function marcarCal(cal, i){
+  const c = calEstado(), k = `${cal}-${i}`;
+  c.hechos = c.hechos.includes(k) ? c.hechos.filter(x => x !== k) : c.hechos.concat(k);
+  store.set('atlas.cal', c);
+}
+
 /* Temporizador de descanso */
 function descansoDe(esq){
   if(enSegundos(esq)) return 60;
@@ -2742,11 +2791,12 @@ function descansoDe(esq){
   return t && t <= 6 ? 150 : t <= 12 ? 90 : 60;
 }
 const REST = {fin:0, total:0, id:0, ctx:null};
-function iniciarDescanso(seg){
+function iniciarDescanso(seg, lbl = 'Descanso'){
   // El audio se habilita con el toque del usuario, para poder sonar al terminar
   try{ REST.ctx = REST.ctx || new (window.AudioContext || window.webkitAudioContext)(); REST.ctx.resume(); } catch(e){}
   REST.total = seg; REST.fin = Date.now() + seg * 1000;
-  $('#rest').classList.remove('fin'); $('#rest-lbl').textContent = 'Descanso';
+  REST.lbl = lbl;
+  $('#rest').classList.remove('fin'); $('#rest-lbl').textContent = lbl;
   $('#rest').hidden = false; document.body.classList.add('con-descanso');
   clearInterval(REST.id); REST.id = setInterval(tickDescanso, 250); tickDescanso();
 }
@@ -2766,7 +2816,7 @@ function pitido(){
 }
 function finDescanso(){
   clearInterval(REST.id); REST.id = 0;
-  $('#rest').classList.add('fin'); $('#rest-lbl').textContent = '¡A la próxima serie!';
+  $('#rest').classList.add('fin'); $('#rest-lbl').textContent = REST.lbl === 'Descanso' ? '¡A la próxima serie!' : '¡Listo! Seguí con el paso siguiente';
   try{ if(navigator.vibrate) navigator.vibrate([250, 120, 250]); } catch(e){}
   pitido();
   setTimeout(() => { if(!REST.id) cerrarDescanso(); }, 5000);
@@ -3019,8 +3069,14 @@ function renderPlan(){
       ? `<p class="bloque descarga"><b>Semana liviana (5 de 5).</b> Hacé la mitad de las series con un poco menos de peso. Sirve para recuperarte; la semana que viene arranca una etapa nueva.</p>`
       : `<p class="bloque"><b>Semana ${B.sem} de ${SEMANAS_BLOQUE}${B.n > 1 ? ` · etapa ${B.n}` : ''}.</b> Esta semana: ${RIR[B.sem - 1]}.</p>`;
     $('#day').innerHTML = `${when}<h2 class="day-title">${d.titulo}</h2><p class="day-sub">${d.sub}</p>${bq}
-      <details class="plegable"><summary>Calentamiento <small>${CAL[d.cal].length} pasos</small></summary>
-        <ol class="warm">${CAL[d.cal].map(x=>`<li>${x}</li>`).join('')}</ol></details>
+      <details class="plegable" id="cal"${S.calAbierto ? ' open' : ''}><summary>Calentamiento <small id="cal-cnt">${calHechos(d.cal)} de ${CAL[d.cal].length} hechos</small></summary>
+        <p class="cal-intro">Unos 10 minutos. Hacelo en este orden y marcá cada paso al terminarlo.</p>
+        <ol class="calent">${CAL[d.cal].map((x, i) => { const ok = calHecho(d.cal, i); return `<li class="${ok ? 'hecho' : ''}">
+          <div class="cal-top"><span class="cal-n">${i + 1}</span><span class="cal-t"><b>${x.t}</b><small>${x.d}</small></span>
+            <button class="ok cal-ok" data-cal="${d.cal}" data-i="${i}" aria-pressed="${ok}" aria-label="${x.t}: hecho">✓</button></div>
+          <p class="cal-como">${x.como}</p>
+          ${x.demo || x.min ? `<div class="acts">${x.demo ? demoBtn(x.demo, 'sm', 'Ver cómo se hace') : ''}${x.min ? `<button class="plain sm-btn" data-cal-min="${x.min}" data-cal-t="${x.t}">Iniciar ${x.min} min</button>` : ''}</div>` : ''}
+        </li>`; }).join('')}</ol></details>
       <h3 class="h3">Ejercicios</h3>${nota}${ayuda}
       <ol class="exlist">${ejerciciosDe(S.plan, S.dia).map((e, k) => `<li><div class="row"><span class="n">${e[0]}${e[3]?`<small class="ex-orig">En lugar de ${e[3]}${e[4]?`, ${e[4]}`:''}</small>`:''}<span class="acts">${demoBtn(e[0], 'sm', 'Ver')}${vid(e[0] + ' técnica', 'Video', 'sm')}${swapHTML(e, k)}</span></span><span class="s"><b>${e[1]}</b>${e[2]?`<small>${e[2]}</small>`:''}</span></div>${logHTML(e, k)}</li>`).join('')}</ol>
       ${d.cardio ? `<p class="cardio"><b>Cardio.</b> ${d.cardio}</p>` : ''}
@@ -3325,6 +3381,7 @@ $('#rest-menos').addEventListener('click', () => { REST.fin -= 15000; tickDescan
 $('#rest-mas').addEventListener('click', () => { if(!REST.id) return iniciarDescanso(15); REST.fin += 15000; REST.total += 15; tickDescanso(); });
 $('#rest-saltar').addEventListener('click', cerrarDescanso);
 $('#exportar').addEventListener('click', exportar);
+$('#day').addEventListener('toggle', e => { if(e.target.id === 'cal') S.calAbierto = e.target.open; }, true);
 $('#entrenador').addEventListener('toggle', e => { S.coach = e.target.open; }, true);
 $('#perfil-btn').addEventListener('click', () => { setTab('perfil'); window.scrollTo({top:0}); });
 document.addEventListener('click', e => { if(e.target.closest('[data-ir-perfil]')){ setTab('perfil'); window.scrollTo({top:0}); } });
@@ -3351,6 +3408,16 @@ $('#volver-musc').addEventListener('click', () => setTab('musculos'));
 document.addEventListener('click', e => { const m = $('#more'); if(m.open && !m.contains(e.target)) m.open = false; });
 $('#day').addEventListener('input', e => { const det = e.target.closest('.log'); if(det) guardarSerie(det); });
 $('#day').addEventListener('click', e => {
+  const co = e.target.closest('.cal-ok');
+  if(co){
+    marcarCal(co.dataset.cal, Number(co.dataset.i));
+    const hecho = co.getAttribute('aria-pressed') !== 'true';
+    co.setAttribute('aria-pressed', String(hecho)); co.closest('li').classList.toggle('hecho', hecho);
+    $('#cal-cnt').textContent = `${calHechos(co.dataset.cal)} de ${CAL[co.dataset.cal].length} hechos`;
+    return;
+  }
+  const cm = e.target.closest('[data-cal-min]');
+  if(cm){ iniciarDescanso(Number(cm.dataset.calMin) * 60, cm.dataset.calT); return; }
   if(e.target.closest('#ayuda-ok')){ store.set('atlas.ayuda', true); $('#ayuda').remove(); return; }
   const ru = e.target.closest('[data-rutina]');
   if(ru){
