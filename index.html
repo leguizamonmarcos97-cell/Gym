@@ -241,6 +241,44 @@ svg.fig.off{display:none}
 .linea .eje{stroke:var(--line);stroke-width:1}
 .linea text{fill:var(--muted);font:500 11px var(--text)}
 .seg[hidden]{display:none}
+/* Encabezado compacto */
+.brand{padding:12px 0 6px;align-items:center;flex-wrap:nowrap}
+.brand h1{font-size:clamp(26px,7.4vw,44px) !important}
+.brand p{display:none}
+@media (min-width:700px){ .brand p{display:block} }
+.brand-acts{flex-wrap:nowrap}
+.brand-acts .ghost{padding:8px 11px;font-size:13px;min-height:34px;white-space:nowrap}
+.hoy-btn[hidden]{display:none}
+/* Tarjeta de hoy */
+.hoy-card{margin:2px 0 16px;padding:16px;border-radius:18px;background:var(--surface);border:1px solid var(--line)}
+.hoy-card h2{font:800 clamp(38px,11vw,56px)/.95 var(--display);margin:2px 0 6px}
+.hoy-card > p{margin:0 0 4px;color:var(--muted)}
+.hoy-k{font-size:13px;font-weight:700;color:var(--green) !important;text-transform:uppercase;letter-spacing:.04em}
+.hoy-ok{color:var(--green) !important;font-weight:700;margin:10px 0 !important}
+.hoy-igual{margin-top:12px}
+.hoy-igual summary{display:inline-flex;list-style:none;cursor:pointer;border:1px solid var(--ink);border-radius:999px;padding:9px 14px;font:600 14px/1 var(--text)}
+.hoy-igual summary::-webkit-details-marker{display:none}
+.sem-tit{margin-top:6px}
+.bloque-bajo{margin-top:22px}
+.ex-kg{display:block;font-size:13px;color:var(--green);font-weight:600;margin-top:2px}
+.ex-mas{margin:6px 0 0 30px}
+.ex-mas > summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);padding:4px 0}
+.ex-mas > summary::-webkit-details-marker{display:none}
+.ex-mas > summary::after{content:"";width:6px;height:6px;border:solid currentColor;border-width:0 2px 2px 0;transform:translateY(-2px) rotate(45deg)}
+.ex-mas[open] > summary::after{transform:translateY(1px) rotate(-135deg)}
+.ex-mas .ex-rec,.ex-mas .ex-last,.ex-mas .ex-alerta,.ex-mas .log{margin-left:0}
+.ex-mas-acts{margin:4px 0}
+/* Guía de bienvenida */
+.tour{position:fixed;inset:0;z-index:40;background:var(--scrim);display:flex;align-items:flex-end;justify-content:center;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+.tour[hidden]{display:none}
+.tour-card{width:100%;max-width:460px;background:var(--surface);border-radius:20px;padding:20px;box-shadow:var(--shadow)}
+.tour-paso{margin:0;font-size:13px;color:var(--muted)}
+.tour-card h2{font:800 32px/1 var(--display);margin:4px 0 10px}
+.tour-card p,.tour-card li{font-size:15px;line-height:1.5}
+.tour-card ul{padding-left:20px;margin:6px 0}
+.tour-acts{display:flex;justify-content:space-between;gap:10px;margin-top:14px}
+.tour-acts > *{flex:1}
+.tour-acts .plain{min-height:52px;border-radius:14px}
 /* Modo entrenamiento */
 .modo-start{appearance:none;display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;margin:14px 0 0;padding:14px 16px;border:0;border-radius:14px;background:var(--green);color:#fff;font:800 24px/1.05 var(--display);text-align:left;cursor:pointer}
 .modo-start small{font:500 13px/1.3 var(--text);opacity:.92}
@@ -553,7 +591,7 @@ body.con-descanso .foot{padding-bottom:84px}
       <h1>Atlas del cuerpo</h1>
       <p>Músculos, articulaciones y qué entrenar cada día</p>
     </div>
-    <div class="brand-acts"><button class="ghost" id="install-btn" hidden>Instalar app</button><button class="ghost" id="perfil-btn">Mi perfil</button><button class="hoy-btn" id="hoy-btn"><span class="dot"></span><span id="hoy-txt">Hoy</span></button></div>
+    <div class="brand-acts"><button class="ghost" id="install-btn" hidden>Instalar app</button><button class="ghost" id="ayuda-btn">Cómo se usa</button><button class="ghost" id="perfil-btn">Mi perfil</button><button class="hoy-btn" id="hoy-btn" hidden><span class="dot"></span><span id="hoy-txt">Hoy</span></button></div>
   </div>
 </div>
 
@@ -638,20 +676,22 @@ body.con-descanso .foot{padding-bottom:84px}
 
   <!-- SEMANA -->
   <section class="panel" id="p-semana" role="tabpanel" aria-labelledby="t-semana">
+    <div id="hoy-card"></div>
     <div id="aviso-copia"></div>
-    <div id="entrenador"></div>
-    <div id="plan-perfil"></div>
+    <h3 class="h3 sem-tit">Tu semana</h3>
     <div class="plan-head">
       <div class="seg" role="group" aria-label="Días por semana" id="plan-seg">
         <button data-plan="3">3 días</button>
         <button data-plan="4">4 días</button>
         <button data-plan="5">5 días</button>
       </div>
-      <button class="ghost" id="ir-hoy">Qué me toca hoy</button>
+      <button class="ghost" id="ir-hoy">Ver el día de hoy</button>
     </div>
     <p class="plan-desc" id="plan-desc"></p>
     <div class="week" id="week" role="group" aria-label="Días de la semana"></div>
     <article id="day"></article>
+    <div id="entrenador" class="bloque-bajo"></div>
+    <div id="plan-perfil"></div>
     <aside class="rules">
       <p><strong>Mismo músculo:</strong> dejá 48 a 72 horas entre sesiones fuertes.</p>
       <p><strong>Cardio:</strong> hacelo después de torso o en los días libres. Evitá cardio intenso justo antes de piernas.</p>
@@ -684,6 +724,11 @@ body.con-descanso .foot{padding-bottom:84px}
 
   <p class="foot">Información general para entrenar. Si tenés dolor, una lesión o una condición médica, que te evalúe un traumatólogo o kinesiólogo antes de seguir.</p>
 </main>
+
+<div class="tour" id="tour" role="dialog" aria-modal="true" aria-labelledby="tour-t" hidden>
+  <div class="tour-card"><p class="tour-paso" id="tour-paso"></p><h2 id="tour-t"></h2><div id="tour-txt"></div>
+    <div class="tour-acts"><button class="plain" id="tour-saltar">Saltar</button><button class="modo-ok" id="tour-sig">Siguiente</button></div></div>
+</div>
 
 <div class="modo" id="modo" role="dialog" aria-modal="true" aria-labelledby="modo-dia" hidden>
   <div class="modo-top">
@@ -724,7 +769,7 @@ const ZONAS = {
 
 const OBJ = {
   fuerza:{n:'Fuerza', series:'3–5', reps:'3–6', desc:'2–3 min', nota:'Peso alto y técnica impecable. Arrancá la sesión por los ejercicios grandes.'},
-  volumen:{n:'Volumen', series:'3–4', reps:'8–12', desc:'60–90 s', nota:'Terminá cada serie a 1–3 repeticiones del fallo. Apuntá a 10–20 series por semana para este músculo.'},
+  volumen:{n:'Volumen', series:'3–4', reps:'8–12', desc:'60–90 s', nota:'Cortá cada serie cuando sientas que podrías hacer 1 a 3 más. Apuntá a 10–20 series por semana para este músculo.'},
   prevencion:{n:'Prevención', series:'2–3', reps:'12–20', desc:'30–60 s', nota:'Peso liviano, movimiento lento y controlado, siempre sin dolor.'}
 };
 
@@ -835,7 +880,7 @@ const M = [
        ['Peso muerto','Barra','Espalda neutra y la barra pegada a las piernas.'],
        ['Plancha lateral','Peso corporal','Trabaja el cuadrado lumbar.'],
        ['Paseo del granjero','Mancuerna','Estabilidad caminando con carga.']],
-   err:['Arquear de más arriba en las hiperextensiones.','Redondear la espalda con peso.','Llevarla al fallo seguido: se recupera lento.'],
+   err:['Arquear de más arriba en las hiperextensiones.','Redondear la espalda con peso.','Llevarla al límite seguido: se recupera lento.'],
    art:['columna','cadera']},
   {id:'flexores', nombre:'Flexores de cadera', zona:'inf', vista:['frente'],
    partes:'Psoas ilíaco, ayudado por el recto femoral y el tensor de la fascia lata',
@@ -1069,10 +1114,10 @@ const PLANES = {
       PA:{corto:'Piernas', color:'var(--blue)', titulo:'Piernas A', sub:'Fuerza: pocas repeticiones y más peso', cal:'piernas',
           mus:['cuadriceps','isquios','gluteos','pantorrillas','abdomen'], art:['rodilla','cadera','columna'],
           ej:[['Sentadilla','4 × 5'],['Peso muerto rumano','3 × 8'],['Prensa 45°','3 × 10'],['Curl femoral acostado','3 × 10'],['Elevación de talones de pie','4 × 12'],['Plancha','3 × 40 s']]},
-      TB:{corto:'Torso', color:'var(--red)', titulo:'Torso B', sub:'Volumen: más repeticiones, cerca del fallo', cal:'torso',
+      TB:{corto:'Torso', color:'var(--red)', titulo:'Torso B', sub:'Volumen: más repeticiones, cerca de tu límite', cal:'torso',
           mus:['pecho','espalda','hombros','trapecio','biceps','triceps'], art:['hombro','codo'],
           ej:[['Press inclinado con mancuernas','3 × 10'],['Jalón al pecho','3 × 10'],['Remo sentado en polea','3 × 12'],['Elevaciones laterales','3 × 15'],['Face pull','3 × 15'],['Curl martillo','3 × 12'],['Extensión sobre la cabeza','3 × 12']]},
-      PB:{corto:'Piernas', color:'var(--blue)', titulo:'Piernas B', sub:'Volumen: más repeticiones, cerca del fallo', cal:'piernas',
+      PB:{corto:'Piernas', color:'var(--blue)', titulo:'Piernas B', sub:'Volumen: más repeticiones, cerca de tu límite', cal:'piernas',
           mus:['gluteos','cuadriceps','isquios','aductores','pantorrillas','abdomen'], art:['rodilla','cadera','tobillo'],
           ej:[['Sentadilla búlgara','3 × 10','por pierna'],['Hip thrust','3 × 10'],['Sillón de cuádriceps','3 × 12'],['Curl femoral sentado','3 × 12'],['Máquina de aductores','2 × 15'],['Elevación de talones sentado','3 × 15'],['Pallof press','3 × 12','por lado']]}
      }},
@@ -1102,7 +1147,7 @@ const FIG = {"outline": "M100 50 C95 51 91 52 90 54 C89 60 89 64 88 67 C80 68 68
 const PARTES = {
   'Esternocleidomastoideo':{g:'cuello', f:'Gira la cabeza hacia el lado contrario y la lleva hacia adelante.',
     ej:[['Flexión de cuello acostado','Boca arriba, llevá el mentón al pecho y subí la cabeza despacio.'],['Isometría lateral de cuello','Mano al costado de la cabeza, empujá sin moverla 10–20 s.'],['Rotación de cuello con banda','Girá la cabeza contra una banda muy liviana.']],
-    clave:'Peso muy liviano y movimientos lentos. El cuello no se entrena al fallo.'},
+    clave:'Peso muy liviano y movimientos lentos. El cuello no se entrena hasta el límite.'},
   'Escalenos':{g:'cuello', prof:true, f:'Inclinan el cuello al costado y ayudan a respirar. Se cargan mucho con estrés y mala postura.',
     ej:[['Isometría lateral de cuello','Empujá la cabeza contra la mano hacia el costado, 10–20 s.'],['Estiramiento de escalenos','Inclinate al costado bajando el hombro contrario.']],
     clave:'Más que fortalecerlos conviene estirarlos y no andar con los hombros encogidos.'},
@@ -2552,11 +2597,11 @@ const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(
 
 /* Perfil y plan personalizado */
 const OBJS = {
-  musculo:{n:'Ganar músculo', sub:'Hipertrofia: series cerca del fallo, dejando 1–2 repeticiones en reserva', base:'4 × 6–10', acc:'3 × 10–15', base2:'4 × 8–12', acc2:'3 × 12–15'},
+  musculo:{n:'Ganar músculo', sub:'Ganar músculo: series exigentes, cerca de tu límite', base:'4 × 6–10', acc:'3 × 10–15', base2:'4 × 8–12', acc2:'3 × 12–15'},
   fuerza:{n:'Ganar fuerza', sub:'Fuerza: pocas repeticiones, más peso y descansos largos', base:'4 × 4–6', acc:'3 × 8–10', base2:'5 × 3–5', acc2:'3 × 6–8'},
-  grasa:{n:'Bajar grasa', sub:'Mantener la fuerza mientras bajás grasa, con cardio al final', base:'3 × 8–12', acc:'3 × 12–15', base2:'3 × 6–10', acc2:'3 × 10–15',
+  grasa:{n:'Bajar grasa', sub:'Bajar grasa: mantener la fuerza y sumar cardio al final', base:'3 × 8–12', acc:'3 × 12–15', base2:'3 × 6–10', acc2:'3 × 10–15',
          cardio:'Al terminar: 15–20 min de cardio suave (bici, cinta inclinada o escaladora).'},
-  forma:{n:'Ponerme en forma', sub:'Técnica, constancia y todo el cuerpo en movimiento', base:'3 × 8–12', acc:'2 × 12–15', base2:'3 × 10–12', acc2:'2 × 12–15'}
+  forma:{n:'Ponerme en forma', sub:'Ponerte en forma: técnica, constancia y todo el cuerpo', base:'3 × 8–12', acc:'2 × 12–15', base2:'3 × 10–12', acc2:'2 × 12–15'}
 };
 const NIVELES = {nuevo:'Recién empiezo', medio:'6 meses a 2 años', avanzado:'Más de 2 años'};
 const LUGARES = {gym:'Gimnasio', casa:'Casa (mancuernas y banco)'};
@@ -2896,7 +2941,7 @@ function logHTML(e, k){
   return (prev ? `<p class="ex-last">La vez pasada · ${fmtFecha(prev.f)}: <b>${resumen(prev, seg)}</b></p>` : '') +
     `<div class="ex-rec-box">${recHTML(esq, prev, hoy && hoy.s)}</div>` +
     (!B.descarga && estancado(nombre) ? `<p class="ex-alerta"><b>Sin progreso en 3 sesiones.</b> Bajá ~10% el peso y volvé a subir de a poco, o probá otra variante con “⇄ Cambiar”. Revisá también descanso y sueño.</p>` : '') +
-    `<details class="log" data-k="${k}"${hoy || S.dia === HOY || S.entrenar ? ' open' : ''}><summary>Anotar series <span class="cnt${hechas>=n?' full':''}">${hechas}/${n}</span></summary><div class="sets">${filas}</div></details>`;
+    `<details class="log" data-k="${k}" open><summary>Anotar series <span class="cnt${hechas>=n?' full':''}">${hechas}/${n}</span></summary><div class="sets">${filas}</div></details>`;
 }
 // Guarda las series de hoy de un ejercicio (s: [{kg, r, ok}, ...])
 // Marcas de borrado (para que lo borrado no vuelva desde la nube): atlas.borrados = {'log|Press de banca|2026-10-18': hora}
@@ -3083,6 +3128,23 @@ function resumenModo(ej){
     <p class="modo-sub">Tomá agua y comé algo con proteína en las próximas horas.</p>
     <div class="modo-nav"><button class="plain" data-mir="${ej.length}">‹ Volver</button><button class="modo-ok" data-mterminar>Listo</button></div>`;
 }
+
+/* Guía de bienvenida: se muestra una vez (y desde "Cómo se usa") */
+const TOUR = [
+  {t:'Tu entrenamiento de hoy', x:'<p>Arriba de <b>Mi semana</b> está lo que te toca hoy. Tocá <b>Empezar entrenamiento</b> y la app te guía paso a paso:</p><ul><li>calentamiento,</li><li>cada ejercicio con el peso que te conviene,</li><li>el descanso entre series,</li><li>y los estiramientos al final.</li></ul>'},
+  {t:'Cómo anotar', x:'<p>Hacés la serie y tocás <b>✓ Serie hecha</b>. Si hiciste lo que está en gris (el peso y las repeticiones sugeridas), no hace falta escribir nada.</p><p>Ahí arranca solo el <b>descanso</b>, en grande. El reloj de arriba a la derecha es cuánto llevás entrenando.</p>'},
+  {t:'Aprender y ver tu progreso', x:'<p>En cada ejercicio tocá <b>Ver cómo se hace</b>: animación, errores comunes y un video real.</p><p>En <b>Progreso</b> están tus récords, tu peso, el cardio y cuánto comer. Conectá tu cuenta ahí y todo se guarda en la nube.</p>'}
+];
+let TOUR_I = 0;
+function mostrarTour(){ TOUR_I = 0; $('#tour').hidden = false; pintarTour(); }
+function pintarTour(){
+  const p = TOUR[TOUR_I];
+  $('#tour-paso').textContent = `${TOUR_I + 1} de ${TOUR.length}`;
+  $('#tour-t').textContent = p.t; $('#tour-txt').innerHTML = p.x;
+  $('#tour-sig').textContent = TOUR_I === TOUR.length - 1 ? 'Empezar' : 'Siguiente';
+  $('#tour-sig').focus();
+}
+function cerrarTour(){ $('#tour').hidden = true; store.set('atlas.tour', true); }
 
 /* Calentamiento: pasos hechos hoy. atlas.cal = {f:'2026-10-18', hechos:['torso-0', ...]} */
 function calEstado(){ const c = store.get('atlas.cal', {}); return c.f === FECHA ? c : {f:FECHA, hechos:[]}; }
@@ -3286,6 +3348,7 @@ function guardarPerfil(form){
   PL = null; S.plan = PERFIL.dias; store.set('atlas.plan', S.plan);
   S.dia = HOY; S.entrenar = false;
   renderPlan(); setTab('semana'); window.scrollTo({top:0});
+  if(!store.get('atlas.tour', false)) mostrarTour();
 }
 
 /* Peso corporal y cintura: atlas.cuerpo = [{f:'2026-10-18', peso:75.2, cintura:84}] */
@@ -3568,6 +3631,24 @@ async function importar(file){
 }
 
 /* Semana */
+// Lo primero que se ve: qué toca hoy y un botón para empezar
+function renderHoy(){
+  const d = diaDe(S.plan, HOY), g = store.get('atlas.modo', null), hecho = g && g.f === FECHA && g.fin;
+  let h;
+  if(d.descanso){
+    h = `<div class="hoy-card descanso"><p class="hoy-k">Hoy · ${DIAS.find(x => x.i === HOY).n}</p><h2>${d.titulo}</h2><p>${d.texto}</p>
+      <details class="hoy-igual"><summary>Entrené igual: elegir rutina</summary><div class="igual-op">${Object.entries(planes()[S.plan].dias).map(([k, r]) => `<button class="plain" data-hoy-rutina="${k}">${r.titulo}<small>${r.sub}</small></button>`).join('')}</div></details></div>`;
+  } else {
+    const ej = ejerciciosDe(S.plan, HOY), series = ej.reduce((a, e) => a + nSeries(e[1]), 0);
+    const min = PERFIL && PERFIL.min ? PERFIL.min : Math.round((10 + series * 2.6) / 5) * 5;
+    const enCurso = modoGuardado();
+    h = `<div class="hoy-card"><p class="hoy-k">Hoy · ${DIAS.find(x => x.i === HOY).n}</p><h2>${d.titulo}</h2>
+      <p>${ej.length} ejercicios · ${series} series · unos ${min} minutos</p>
+      ${hecho ? `<p class="hoy-ok">✓ Ya entrenaste hoy. ¡Bien ahí!</p><button class="plain" data-hoy-ver>Ver lo que hiciste</button>`
+        : `<button class="modo-start" data-hoy-empezar>${enCurso && enCurso.dia === HOY ? 'Seguir entrenamiento' : 'Empezar entrenamiento'}<small>Te guío paso a paso: calentamiento, cada serie, descanso y estiramientos</small></button>`}</div>`;
+  }
+  $('#hoy-card').innerHTML = h;
+}
 function renderHoyBtn(){
   const d = diaDe(S.plan, HOY);
   $('#hoy-txt').textContent = 'Hoy: ' + (d.descanso ? d.titulo.toLowerCase() : d.titulo);
@@ -3576,6 +3657,7 @@ function renderPlan(){
   const p = planes()[S.plan];
   $$('[data-plan]').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.plan) === S.plan)));
   $('#plan-desc').textContent = p.desc;
+  $('#plan-desc').hidden = !!PERFIL;   // con perfil, el resumen del plan está más abajo
   $('#plan-seg').hidden = !!PERFIL;
   $('#plan-perfil').innerHTML = PERFIL ? `<div class="pp"><p><b>Tu plan:</b> ${OBJS[PERFIL.obj].n.toLowerCase()} · ${PERFIL.dias} días · ${PERFIL.min} min · ${PERFIL.lugar === 'casa' ? 'en casa' : 'en el gimnasio'}${PERFIL.molestias.length ? ` · cuidando ${PERFIL.molestias.map(m => MOLESTIAS[m]).join(' y ')}` : ''}</p><button class="plain" data-ir-perfil>Editar</button></div>`
     : `<div class="pp"><p>Contame tu objetivo y armo el plan para vos.</p><button class="hoy-btn" data-ir-perfil>Armar mi plan</button></div>`;
@@ -3602,13 +3684,18 @@ function renderPlan(){
       ? `<p class="bloque descarga"><b>Semana liviana (5 de 5).</b> Hacé la mitad de las series con un poco menos de peso. Sirve para recuperarte; la semana que viene arranca una etapa nueva.</p>`
       : `<p class="bloque"><b>Semana ${B.sem} de ${SEMANAS_BLOQUE}${B.n > 1 ? ` · etapa ${B.n}` : ''}.</b> Esta semana: ${RIR[B.sem - 1]}.</p>`;
     const enCurso = modoGuardado();
-    const btnModo = `<button class="modo-start" data-modo>${enCurso && enCurso.dia === S.dia ? 'Seguir entrenamiento' : 'Empezar entrenamiento'}<small>Un ejercicio por vez, con el peso y el descanso</small></button>`;
-    $('#day').innerHTML = `${when}<h2 class="day-title">${d.titulo}</h2><p class="day-sub">${d.sub}</p>${bq}${btnModo}
+    const btnModo = S.dia === HOY ? '' : `<button class="modo-start" data-modo>${enCurso && enCurso.dia === S.dia ? 'Seguir entrenamiento' : 'Empezar entrenamiento'}<small>Un ejercicio por vez, con el peso y el descanso</small></button>`;
+    // Hoy ya está arriba en grande: acá, solo el detalle
+    const cabeza = S.dia === HOY ? `<h3 class="h3 det-hoy">El detalle de hoy</h3><p class="day-sub">${d.sub}</p>` : `${when}<h2 class="day-title">${d.titulo}</h2><p class="day-sub">${d.sub}</p>`;
+    $('#day').innerHTML = `${cabeza}${bq}${btnModo}
       <details class="plegable" id="cal"${S.calAbierto ? ' open' : ''}><summary>Calentamiento <small class="paso-cnt">${calHechos(d.cal)} de ${CAL[d.cal].length} hechos</small></summary>
         <p class="cal-intro">Unos 10 minutos. Hacelo en este orden y marcá cada paso al terminarlo.</p>
         ${pasosHTML(d.cal)}</details>
       <h3 class="h3">Ejercicios</h3>${nota}${ayuda}
-      <ol class="exlist">${ejerciciosDe(S.plan, S.dia).map((e, k) => `<li><div class="row"><span class="n">${e[0]}${e[3]?`<small class="ex-orig">En lugar de ${e[3]}${e[4]?`, ${e[4]}`:''}</small>`:''}<span class="acts">${demoBtn(e[0], 'sm', 'Ver')}${vid(e[0] + ' técnica', 'Video', 'sm')}${swapHTML(e, k)}</span></span><span class="s"><b>${e[1]}</b>${e[2]?`<small>${e[2]}</small>`:''}</span></div>${logHTML(e, k)}</li>`).join('')}</ol>
+      <ol class="exlist">${ejerciciosDe(S.plan, S.dia).map((e, k) => { const r = recomendacion(e[1], anterior(e[0]), (deHoy(e[0]) || {}).s), hoyReg = deHoy(e[0]);
+        return `<li><div class="row"><span class="n">${e[0]}${e[3]?`<small class="ex-orig">En lugar de ${e[3]}${e[4]?`, ${e[4]}`:''}</small>`:''}<small class="ex-kg">${r ? `Recomendado: ${fmtNum(r.kg)} kg` : rangoReps(e[1]) && !enSegundos(e[1]) ? 'Primera vez: hacé una serie de prueba' : ''}</small><span class="acts">${demoBtn(e[0], 'sm', 'Ver cómo se hace')}</span></span><span class="s"><b>${e[1]}</b>${e[2]?`<small>${e[2]}</small>`:''}</span></div>
+          <details class="ex-mas"${hoyReg || S.entrenar ? ' open' : ''}><summary>${hoyReg ? `Anotado hoy: ${hoyReg.s.filter(x => x.ok).length} series` : 'Anotar series y más opciones'}</summary>
+            <div class="acts ex-mas-acts">${vid(e[0] + ' técnica', 'Video', 'sm')}${swapHTML(e, k)}</div>${logHTML(e, k)}</details></li>`; }).join('')}</ol>
       ${d.cardio ? `<p class="cardio"><b>Cardio.</b> ${d.cardio} <button class="h-btn" data-ir-cardio>Anotar cardio</button></p>` : ''}
       <details class="plegable" id="est"${S.estAbierto ? ' open' : ''}><summary>Estiramientos al terminar <small class="paso-cnt">${calHechos('est-' + d.cal)} de ${ESTIR[d.cal].length} hechos</small></summary>
         <p class="cal-intro">5 minutos, sin rebotar y sin dolor: solo tensión suave.</p>
@@ -3619,6 +3706,7 @@ function renderPlan(){
   }
   renderAvisoCopia();
   renderEntrenador();
+  renderHoy();
   renderHoyBtn();
 }
 
@@ -3974,6 +4062,12 @@ $('#sheet-close').addEventListener('click', closeSheet);
 scrim.addEventListener('click', closeSheet);
 $('#sheet-back').addEventListener('click', () => { S.stack.pop(); renderSheet(); });
 $('#ir-hoy').addEventListener('click', () => { S.dia = HOY; renderPlan(); });
+$('#hoy-card').addEventListener('click', e => {
+  if(e.target.closest('[data-hoy-empezar]')){ S.dia = HOY; renderPlan(); abrirModo(); return; }
+  if(e.target.closest('[data-hoy-ver]')){ S.dia = HOY; renderPlan(); const ej = $('#day .exlist'); if(ej) ej.scrollIntoView({block:'center'}); return; }
+  const ru = e.target.closest('[data-hoy-rutina]');
+  if(ru){ S.dia = DIAS.find(x => PLANES[S.plan].semana[x.i] === ru.dataset.hoyRutina).i; S.entrenar = true; renderPlan(); abrirModo(); }
+});
 $('#day').addEventListener('change', e => {
   const sel = e.target.closest('[data-swap]'); if(!sel) return;
   const k = swapKey(S.plan, S.dia, Number(sel.dataset.swap)), orig = diaDe(S.plan, S.dia).ej[Number(sel.dataset.swap)][0];
@@ -3995,6 +4089,9 @@ document.addEventListener('visibilitychange', () => {
   if(document.visibilityState === 'hidden' && SUBIDA){ clearTimeout(SUBIDA); SUBIDA = 0; sincronizar(false); }
 });
 $('#modo-salir').addEventListener('click', () => cerrarModo(false));
+$('#tour-sig').addEventListener('click', () => { if(TOUR_I < TOUR.length - 1){ TOUR_I++; pintarTour(); } else cerrarTour(); });
+$('#tour-saltar').addEventListener('click', cerrarTour);
+$('#ayuda-btn').addEventListener('click', mostrarTour);
 window.addEventListener('popstate', () => { if(MODO) cerrarModo(true); });
 document.addEventListener('visibilitychange', () => { if(MODO && document.visibilityState === 'visible') pantallaEncendida(true); });
 $('#modo-body').addEventListener('click', e => {
@@ -4025,7 +4122,7 @@ $('#perfil-btn').addEventListener('click', () => { setTab('perfil'); window.scro
 document.addEventListener('click', e => { if(e.target.closest('[data-ir-perfil]')){ setTab('perfil'); window.scrollTo({top:0}); } });
 $('#p-perfil').addEventListener('submit', e => { e.preventDefault(); guardarPerfil(e.target); });
 $('#p-perfil').addEventListener('click', e => {
-  if(e.target.closest('#perfil-omitir')){ store.set('atlas.perfilOmitido', true); setTab('semana'); window.scrollTo({top:0}); }
+  if(e.target.closest('#perfil-omitir')){ store.set('atlas.perfilOmitido', true); setTab('semana'); window.scrollTo({top:0}); if(!store.get('atlas.tour', false)) mostrarTour(); }
 });
 $('#prog').addEventListener('click', e => {
   const tr = e.target.closest('tr');
@@ -4140,6 +4237,7 @@ renderArt();
 syncObj();
 renderPlan();
 if(!PERFIL && !store.get('atlas.perfilOmitido', false)) setTab('perfil');
+else if(!store.get('atlas.tour', false)) mostrarTour();
 if(sesion()) sincronizar(true);
 </script>
 </body>
