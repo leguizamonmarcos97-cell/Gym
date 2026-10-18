@@ -192,7 +192,7 @@ svg.fig.off{display:none}
 .ex-last b{color:var(--ink);font-weight:600}
 .ex-sug{color:var(--green);font-weight:600}
 .log{margin:8px 0 0 30px}
-.pf,.pf *,.cuerpo-form *,.pp *,.log,.log *,.plegable,.plegable *,.igual,.igual *,.aviso *{box-sizing:border-box}
+.coach,.coach *,.pf,.pf *,.cuerpo-form *,.pp *,.log,.log *,.plegable,.plegable *,.igual,.igual *,.aviso *{box-sizing:border-box}
 .log summary{display:flex;width:fit-content;align-items:center;gap:8px;list-style:none;cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 13px;font:600 14px/1 var(--text);min-height:36px}
 .log summary::-webkit-details-marker{display:none}
 .log .cnt{color:var(--muted);font-weight:500}
@@ -237,6 +237,20 @@ svg.fig.off{display:none}
 .linea circle.hit{fill:transparent;stroke:none}
 .linea .eje{stroke:var(--line);stroke-width:1}
 .linea text{fill:var(--muted);font:500 11px var(--text)}
+.seg[hidden]{display:none}
+/* Bloques y entrenador */
+.bloque{margin:12px 0 0;padding:10px 14px;border-radius:12px;background:var(--surface);border-left:4px solid var(--ink);font-size:14px;line-height:1.4}
+.bloque.descarga{border-left-color:var(--yellow)}
+.ex-alerta{margin:8px 0 0 30px;padding:8px 12px;border-radius:10px;background:var(--surface);border-left:4px solid var(--yellow);font-size:13px;line-height:1.4}
+.coach{margin:0 0 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.coach summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 14px}
+.coach summary::-webkit-details-marker{display:none}
+.coach summary::after{content:"";margin-left:auto;width:7px;height:7px;flex:none;border:solid var(--muted);border-width:0 2px 2px 0;transform:translateY(-2px) rotate(45deg)}
+.coach[open] summary::after{transform:translateY(2px) rotate(-135deg)}
+.coach-t b{display:block;font:700 20px/1.1 var(--display)}
+.coach-t small{display:block;font-size:13px;color:var(--muted);margin-top:3px}
+.coach ul{margin:0;padding:0 14px 12px 32px;font-size:14px;line-height:1.45}
+.coach li{margin:6px 0}
 /* Día de entrenamiento */
 .plegable{margin-top:16px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
 .plegable summary{list-style:none;cursor:pointer;padding:12px 14px;font-weight:600;display:flex;align-items:center;gap:8px}
@@ -515,6 +529,7 @@ body.con-descanso .foot{padding-bottom:84px}
   <!-- SEMANA -->
   <section class="panel" id="p-semana" role="tabpanel" aria-labelledby="t-semana">
     <div id="aviso-copia"></div>
+    <div id="entrenador"></div>
     <div id="plan-perfil"></div>
     <div class="plan-head">
       <div class="seg" role="group" aria-label="Días por semana" id="plan-seg">
@@ -2220,11 +2235,11 @@ const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(
 
 /* Perfil y plan personalizado */
 const OBJS = {
-  musculo:{n:'Ganar músculo', sub:'Hipertrofia: series cerca del fallo, dejando 1–2 repeticiones en reserva', base:'4 × 6–10', acc:'3 × 10–15'},
-  fuerza:{n:'Ganar fuerza', sub:'Fuerza: pocas repeticiones, más peso y descansos largos', base:'4 × 4–6', acc:'3 × 8–10'},
-  grasa:{n:'Bajar grasa', sub:'Mantener la fuerza mientras bajás grasa, con cardio al final', base:'3 × 8–12', acc:'3 × 12–15',
+  musculo:{n:'Ganar músculo', sub:'Hipertrofia: series cerca del fallo, dejando 1–2 repeticiones en reserva', base:'4 × 6–10', acc:'3 × 10–15', base2:'4 × 8–12', acc2:'3 × 12–15'},
+  fuerza:{n:'Ganar fuerza', sub:'Fuerza: pocas repeticiones, más peso y descansos largos', base:'4 × 4–6', acc:'3 × 8–10', base2:'5 × 3–5', acc2:'3 × 6–8'},
+  grasa:{n:'Bajar grasa', sub:'Mantener la fuerza mientras bajás grasa, con cardio al final', base:'3 × 8–12', acc:'3 × 12–15', base2:'3 × 6–10', acc2:'3 × 10–15',
          cardio:'Al terminar: 15–20 min de cardio suave (bici, cinta inclinada o escaladora).'},
-  forma:{n:'Ponerme en forma', sub:'Técnica, constancia y todo el cuerpo en movimiento', base:'3 × 8–12', acc:'2 × 12–15'}
+  forma:{n:'Ponerme en forma', sub:'Técnica, constancia y todo el cuerpo en movimiento', base:'3 × 8–12', acc:'2 × 12–15', base2:'3 × 10–12', acc2:'2 × 12–15'}
 };
 const NIVELES = {nuevo:'Recién empiezo', medio:'6 meses a 2 años', avanzado:'Más de 2 años'};
 const LUGARES = {gym:'Gimnasio', casa:'Casa (mancuernas y banco)'};
@@ -2280,27 +2295,68 @@ function adaptarEj(e, P){
   }
   return n === e[0] ? [n, e[1], e[2]] : [n, e[1], e[2], e[0], [...new Set(motivos)].join(' y ')];
 }
-function esquemaPara(e, i, P){
+function esquemaPara(e, i, P, nBloque = 1){
   if(/\bs$/.test(e[1].trim())) return e[1];
   const o = OBJS[P.obj];
-  let [series, reps] = (ESQUEMA_FIJO[e[0]] || (i < 2 ? o.base : o.acc)).split(' × ');
+  const par = nBloque % 2 === 0;   // los bloques pares cambian el rango de repeticiones
+  let [series, reps] = (ESQUEMA_FIJO[e[0]] || (i < 2 ? (par ? o.base2 : o.base) : (par ? o.acc2 : o.acc))).split(' × ');
   series = Number(series);
   // Si recién empezás: menos volumen en los accesorios, los principiantes progresan con poco
   if(P.nivel === 'nuevo' && i >= 2) series = Math.max(2, series - 1);
   if(P.nivel === 'avanzado' && i === 0) series += 1;
   return `${series} × ${reps}`;
 }
+/* Bloques de 5 semanas: 4 de progresión y 1 de descarga. atlas.bloque = {n:1, ini:'2026-10-12'} (lunes) */
+const SEMANAS_BLOQUE = 5;
+const RIR = ['dejá 3 repeticiones en reserva', 'dejá 2 repeticiones en reserva', 'dejá 1–2 repeticiones en reserva', 'dejá 0–1 en reserva: la última serie, cerca del fallo'];
+const lunesDe = d => { const x = new Date(d); x.setHours(12, 0, 0, 0); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return x; };
+const isoDe = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+let BQ = null;
+function bloque(){
+  if(BQ) return BQ;
+  const b = store.get('atlas.bloque', null) || {n:1, ini:isoDe(lunesDe(new Date()))};
+  let sem = Math.floor((lunesDe(new Date()) - new Date(b.ini + 'T12:00')) / (7 * 864e5)) + 1;
+  // Si pasó el bloque (aunque no hayas entrenado), arranca el siguiente
+  while(sem > SEMANAS_BLOQUE){ b.n++; const d = new Date(b.ini + 'T12:00'); d.setDate(d.getDate() + 7 * SEMANAS_BLOQUE); b.ini = isoDe(d); sem -= SEMANAS_BLOQUE; }
+  store.set('atlas.bloque', b);
+  BQ = {n:b.n, ini:b.ini, sem:Math.max(1, sem), descarga:sem === SEMANAS_BLOQUE};
+  return BQ;
+}
+// Ejercicios que no rotan como variante (de rehabilitación, sin peso o muy específicos)
+const NO_ROTAR = new Set(['Sentadilla sin peso','Flexión plus','Excéntricos en escalón','Elevación con rodilla doblada en escalón','Press de banca agarre cerrado',
+  'Curl invertido','Extensión en polea agarre invertido','Abducción con cadera flexionada','Caminata con banda (monster walk)','Prensa con pies bajos','Remo con codos abiertos','Jalón agarre cerrado']);
+function variantes(nombre){
+  const a = DEMO.DEMO_ALIAS[nombre];
+  if(!a) return [];
+  return Object.keys(DEMO.DEMO_ALIAS).filter(n => n !== nombre && DEMO.DEMO_ALIAS[n][0] === a[0] && !SIN_OFRECER.has(n) && !NO_ROTAR.has(n) && !prohibido(n));
+}
+// Los dos primeros ejercicios del día (los básicos) se mantienen; los secundarios cambian de variante en cada bloque
+function rotar(ej, n){
+  const usados = new Set(ej.map(e => e[0]));
+  return ej.map((e, i) => {
+    if(i < 2 || n < 2) return e;
+    const op = [e[0], ...variantes(e[0]).filter(v => !usados.has(v))];
+    const v = op[(n - 1) % op.length];
+    if(v === e[0]) return e;
+    usados.add(v);
+    return [v, e[1], e[2], e[3] || e[0], [e[4], `variante del bloque ${n}`].filter(Boolean).join(' y ')];
+  });
+}
 function armarPlanes(){
-  if(!PERFIL) return PLANES;
-  const P = PERFIL, tope = Math.min(EJ_POR_TIEMPO[P.min] || 7, P.nivel === 'nuevo' ? 5 : 7), out = {};
+  const P = PERFIL, B = bloque(), out = {};
+  const tope = P ? Math.min(EJ_POR_TIEMPO[P.min] || 7, P.nivel === 'nuevo' ? 5 : 7) : 7;
   Object.entries(PLANES).forEach(([k, pl]) => {
     const dias = {};
     Object.entries(pl.dias).forEach(([dk, d]) => {
-      const ej = d.ej.map(e => adaptarEj(e, P))
-        .filter((e, i, a) => a.findIndex(x => x[0] === e[0]) === i)
-        .slice(0, tope)
-        .map((e, i) => { const r = e.slice(); r[1] = esquemaPara(e, i, P); return r; });
-      dias[dk] = Object.assign({}, d, {ej, sub:OBJS[P.obj].sub, cardio:OBJS[P.obj].cardio});
+      let ej = P ? d.ej.map(e => adaptarEj(e, P)).filter((e, i, a) => a.findIndex(x => x[0] === e[0]) === i).slice(0, tope) : d.ej.slice();
+      ej = rotar(ej, B.n).map((e, i) => {
+        const r = e.slice();
+        if(P) r[1] = esquemaPara(r, i, P, B.n);
+        // Descarga: la mitad de las series
+        if(B.descarga) r[1] = r[1].replace(/^(\d+)/, m => Math.max(1, Math.round(m / 2)));
+        return r;
+      });
+      dias[dk] = Object.assign({}, d, {ej}, P ? {sub:OBJS[P.obj].sub, cardio:OBJS[P.obj].cardio} : {});
     });
     out[k] = Object.assign({}, pl, {dias});
   });
@@ -2447,7 +2503,21 @@ const nSeries = esq => parseInt(esq, 10) || 3;
 const enSegundos = esq => /\bs$/.test(esq.trim());
 function repsTope(esq){ const m = esq.match(/×\s*(\d+)(?:–(\d+))?$/); return m ? Number(m[2] || m[1]) : 0; }
 const deHoy = nombre => (LOG[nombre] || []).find(x => x.f === FECHA);
-const anterior = nombre => (LOG[nombre] || []).filter(x => x.f < FECHA && x.s.some(s => s.r != null)).pop();
+// La vez pasada que cuenta para progresar: se saltean las sesiones de descarga
+const anterior = nombre => (LOG[nombre] || []).filter(x => x.f < FECHA && !x.d && x.s.some(s => s.r != null)).pop();
+// Rendimiento de una sesión: mejor 1RM estimado (Epley); sin peso, el total de repeticiones
+function rendimiento(reg){
+  const s = reg.s.filter(x => x.r != null);
+  return s.some(x => x.kg) ? Math.max(...s.filter(x => x.kg).map(x => x.kg * (1 + x.r / 30))) : s.reduce((a, x) => a + x.r, 0);
+}
+// Estancado: las últimas 3 sesiones no superaron a la anterior a ellas
+function estancado(nombre){
+  const regs = (LOG[nombre] || []).filter(x => !x.d && x.s.some(s => s.r != null));
+  if(regs.length < 4) return false;
+  const base = rendimiento(regs[regs.length - 4]);
+  return regs.slice(-3).every(r => rendimiento(r) <= base);
+}
+const redondear = kg => Math.round(kg * 2) / 2;
 function resumen(reg, seg){
   // Agrupa series seguidas con el mismo peso: "50 kg × 6, 6 · 47,5 kg × 5, 4"
   const u = seg ? ' s' : '', grupos = [];
@@ -2466,10 +2536,13 @@ function sugerencia(esq, prev){
 }
 function logHTML(e, k){
   const [nombre, esq] = e, seg = enSegundos(esq), n = nSeries(esq);
-  const prev = anterior(nombre), hoy = deHoy(nombre), sug = sugerencia(esq, prev);
+  const prev = anterior(nombre), hoy = deHoy(nombre), B = bloque();
+  const sug = B.descarga ? null : sugerencia(esq, prev);
+  const kgPrev = prev ? Math.max(0, ...prev.s.filter(x => x.r != null && x.kg).map(x => x.kg)) : 0;
+  const tope = repsTope(esq);
   const filas = Array.from({length:n}, (_, i) => {
     const h = (hoy && hoy.s[i]) || {}, p = (prev && prev.s[i]) || {};
-    const phKg = sug != null ? fmtNum(sug) : (p.kg ? fmtNum(p.kg) : '');
+    const phKg = sug != null ? fmtNum(sug) : B.descarga && p.kg ? fmtNum(redondear(p.kg * .9)) : (p.kg ? fmtNum(p.kg) : '');
     const phR = p.r != null ? p.r : (repsTope(esq) || (esq.match(/(\d+)\s*s$/) || [])[1] || '');
     return `<div class="set${h.ok?' done':''}" data-i="${i}"><span class="i">${i+1}</span>
       <input class="kg" inputmode="decimal" aria-label="Serie ${i+1}: kilos" placeholder="${phKg || 'kg'}" value="${h.kg != null ? fmtNum(h.kg) : ''}"><span class="u">kg ×</span>
@@ -2478,7 +2551,10 @@ function logHTML(e, k){
   }).join('');
   const hechas = hoy ? hoy.s.filter(x => x.ok).length : 0;
   return (prev ? `<p class="ex-last">La vez pasada · ${fmtFecha(prev.f)}: <b>${resumen(prev, seg)}</b></p>` : '') +
-    (sug != null ? `<p class="ex-sug">Completaste todo: probá con ${fmtNum(sug)} kg</p>` : '') +
+    (B.descarga && kgPrev ? `<p class="ex-sug">Descarga: usá ~${fmtNum(redondear(kgPrev * .9))} kg, sin llegar al fallo.</p>`
+      : sug != null ? `<p class="ex-sug">Completaste todo: probá con ${fmtNum(sug)} kg</p>`
+      : kgPrev && tope ? `<p class="ex-last">Mantené ${fmtNum(kgPrev)} kg hasta hacer ${tope} reps en todas las series; ahí subís.</p>` : '') +
+    (!B.descarga && estancado(nombre) ? `<p class="ex-alerta"><b>Sin progreso en 3 sesiones.</b> Bajá ~10% el peso y volvé a subir de a poco, o probá otra variante con “⇄ Cambiar”. Revisá también descanso y sueño.</p>` : '') +
     `<details class="log" data-k="${k}"${hoy || S.dia === HOY || S.entrenar ? ' open' : ''}><summary>Anotar series <span class="cnt${hechas>=n?' full':''}">${hechas}/${n}</span></summary><div class="sets">${filas}</div></details>`;
 }
 function guardarSerie(det){
@@ -2491,7 +2567,7 @@ function guardarSerie(det){
     return o;
   });
   const lista = (LOG[nombre] || []).filter(x => x.f !== FECHA);
-  if(s.some(x => Object.keys(x).length)) lista.push({f: FECHA, s});
+  if(s.some(x => Object.keys(x).length)) lista.push(bloque().descarga ? {f: FECHA, s, d: true} : {f: FECHA, s});
   if(lista.length) LOG[nombre] = lista; else delete LOG[nombre];
   store.set('atlas.log', LOG);
   const hechas = s.filter(x => x.ok).length, cnt = det.querySelector('.cnt');
@@ -2614,6 +2690,49 @@ function renderProgreso(){
         <span class="hb">${mejor ? `<b>${fmtNum(mejor)}</b><small>kg máx.</small>` : `<b>${regs.length}</b><small>${regs.length === 1 ? 'sesión' : 'sesiones'}</small>`}</span></summary>
         <table><tbody>${regs.slice().reverse().map(r => `<tr><td>${fmtFecha(r.f)}</td><td>${resumen(r, seg)}</td></tr>`).join('')}</tbody></table></details>`;
     }).join('')}</div>` : `<p class="empty-prog">Todavía no anotaste nada. En <b>Mi semana</b>, abrí “Anotar series” en un ejercicio y acá vas a ver tu progreso.</p>`}`;
+}
+
+/* Tu entrenador: resumen semanal */
+function renderEntrenador(){
+  const B = bloque(), meta = PERFIL ? PERFIL.dias : S.plan;
+  const lunes = lunesDe(new Date()), iso = d => isoDe(d), mas = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+  const fechas = new Set(); Object.values(LOG).forEach(regs => regs.forEach(r => { if(r.s.some(x => x.r != null)) fechas.add(r.f); }));
+  const entre = (a, b) => [...fechas].filter(f => f >= iso(a) && f <= iso(b)).length;
+  const esta = entre(lunes, new Date()), pasada = entre(mas(lunes, -7), mas(lunes, -1)), antes = entre(mas(lunes, -14), mas(lunes, -8));
+  const items = [];
+  // Constancia
+  if(pasada || antes) items.push(pasada >= meta ? `La semana pasada cumpliste los <b>${meta} días</b>. Así se progresa.`
+    : `La semana pasada entrenaste <b>${pasada} de ${meta} días</b>.${pasada < meta && antes < meta && antes ? ' Dos semanas seguidas sin llegar: si te cuesta, poné menos días en tu perfil; es mejor un plan que cumplís.' : ''}`);
+  // Récords de los últimos 7 días
+  const hace7 = iso(mas(new Date(), -7));
+  const records = Object.entries(LOG).map(([n, regs]) => {
+    const kgs = r => r.s.filter(x => x.r != null && x.kg).map(x => x.kg);
+    const nuevo = Math.max(0, ...regs.filter(r => r.f > hace7 && !r.d).flatMap(kgs)), viejo = Math.max(0, ...regs.filter(r => r.f <= hace7).flatMap(kgs));
+    return nuevo > viejo && viejo ? `${esc(n)} <b>${fmtNum(nuevo)} kg</b> (+${fmtNum(Math.round((nuevo - viejo) * 10) / 10)})` : null;
+  }).filter(Boolean);
+  if(records.length) items.push(`Subiste peso en: ${records.slice(0, 4).join(', ')}.`);
+  // Estancamientos
+  const est = Object.keys(LOG).filter(estancado);
+  if(est.length) items.push(`Sin progreso hace 3 sesiones: <b>${est.map(esc).join(', ')}</b>. Mirá la sugerencia en cada ejercicio.`);
+  // Bloque
+  if(B.sem === SEMANAS_BLOQUE - 1) items.push('La semana que viene es de <b>descarga</b>: menos series y menos peso para recuperarte.');
+  if(B.descarga) items.push(`Después de esta semana arranca el <b>bloque ${B.n + 1}</b>: cambian algunos ejercicios secundarios${PERFIL ? ' y el rango de repeticiones' : ''}.`);
+  // Peso corporal según el objetivo
+  const cuerpo = store.get('atlas.cuerpo', []).filter(x => x.peso), ult = cuerpo[cuerpo.length - 1];
+  const peso = ult ? ult.peso : PERFIL && PERFIL.peso;
+  const ventana = cuerpo.filter(x => x.f >= iso(mas(new Date(), -35)));
+  if(PERFIL && ventana.length >= 2){
+    const a = ventana[0], b = ventana[ventana.length - 1], sem = Math.max(1, (new Date(b.f) - new Date(a.f)) / (7 * 864e5)), ritmo = (b.peso - a.peso) / sem;
+    const r = `${ritmo > 0 ? '+' : ritmo < 0 ? '−' : ''}${fmtNum(Math.abs(Math.round(ritmo * 10) / 10))} kg por semana`;
+    if(PERFIL.obj === 'grasa') items.push(ritmo < -b.peso * .01 ? `Estás bajando rápido (${r}): podés perder músculo. Comé un poco más.`
+      : ritmo <= -0.2 ? `Buen ritmo para bajar grasa (${r}).` : `El peso casi no se mueve (${r}). Achicá un poco las porciones o sumá pasos diarios.`);
+    if(PERFIL.obj === 'musculo') items.push(ritmo > 0.5 ? `Estás subiendo rápido (${r}): parte puede ser grasa. Bajá un poco las cantidades.`
+      : ritmo >= 0.1 ? `Buen ritmo para ganar músculo (${r}).` : `No estás subiendo de peso (${r}). Sumá unas 200–300 kcal por día.`);
+  }
+  if(peso) items.push(`Proteína: apuntá a <b>${Math.round(peso * 1.6 / 5) * 5}–${Math.round(peso * 2.2 / 5) * 5} g por día</b> (1,6–2,2 g por kilo), repartida en 3–4 comidas.`);
+  else items.push('Anotá tu peso en Progreso para que te calcule la proteína y siga cómo cambia.');
+  $('#entrenador').innerHTML = `<details class="coach"${S.coach ? ' open' : ''}><summary><span class="coach-t"><b>Tu entrenador</b><small>Bloque ${B.n} · ${B.descarga ? 'descarga' : `semana ${B.sem} de ${SEMANAS_BLOQUE}`} · esta semana ${esta} de ${meta} días</small></span></summary>
+    <ul>${items.map(t => `<li>${t}</li>`).join('')}</ul></details>`;
 }
 
 /* Perfil */
@@ -2760,7 +2879,11 @@ function renderPlan(){
     // Lo que se anota siempre queda con la fecha de hoy, aunque se mire otro día del plan
     const nota = S.dia !== HOY ? `<p class="nota-fecha">Lo que anotes se guarda con la fecha de hoy, ${new Date().toLocaleDateString('es-AR', {weekday:'long', day:'numeric', month:'short'})}.</p>` : '';
     const ayuda = store.get('atlas.ayuda', false) ? '' : `<div class="ayuda" id="ayuda"><p><b>Cómo anotar:</b> tocá <span class="ok-mini">✓</span> para repetir lo que hiciste la vez pasada (los números grises). Si hiciste otra cosa, escribí los kilos y las reps y después tocá ✓. Al marcar una serie arranca el descanso.</p><button class="plain" id="ayuda-ok">Entendido</button></div>`;
-    $('#day').innerHTML = `${when}<h2 class="day-title">${d.titulo}</h2><p class="day-sub">${d.sub}</p>
+    const B = bloque();
+    const bq = B.descarga
+      ? `<p class="bloque descarga"><b>Bloque ${B.n} · Semana de descarga.</b> La mitad de las series y ~10% menos de peso. Es parte del plan: acá el cuerpo asimila lo entrenado.</p>`
+      : `<p class="bloque"><b>Bloque ${B.n} · Semana ${B.sem} de ${SEMANAS_BLOQUE}.</b> Intensidad: ${RIR[B.sem - 1]}.</p>`;
+    $('#day').innerHTML = `${when}<h2 class="day-title">${d.titulo}</h2><p class="day-sub">${d.sub}</p>${bq}
       <details class="plegable"><summary>Calentamiento <small>${CAL[d.cal].length} pasos</small></summary>
         <ol class="warm">${CAL[d.cal].map(x=>`<li>${x}</li>`).join('')}</ol></details>
       <h3 class="h3">Ejercicios</h3>${nota}${ayuda}
@@ -2771,6 +2894,7 @@ function renderPlan(){
         <div class="chip-wrap" style="margin-top:8px">${d.art.map(id => `<button class="mchip jchip" data-j="${id}" style="--c:var(--green)">${jBy(id).nombre}</button>`).join('')}</div></details>`;
   }
   renderAvisoCopia();
+  renderEntrenador();
   renderHoyBtn();
 }
 
@@ -3045,6 +3169,7 @@ $('#rest-menos').addEventListener('click', () => { REST.fin -= 15000; tickDescan
 $('#rest-mas').addEventListener('click', () => { if(!REST.id) return iniciarDescanso(15); REST.fin += 15000; REST.total += 15; tickDescanso(); });
 $('#rest-saltar').addEventListener('click', cerrarDescanso);
 $('#exportar').addEventListener('click', exportar);
+$('#entrenador').addEventListener('toggle', e => { S.coach = e.target.open; }, true);
 $('#perfil-btn').addEventListener('click', () => { setTab('perfil'); window.scrollTo({top:0}); });
 document.addEventListener('click', e => { if(e.target.closest('[data-ir-perfil]')){ setTab('perfil'); window.scrollTo({top:0}); } });
 $('#p-perfil').addEventListener('submit', e => { e.preventDefault(); guardarPerfil(e.target); });
