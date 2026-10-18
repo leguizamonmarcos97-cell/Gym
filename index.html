@@ -3295,6 +3295,7 @@ function sheetD(mov, v){
       ${v.frente ? `<div class="seg" role="group" aria-label="Vista"><button data-dvista="lado" aria-pressed="${!frente}">De costado</button><button data-dvista="frente" aria-pressed="${frente}">De frente</button></div>` : ''}
       ${v.hold ? '' : `<button class="plain" data-dopt="lento" aria-pressed="${DOPT.lento}">Cámara lenta</button>`}
       <button class="plain" data-dopt="guias" aria-pressed="${DOPT.guias}">Recorrido</button>
+      <button class="plain" data-ir-video>Ver video real</button>
       ${err ? `<button class="plain err-btn" data-dopt="error" aria-pressed="${DOPT.error}">${DOPT.error ? 'Ver la forma correcta' : 'Ver error común'}</button>` : ''}
     </div>
     ${mal ? `<p class="demo-err"><b>Error común: ${err.n}.</b> ${err.txt}</p>` : ''}
@@ -3307,7 +3308,55 @@ function sheetD(mov, v){
     ${videoHTML(mov, v)}`;
 }
 /* Videos reales (YouTube, sin cookies). Clave 'movimiento:variante'; si la variante no tiene, se usa la de otra del mismo movimiento */
-const VIDEOS = {/*VIDEOS*/};
+const VIDEOS = {
+  'sentadilla:barra':{"v": "5KrVCTD6Rqw", "t": "SENTADILLA LIBRE DESDE 0 – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
+  'sentadilla:mancuerna':{"v": "bxNLqKwiheo", "t": "Así se hace: GLOBET SQUAT | Sergio Tejeda", "c": "Sergio Tejeda"},
+  'sentadilla:prensa':{"v": "KdT2g0iSdG0", "t": "🟢 Prensa de Piernas Inclinada 45 grados 🦵 | Técnica Correcta", "c": "Vitar Club"},
+  'bisagra:rumano':{"v": "8y12ZqdQisc", "t": "PESO MUERTO RUMANO – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
+  'bisagra:rumano-mancuerna':{"v": "H0vu-quzSBE", "t": "MEJORA tu PESO MUERTO RUMANO con MANCUERNAS | Sergio Tejeda", "c": "Sergio Tejeda"},
+  'bisagra:piso':{"v": "X3rceqaHzN8", "t": "PESO MUERTO CONVENCIONAL I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
+  'press:barra':{"v": "X8VBJscpqco", "t": "PRESS BANCA LIBRE CON BARRA OLÍMPICA – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
+  'press:mancuernas':{"v": "RBqBbx1GvYY", "t": "PRESS PLANO CON MANCUERNAS – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
+  'press:inclinado':{"v": "kLEAtIrsFDc", "t": "MEJORA tu Press INCLINADO con MANCUERNAS | Sergio Tejeda", "c": "Sergio Tejeda"},
+  'press:flexiones':{"v": "npGYKLioPT0", "t": "FLEXION NORMAL I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
+  'remo:barra':{"v": "j7h2ytbt5nc", "t": "REMO CON BARRA – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
+  'remo:mancuerna':{"v": "h1NrojgfW9Q", "t": "REMO CON MANCUERNA APOYADO EN BANCO UNILATERAL – TÉCNICA CORRECTA, ERRORES Y CONSEJOS", "c": "Sergio Tejeda"},
+  'remo:polea':{"v": "gcQIwAIOh70", "t": "Remo GIRONDA Con AGARRE NEUTRO ESTRECHO I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
+  'jalon:dominada':{"v": "YoQlO1lt_7I", "t": "DOMINADAS PRONAS – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
+  'jalon:jalon':{"v": "_BHmgCgPWFk", "t": "JALÓN AL PECHO AGARRE PRONO – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
+  'militar:barra':{"v": "HJaNjIyf6mg", "t": "PRESS MILITAR CON BARRA DE PIE – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
+  'militar:mancuernas':{"v": "1Nxx_o2TjQU", "t": "MEJORA tu PRESS MILITAR con MANCUERNAS | Sergio Tejeda", "c": "Sergio Tejeda"},
+  'laterales:mancuernas':{"v": "W0Q1lMQ6uWk", "t": "ELEVACIÓN LATERAL CON MANCUERNAS SENTADO – TÉCNICA CORRECTA Y BENEFICIOS", "c": "Sergio Tejeda"},
+  'curl:barra':{"v": "_AWYYU_EvZU", "t": "CURL DE PIE BARRA RECTA I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
+  'curl:mancuernas':{"v": "znTSJ_2zJN0", "t": "CURL MARTILLO CON MANCUERNA – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
+  'curl:muneca':{"v": "NoO4ol8Zw2I", "t": "How to do a wrist curl properly", "c": "Jim Stoppani, PhD"},
+  'triceps:polea':{"v": "7R9dHNNjGvQ", "t": "EXTENSIÓN DE TRÍCEPS EN POLEA CON BARRA – TÉCNICA CORRECTA, ERRORES Y BENEFICIOS", "c": "Sergio Tejeda"},
+  'triceps:mancuerna':{"v": "fQ-KB40W3d8", "t": "TRÍCEPS con MANCUERNA por encima de la cabeza | GFit Coach", "c": "Guillermo Fernández"},
+  'triceps:frances':{"v": "RdUPfRBdqDY", "t": "PRESS FRANCÉS CON BARRA Z – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
+  'fondos:paralelas':{"v": "DMRoiKU0-xQ", "t": "FONDOS para TRICEPS en PARALELAS I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
+  'hipthrust:barra':{"v": "jp06gpXXmOc", "t": "HIP THRUST CON BARRA – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
+  'hipthrust:puente':{"v": "kTPNBVl8Yrc", "t": "Activa tu GLUTEO así I Glute Bridge I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
+  'zancada:mancuernas':{"v": "9sGFVsToOfM", "t": "ZANCADAS CON PESO EN MOVIMIENTO I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
+  'zancada:bulgara':{"v": "pvuzpLMIRF4", "t": "SENTADILLA BÚLGARA – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
+  'extension:maquina':{"v": "ndnA6yvGoqQ", "t": "MÁQUINA EXTENSIÓN DE CUÁDRICEPS – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
+  'curlfem:acostado':{"v": "c1YSf6ubBxU", "t": "FEMORAL TUMBADO EN MÁQUINA  - EXPLICACIÓN - ¿CÓMO SE HACE?", "c": "Sergio Tejeda"},
+  'curlfem:sentado':{"v": "FTOmWH1AZjo", "t": "FEMORAL SENTADO EN MÁQUINA – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
+  'curlfem:nordico':{"v": "j3L39hJaJl8", "t": "Cómo Hacer un Curl Nórdico de Isquiotibiales", "c": "KneesOverToesGuy en Español"},
+  'pantorrillas:pie':{"v": "XvHhG4E4tDo", "t": "Gemelos de pie | TÉCNICA CORRECTA", "c": "Manuel Escalera"},
+  'pantorrillas:sentado':{"v": "fRsvxLFYEh4", "t": "MÁQUINA DE SÓLEO – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
+  'abdominales:plancha':{"v": "tq1ToE2xflY", "t": "Plancha Abdominal  I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
+  'abdominales:crunch':{"v": "NzJipZsmyVI", "t": "CRUNCH ABDOMINAL EN POLEA DE RODILLAS I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
+  'abdominales:colgado':{"v": "_QMu7MSAYQg", "t": "Elevación de Pierna para Abdomen Colgado I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
+  'abdominales:rueda':{"v": "5476p5bOh0M", "t": "Rueda Abdominal I El mejor ejercicio de Abdomen  I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
+  'abdominales:pallof':{"v": "kWqYSrRimUc", "t": "Pallof Press I El mejor ejercicio de Abdomen I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
+  'facepull:polea':{"v": "Z0OmGOuENTQ", "t": "APRENDE desde 0 a hacer FACEPULL | Sergio Tejeda", "c": "Sergio Tejeda"},
+  'encogimientos:mancuernas':{"v": "i2tMhxxFdlQ", "t": "ENCOGIMIENTO Con MANCUERNAS  para TRAPECIO I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
+  'abduccion:maquina':{"v": "Ypq3DHUzpZA", "t": "MÁQUINA ABDUCTOR – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
+  'abduccion:banda':{"v": "HgUZkJs1qeM", "t": "Pasos laterales con BANDA elástica 🔥 | Activa el glúteo medio", "c": "Vitar Club"},
+  'aductores:maquina':{"v": "vxGLfUujrP4", "t": "MÁQUINA ADDUCTOR – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
+  'pajaros:mancuernas':{"v": "4FfiEwe3Z54", "t": "Pájaro con Mancuernas para Hombro Posterior I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
+  'rotacion:banda':{"v": "NVMGbS69CVo", "t": "Rotación EXTERNA de HOMBRO con banda 🔄 | Técnica correcta", "c": "Vitar Club"}
+};
 function videoHTML(mov, v){
   const id = Object.keys(DEMO.DEMOS).find(k => DEMO.DEMOS[k] === mov), propio = VIDEOS[`${id}:${v.id}`];
   const vd = propio || VIDEOS[Object.keys(VIDEOS).find(k => k.startsWith(id + ':'))];
@@ -3398,6 +3447,7 @@ function closeSheet(){
 document.addEventListener('click', e => {
   const dm = e.target.closest('[data-demo]');
   if(dm){ openSheet({t:'d', id:dm.dataset.demo, v:dm.dataset.var}); return; }
+  if(e.target.closest('[data-ir-video]')){ const y = document.querySelector('#sheet .yt'); if(y) y.scrollIntoView({behavior:'smooth', block:'center'}); return; }
   const yt = e.target.closest('[data-yt]');
   if(yt){
     if(!navigator.onLine){ yt.insertAdjacentHTML('afterend', '<p class="yt-src">Para ver el video necesitás internet.</p>'); return; }
