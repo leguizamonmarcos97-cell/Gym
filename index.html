@@ -263,6 +263,7 @@ svg.fig.off{display:none}
 .nota-fecha{margin:-4px 0 10px;font-size:13px;color:var(--muted)}
 .ayuda{display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin:0 0 12px;padding:12px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--green)}
 .ayuda p{margin:0;font-size:14px;line-height:1.45}
+.ayuda-pasos{margin:0;padding-left:20px;font-size:14px;line-height:1.45}
 .ok-mini{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--green);color:#fff;font-size:12px;font-weight:700;vertical-align:-3px}
 .igual{margin-top:18px}
 .igual summary{list-style:none;display:inline-flex;align-items:center}
@@ -2440,7 +2441,9 @@ function esquemaPara(e, i, P, nBloque = 1){
 }
 /* Bloques de 5 semanas: 4 de progresión y 1 de descarga. atlas.bloque = {n:1, ini:'2026-10-12'} (lunes) */
 const SEMANAS_BLOQUE = 5;
-const RIR = ['dejá 3 repeticiones en reserva', 'dejá 2 repeticiones en reserva', 'dejá 1–2 repeticiones en reserva', 'dejá 0–1 en reserva: la última serie, cerca del fallo'];
+// Cuánto exigirse cada semana del bloque, en palabras simples
+const RIR = ['cortá cada serie cuando sientas que podrías hacer 3 más', 'cortá cada serie cuando sientas que podrías hacer 2 más',
+  'cortá cada serie cuando sientas que podrías hacer 1 o 2 más', 'en la última serie de cada ejercicio, llegá casi al límite'];
 const lunesDe = d => { const x = new Date(d); x.setHours(12, 0, 0, 0); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return x; };
 const isoDe = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 let BQ = null;
@@ -2471,7 +2474,7 @@ function rotar(ej, n){
     const v = op[(n - 1) % op.length];
     if(v === e[0]) return e;
     usados.add(v);
-    return [v, e[1], e[2], e[3] || e[0], [e[4], `variante del bloque ${n}`].filter(Boolean).join(' y ')];
+    return [v, e[1], e[2], e[3] || e[0], [e[4], `cambio de la etapa ${n}`].filter(Boolean).join(' y ')];
   });
 }
 function armarPlanes(){
@@ -2683,7 +2686,7 @@ function logHTML(e, k){
   }).join('');
   const hechas = hoy ? hoy.s.filter(x => x.ok).length : 0;
   return (prev ? `<p class="ex-last">La vez pasada · ${fmtFecha(prev.f)}: <b>${resumen(prev, seg)}</b></p>` : '') +
-    (B.descarga && kgPrev ? `<p class="ex-sug">Descarga: usá ~${fmtNum(redondear(kgPrev * .9))} kg, sin llegar al fallo.</p>`
+    (B.descarga && kgPrev ? `<p class="ex-sug">Semana liviana: usá unos ${fmtNum(redondear(kgPrev * .9))} kg, sin llegar al límite.</p>`
       : sug != null ? `<p class="ex-sug">Completaste todo: probá con ${fmtNum(sug)} kg</p>`
       : kgPrev && tope ? `<p class="ex-last">Mantené ${fmtNum(kgPrev)} kg hasta hacer ${tope} reps en todas las series; ahí subís.</p>` : '') +
     (!B.descarga && estancado(nombre) ? `<p class="ex-alerta"><b>Sin progreso en 3 sesiones.</b> Bajá ~10% el peso y volvé a subir de a poco, o probá otra variante con “⇄ Cambiar”. Revisá también descanso y sueño.</p>` : '') +
@@ -2847,8 +2850,8 @@ function renderEntrenador(){
   const est = Object.keys(LOG).filter(estancado);
   if(est.length) items.push(`Sin progreso hace 3 sesiones: <b>${est.map(esc).join(', ')}</b>. Mirá la sugerencia en cada ejercicio.`);
   // Bloque
-  if(B.sem === SEMANAS_BLOQUE - 1) items.push('La semana que viene es de <b>descarga</b>: menos series y menos peso para recuperarte.');
-  if(B.descarga) items.push(`Después de esta semana arranca el <b>bloque ${B.n + 1}</b>: cambian algunos ejercicios secundarios${PERFIL ? ' y el rango de repeticiones' : ''}.`);
+  if(B.sem === SEMANAS_BLOQUE - 1) items.push('La semana que viene es <b>liviana</b>: menos series y menos peso para recuperarte.');
+  if(B.descarga) items.push(`La semana que viene empieza una <b>etapa nueva</b>: cambian algunos ejercicios${PERFIL ? ' y las repeticiones' : ''}.`);
   // Peso corporal según el objetivo
   const cuerpo = store.get('atlas.cuerpo', []).filter(x => x.peso), ult = cuerpo[cuerpo.length - 1];
   const peso = ult ? ult.peso : PERFIL && PERFIL.peso;
@@ -2863,7 +2866,7 @@ function renderEntrenador(){
   }
   if(peso) items.push(`Proteína: apuntá a <b>${Math.round(peso * 1.6 / 5) * 5}–${Math.round(peso * 2.2 / 5) * 5} g por día</b> (1,6–2,2 g por kilo), repartida en 3–4 comidas.`);
   else items.push('Anotá tu peso en Progreso para que te calcule la proteína y siga cómo cambia.');
-  $('#entrenador').innerHTML = `<details class="coach"${S.coach ? ' open' : ''}><summary><span class="coach-t"><b>Tu entrenador</b><small>Bloque ${B.n} · ${B.descarga ? 'descarga' : `semana ${B.sem} de ${SEMANAS_BLOQUE}`} · esta semana ${esta} de ${meta} días</small></span></summary>
+  $('#entrenador').innerHTML = `<details class="coach"${S.coach ? ' open' : ''}><summary><span class="coach-t"><b>Tu entrenador</b><small>${B.descarga ? 'Semana liviana' : `Semana ${B.sem} de ${SEMANAS_BLOQUE}`} · entrenaste ${esta} de ${meta} días</small></span></summary>
     <ul>${items.map(t => `<li>${t}</li>`).join('')}</ul></details>`;
 }
 
@@ -3009,12 +3012,12 @@ function renderPlan(){
         <div class="igual-op">${rutinas.map(([k, r]) => `<button class="plain" data-rutina="${k}">${r.titulo}<small>${r.sub}</small></button>`).join('')}</div></details>`;
   } else {
     // Lo que se anota siempre queda con la fecha de hoy, aunque se mire otro día del plan
-    const nota = S.dia !== HOY ? `<p class="nota-fecha">Lo que anotes se guarda con la fecha de hoy, ${new Date().toLocaleDateString('es-AR', {weekday:'long', day:'numeric', month:'short'})}.</p>` : '';
-    const ayuda = store.get('atlas.ayuda', false) ? '' : `<div class="ayuda" id="ayuda"><p><b>Cómo anotar:</b> tocá <span class="ok-mini">✓</span> para repetir lo que hiciste la vez pasada (los números grises). Si hiciste otra cosa, escribí los kilos y las reps y después tocá ✓. Al marcar una serie arranca el descanso.</p><button class="plain" id="ayuda-ok">Entendido</button></div>`;
+    const nota = S.dia !== HOY ? `<p class="nota-fecha">Estás viendo la rutina del ${DIAS.find(x => x.i === S.dia).n.toLowerCase()}. Si la hacés hoy, queda anotada con la fecha de hoy.</p>` : '';
+    const ayuda = store.get('atlas.ayuda', false) ? '' : `<div class="ayuda" id="ayuda"><p><b>Cómo anotar:</b> terminás una serie y tocás <span class="ok-mini">✓</span>.</p><ul class="ayuda-pasos"><li>Si hiciste lo que aparece en gris, con el ✓ alcanza.</li><li>Si hiciste otra cosa, primero escribí los kilos y las repeticiones.</li><li>Después del ✓ arranca solo el tiempo de descanso.</li></ul><button class="plain" id="ayuda-ok">Entendido</button></div>`;
     const B = bloque();
     const bq = B.descarga
-      ? `<p class="bloque descarga"><b>Bloque ${B.n} · Semana de descarga.</b> La mitad de las series y ~10% menos de peso. Es parte del plan: acá el cuerpo asimila lo entrenado.</p>`
-      : `<p class="bloque"><b>Bloque ${B.n} · Semana ${B.sem} de ${SEMANAS_BLOQUE}.</b> Intensidad: ${RIR[B.sem - 1]}.</p>`;
+      ? `<p class="bloque descarga"><b>Semana liviana (5 de 5).</b> Hacé la mitad de las series con un poco menos de peso. Sirve para recuperarte; la semana que viene arranca una etapa nueva.</p>`
+      : `<p class="bloque"><b>Semana ${B.sem} de ${SEMANAS_BLOQUE}${B.n > 1 ? ` · etapa ${B.n}` : ''}.</b> Esta semana: ${RIR[B.sem - 1]}.</p>`;
     $('#day').innerHTML = `${when}<h2 class="day-title">${d.titulo}</h2><p class="day-sub">${d.sub}</p>${bq}
       <details class="plegable"><summary>Calentamiento <small>${CAL[d.cal].length} pasos</small></summary>
         <ol class="warm">${CAL[d.cal].map(x=>`<li>${x}</li>`).join('')}</ol></details>
