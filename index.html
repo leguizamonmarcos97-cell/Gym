@@ -192,7 +192,7 @@ svg.fig.off{display:none}
 .ex-last b{color:var(--ink);font-weight:600}
 .ex-sug{color:var(--green);font-weight:600}
 .log{margin:8px 0 0 30px}
-.log,.log *,.plegable,.plegable *,.igual,.igual *,.aviso *{box-sizing:border-box}
+.pf,.pf *,.cuerpo-form *,.pp *,.log,.log *,.plegable,.plegable *,.igual,.igual *,.aviso *{box-sizing:border-box}
 .log summary{display:flex;width:fit-content;align-items:center;gap:8px;list-style:none;cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 13px;font:600 14px/1 var(--text);min-height:36px}
 .log summary::-webkit-details-marker{display:none}
 .log .cnt{color:var(--muted);font-weight:500}
@@ -206,6 +206,37 @@ svg.fig.off{display:none}
 .set .ok{appearance:none;margin-left:auto;width:40px;height:40px;flex:none;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);font:700 17px/1 var(--text);cursor:pointer}
 .set .ok[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:#fff}
 .set.done input{border-color:var(--green)}
+/* Perfil */
+.pf-form{margin-top:18px}
+.pf{border:0;margin:0 0 18px;padding:0}
+.pf legend{font:700 22px/1.1 var(--display);margin-bottom:10px;padding:0}
+.pf-ops{display:flex;flex-wrap:wrap;gap:6px}
+.op{position:relative}
+.op input{position:absolute;opacity:0;width:1px;height:1px}
+.op span{display:inline-flex;align-items:center;min-height:40px;padding:8px 14px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font:600 15px/1.2 var(--text);cursor:pointer}
+.op input:checked + span{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.op input:focus-visible + span{outline:2px solid var(--ink);outline-offset:2px}
+.pf-ayuda{margin:-4px 0 10px;font-size:13px;color:var(--muted)}
+.pf-datos,.cuerpo-form{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.pf-datos label,.cuerpo-form label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+.pf-datos label span,.cuerpo-form label span{display:flex;align-items:center;gap:6px;color:var(--muted)}
+.pf-datos input,.cuerpo-form input{width:76px;height:42px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:0 8px;font:600 16px var(--text);text-align:center}
+.pf-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.pp{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 12px;padding:10px 12px 10px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.pp p{margin:0;font-size:14px;flex:1;min-width:180px}
+.cardio{margin:14px 0 0;padding:10px 14px;border-radius:12px;background:var(--surface);border-left:4px solid var(--blue);font-size:14px}
+.cuerpo-form{margin-bottom:10px}
+.cuerpo-res{display:flex;flex-wrap:wrap;gap:6px 18px;margin:6px 0 4px}
+.cuerpo-res p{margin:0}
+.cuerpo-res b{font:800 28px/1 var(--display)}
+.cuerpo-res span{font-size:13px;color:var(--muted)}
+.graf-tit{margin:12px 0 2px;font-size:13px;color:var(--muted)}
+.linea{width:100%;max-width:520px;height:auto;display:block;overflow:visible}
+.linea polyline{fill:none;stroke:var(--blue);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.linea circle{fill:var(--blue);stroke:var(--bg);stroke-width:2}
+.linea circle.hit{fill:transparent;stroke:none}
+.linea .eje{stroke:var(--line);stroke-width:1}
+.linea text{fill:var(--muted);font:500 11px var(--text)}
 /* Día de entrenamiento */
 .plegable{margin-top:16px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
 .plegable summary{list-style:none;cursor:pointer;padding:12px 14px;font-weight:600;display:flex;align-items:center;gap:8px}
@@ -398,7 +429,7 @@ body.con-descanso .foot{padding-bottom:84px}
       <h1>Atlas del cuerpo</h1>
       <p>Músculos, articulaciones y qué entrenar cada día</p>
     </div>
-    <div class="brand-acts"><button class="ghost" id="install-btn" hidden>Instalar app</button><button class="hoy-btn" id="hoy-btn"><span class="dot"></span><span id="hoy-txt">Hoy</span></button></div>
+    <div class="brand-acts"><button class="ghost" id="install-btn" hidden>Instalar app</button><button class="ghost" id="perfil-btn">Mi perfil</button><button class="hoy-btn" id="hoy-btn"><span class="dot"></span><span id="hoy-txt">Hoy</span></button></div>
   </div>
 </div>
 
@@ -484,6 +515,7 @@ body.con-descanso .foot{padding-bottom:84px}
   <!-- SEMANA -->
   <section class="panel" id="p-semana" role="tabpanel" aria-labelledby="t-semana">
     <div id="aviso-copia"></div>
+    <div id="plan-perfil"></div>
     <div class="plan-head">
       <div class="seg" role="group" aria-label="Días por semana" id="plan-seg">
         <button data-plan="3">3 días</button>
@@ -502,6 +534,9 @@ body.con-descanso .foot{padding-bottom:84px}
       <p><strong>Dolor:</strong> la molestia muscular del día siguiente es normal. Un dolor punzante en una articulación no: pará y consultá.</p>
     </aside>
   </section>
+
+  <!-- PERFIL -->
+  <section class="panel" id="p-perfil" aria-label="Tu perfil" hidden></section>
 
   <!-- PROGRESO -->
   <section class="panel" id="p-progreso" role="tabpanel" aria-labelledby="t-progreso" hidden>
@@ -2183,8 +2218,100 @@ const mBy = id => M.find(m => m.id === id);
 const jBy = id => J.find(j => j.id === id);
 const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 
+/* Perfil y plan personalizado */
+const OBJS = {
+  musculo:{n:'Ganar músculo', sub:'Hipertrofia: series cerca del fallo, dejando 1–2 repeticiones en reserva', base:'4 × 6–10', acc:'3 × 10–15'},
+  fuerza:{n:'Ganar fuerza', sub:'Fuerza: pocas repeticiones, más peso y descansos largos', base:'4 × 4–6', acc:'3 × 8–10'},
+  grasa:{n:'Bajar grasa', sub:'Mantener la fuerza mientras bajás grasa, con cardio al final', base:'3 × 8–12', acc:'3 × 12–15',
+         cardio:'Al terminar: 15–20 min de cardio suave (bici, cinta inclinada o escaladora).'},
+  forma:{n:'Ponerme en forma', sub:'Técnica, constancia y todo el cuerpo en movimiento', base:'3 × 8–12', acc:'2 × 12–15'}
+};
+const NIVELES = {nuevo:'Recién empiezo', medio:'6 meses a 2 años', avanzado:'Más de 2 años'};
+const LUGARES = {gym:'Gimnasio', casa:'Casa (mancuernas y banco)'};
+const MOLESTIAS = {rodilla:'rodilla', hombro:'hombro', lumbar:'espalda baja', codo:'codo'};
+const EJ_POR_TIEMPO = {45:4, 60:5, 75:6, 90:7};
+// En casa: reemplazo de lo que necesita máquinas, poleas o barra
+const CASA = {
+  'Sentadilla':'Sentadilla búlgara', 'Prensa 45°':'Zancadas', 'Press de banca':'Flexiones de brazos',
+  'Press inclinado con barra':'Press inclinado con mancuernas', 'Remo con barra':'Remo a una mano', 'Remo sentado en polea':'Remo a una mano',
+  'Dominadas o jalón al pecho':'Remo a una mano', 'Jalón al pecho':'Remo a una mano', 'Press militar':'Press Arnold',
+  'Curl con barra':'Curl alterno', 'Curl en banco Scott':'Curl martillo', 'Extensión en polea':'Extensión sobre la cabeza',
+  'Press francés':'Extensión sobre la cabeza', 'Fondos en paralelas':'Fondos en banco', 'Face pull':'Pájaros',
+  'Sillón de cuádriceps':'Sentadilla sissy', 'Curl femoral acostado':'Curl nórdico', 'Curl femoral sentado':'Curl nórdico',
+  'Hip thrust':'Puente a una pierna', 'Máquina de aductores':'Sentadilla sumo', 'Elevación de talones de pie':'Elevación a una pierna en escalón',
+  'Elevación de talones sentado':'Elevación a una pierna en escalón', 'Pallof press':'Plancha', 'Elevación lateral en polea':'Elevaciones laterales',
+  'Remo sentado':'Remo a una mano', 'Curl en polea':'Curl alterno', 'Jalón agarre cerrado':'Remo a una mano', 'Crunch en polea':'Plancha'
+};
+// Con una molestia: variantes que suelen cargar menos esa articulación
+const POR_MOLESTIA = {
+  rodilla:{'Sentadilla':'Sentadilla a cajón', 'Sentadilla búlgara':'Sentadilla a cajón', 'Zancadas':'Hip thrust', 'Sentadilla sissy':'Sillón de cuádriceps',
+           'Curl nórdico':'Curl femoral acostado', 'Prensa 45°':'Sentadilla a cajón'},
+  hombro:{'Press militar':'Elevación lateral en polea', 'Press Arnold':'Elevaciones laterales', 'Press de banca':'Press inclinado con mancuernas',
+          'Press inclinado con barra':'Press inclinado con mancuernas', 'Fondos en paralelas':'Extensión en polea', 'Fondos en banco':'Extensión sobre la cabeza',
+          'Dominadas o jalón al pecho':'Jalón agarre cerrado', 'Extensión sobre la cabeza':'Extensión en polea', 'Press francés':'Extensión en polea'},
+  lumbar:{'Sentadilla':'Prensa 45°', 'Peso muerto rumano':'Hip thrust', 'Remo con barra':'Remo sentado en polea', 'Press militar':'Press Arnold',
+          'Sentadilla búlgara':'Puente a una pierna'},
+  codo:{'Press francés':'Extensión en polea', 'Extensión sobre la cabeza':'Extensión en polea', 'Curl con barra':'Curl martillo',
+        'Fondos en paralelas':'Press de banca agarre cerrado', 'Curl en banco Scott':'Curl martillo', 'Fondos en banco':'Extensión sobre la cabeza'}
+};
+// Ejercicios con esquema propio (por técnica o por ser muy exigentes)
+const ESQUEMA_FIJO = {'Curl nórdico':'3 × 4–6'};
+// Lo que no se puede hacer en casa con mancuernas y banco (para no ofrecerlo como reemplazo)
+const SOLO_GYM = new Set([...Object.keys(CASA), 'Press de banca agarre cerrado', 'Peso muerto', 'Remo con codos abiertos', 'Sentadilla hack',
+  'Prensa con pies bajos', 'Encogimientos con barra', 'Curl invertido', 'Extensión en polea con barra', 'Extensión en polea agarre invertido',
+  'Extensión en polea por encima de la cabeza', 'Curl martillo con soga en polea', 'Aducción en polea', 'Abducción en máquina', 'Abducción de pie en polea',
+  'Abducción con cadera flexionada', 'Elevación en prensa', 'Hiperextensiones', 'Dominadas', 'Elevación de piernas colgado', 'Elevación de rodillas colgado']);
+let PERFIL = store.get('atlas.perfil', null);
+let PL = null;
+const planes = () => PL || (PL = armarPlanes());
+
+function adaptarEj(e, P){
+  let n = e[0]; const motivos = [];
+  // Hasta 3 pasadas: un reemplazo por casa puede necesitar otro por molestia, y viceversa
+  for(let paso = 0; paso < 3; paso++){
+    let cambio = false;
+    if(P.lugar === 'casa' && CASA[n]){ n = CASA[n]; motivos.push('para entrenar en casa'); cambio = true; }
+    P.molestias.forEach(m => {
+      let r = POR_MOLESTIA[m][n];
+      if(r && P.lugar === 'casa' && CASA[r]) r = CASA[r];   // la variante segura, en su versión para casa
+      if(r && r !== n && !POR_MOLESTIA[m][r]){ n = r; motivos.push('por tu ' + MOLESTIAS[m]); cambio = true; }
+    });
+    if(!cambio) break;
+  }
+  return n === e[0] ? [n, e[1], e[2]] : [n, e[1], e[2], e[0], [...new Set(motivos)].join(' y ')];
+}
+function esquemaPara(e, i, P){
+  if(/\bs$/.test(e[1].trim())) return e[1];
+  const o = OBJS[P.obj];
+  let [series, reps] = (ESQUEMA_FIJO[e[0]] || (i < 2 ? o.base : o.acc)).split(' × ');
+  series = Number(series);
+  // Si recién empezás: menos volumen en los accesorios, los principiantes progresan con poco
+  if(P.nivel === 'nuevo' && i >= 2) series = Math.max(2, series - 1);
+  if(P.nivel === 'avanzado' && i === 0) series += 1;
+  return `${series} × ${reps}`;
+}
+function armarPlanes(){
+  if(!PERFIL) return PLANES;
+  const P = PERFIL, tope = Math.min(EJ_POR_TIEMPO[P.min] || 7, P.nivel === 'nuevo' ? 5 : 7), out = {};
+  Object.entries(PLANES).forEach(([k, pl]) => {
+    const dias = {};
+    Object.entries(pl.dias).forEach(([dk, d]) => {
+      const ej = d.ej.map(e => adaptarEj(e, P))
+        .filter((e, i, a) => a.findIndex(x => x[0] === e[0]) === i)
+        .slice(0, tope)
+        .map((e, i) => { const r = e.slice(); r[1] = esquemaPara(e, i, P); return r; });
+      dias[dk] = Object.assign({}, d, {ej, sub:OBJS[P.obj].sub, cardio:OBJS[P.obj].cardio});
+    });
+    out[k] = Object.assign({}, pl, {dias});
+  });
+  return out;
+}
+function prohibido(n){
+  return PERFIL && ((PERFIL.lugar === 'casa' && SOLO_GYM.has(n)) || PERFIL.molestias.some(m => POR_MOLESTIA[m][n]));
+}
+
 function diaDe(plan, idx){
-  const p = PLANES[plan]; const k = p.semana[idx];
+  const p = planes()[plan]; const k = p.semana[idx];
   if(k === 'D') return LIBRE;
   if(k === 'DA') return ACTIVO;
   return p.dias[k];
@@ -2391,7 +2518,7 @@ function ejerciciosDe(plan, dia){
   return d.ej.map((e, i) => { const n = SWAP[swapKey(plan, dia, i)]; return n ? [n, e[1], e[2], e[0]] : e; });
 }
 function swapHTML(e, k){
-  const orig = e[3] || e[0], alts = alternativas(orig);
+  const orig = SWAP[swapKey(S.plan, S.dia, k)] ? e[3] : e[0], alts = alternativas(orig).filter(n => !prohibido(n));
   if(!alts.length) return '';
   const op = (n, txt) => `<option value="${n}"${n === e[0] ? ' selected' : ''}>${txt || n}</option>`;
   return `<label class="swap">⇄ Cambiar<select data-swap="${k}" aria-label="Cambiar ${e[0]} por otro ejercicio">${op(orig, orig + ' (del plan)')}${alts.map(n => op(n)).join('')}</select></label>`;
@@ -2469,7 +2596,8 @@ function renderProgreso(){
     return `<span class="d${cls}" title="${fmtFecha(f)}${dias.has(f) ? ': entrenaste' : ''}">${d.getDate()}</span>`;
   }).join('');
   const meses = [...new Set([ini, hoy].map(d => d.toLocaleDateString('es-AR', {month:'long'})))].join(' – ');
-  $('#prog').innerHTML = `
+  $('#prog').innerHTML = cuerpoHTML() + `
+    <h3 class="h3">Entrenamientos</h3>
     <div class="stats">
       <div class="stat"><b>${semana}</b><span>días esta semana</span></div>
       <div class="stat"><b>${en30}</b><span>días en los últimos 30</span></div>
@@ -2486,6 +2614,80 @@ function renderProgreso(){
         <span class="hb">${mejor ? `<b>${fmtNum(mejor)}</b><small>kg máx.</small>` : `<b>${regs.length}</b><small>${regs.length === 1 ? 'sesión' : 'sesiones'}</small>`}</span></summary>
         <table><tbody>${regs.slice().reverse().map(r => `<tr><td>${fmtFecha(r.f)}</td><td>${resumen(r, seg)}</td></tr>`).join('')}</tbody></table></details>`;
     }).join('')}</div>` : `<p class="empty-prog">Todavía no anotaste nada. En <b>Mi semana</b>, abrí “Anotar series” en un ejercicio y acá vas a ver tu progreso.</p>`}`;
+}
+
+/* Perfil */
+function opciones(nombre, ops, sel, tipo = 'radio'){
+  return Object.entries(ops).map(([v, t]) => `<label class="op"><input type="${tipo}" name="${nombre}" value="${v}"${(tipo === 'radio' ? sel === v : (sel || []).includes(v)) ? ' checked' : ''}${tipo === 'radio' ? ' required' : ''}><span>${t}</span></label>`).join('');
+}
+function renderPerfil(){
+  const P = PERFIL || {dias:S.plan, min:60, lugar:'gym', molestias:[]};
+  const ultPeso = (store.get('atlas.cuerpo', []).filter(x => x.peso).pop() || {}).peso || P.peso;
+  $('#p-perfil').innerHTML = `
+    <h2 class="day-title">Tu perfil</h2>
+    <p class="day-sub">Con esto armo tu plan: qué ejercicios hacer, cuántas series y repeticiones, y cuánto descansar.</p>
+    <form id="perfil-form" class="pf-form">
+      <fieldset class="pf"><legend>¿Qué querés lograr?</legend><div class="pf-ops">${opciones('obj', Object.fromEntries(Object.entries(OBJS).map(([k, o]) => [k, o.n])), P.obj)}</div></fieldset>
+      <fieldset class="pf"><legend>¿Cuánto hace que entrenás?</legend><div class="pf-ops">${opciones('nivel', NIVELES, P.nivel)}</div></fieldset>
+      <fieldset class="pf"><legend>¿Cuántos días por semana?</legend><div class="pf-ops">${opciones('dias', {3:'3 días', 4:'4 días', 5:'5 días'}, String(P.dias))}</div></fieldset>
+      <fieldset class="pf"><legend>¿Cuánto tiempo por sesión?</legend><div class="pf-ops">${opciones('min', {45:'45 min', 60:'1 hora', 75:'1 h 15', 90:'1 h 30'}, String(P.min))}</div></fieldset>
+      <fieldset class="pf"><legend>¿Dónde entrenás?</legend><div class="pf-ops">${opciones('lugar', LUGARES, P.lugar)}</div></fieldset>
+      <fieldset class="pf"><legend>¿Tenés alguna molestia o lesión?</legend><p class="pf-ayuda">Marcá las que tengas. Si no tenés ninguna, dejalo vacío.</p><div class="pf-ops">${opciones('molestias', Object.fromEntries(Object.entries(MOLESTIAS).map(([k, t]) => [k, t[0].toUpperCase() + t.slice(1)])), P.molestias, 'checkbox')}</div></fieldset>
+      <fieldset class="pf"><legend>Tus datos</legend><div class="pf-datos">
+        <label>Peso<span><input name="peso" inputmode="decimal" value="${ultPeso ? fmtNum(ultPeso) : ''}" placeholder="75"> kg</span></label>
+        <label>Altura<span><input name="altura" inputmode="numeric" value="${P.altura || ''}" placeholder="175"> cm</span></label>
+        <label>Edad<span><input name="edad" inputmode="numeric" value="${P.edad || ''}" placeholder="30"> años</span></label>
+      </div></fieldset>
+      ${PERFIL ? '<p class="pf-ayuda">Al guardar se rearma el plan. Los ejercicios que cambiaste a mano vuelven a los del plan; lo que anotaste no se toca.</p>' : ''}
+      <div class="pf-acts"><button type="submit" class="hoy-btn">${PERFIL ? 'Guardar y rearmar el plan' : 'Armar mi plan'}</button><button type="button" class="plain" id="perfil-omitir">${PERFIL ? 'Cancelar' : 'Ahora no'}</button></div>
+    </form>`;
+}
+function guardarPerfil(form){
+  const f = new FormData(form);
+  PERFIL = {obj:f.get('obj'), nivel:f.get('nivel'), dias:Number(f.get('dias')), min:Number(f.get('min')), lugar:f.get('lugar'),
+            molestias:f.getAll('molestias'), altura:numero(f.get('altura')), edad:numero(f.get('edad')), peso:numero(f.get('peso'))};
+  store.set('atlas.perfil', PERFIL);
+  if(PERFIL.peso) anotarCuerpo({peso:PERFIL.peso});
+  Object.keys(SWAP).forEach(k => delete SWAP[k]); store.set('atlas.swap', SWAP);
+  PL = null; S.plan = PERFIL.dias; store.set('atlas.plan', S.plan);
+  S.dia = HOY; S.entrenar = false;
+  renderPlan(); setTab('semana'); window.scrollTo({top:0});
+}
+
+/* Peso corporal y cintura: atlas.cuerpo = [{f:'2026-10-18', peso:75.2, cintura:84}] */
+function anotarCuerpo(d){
+  const lista = store.get('atlas.cuerpo', []), hoy = lista.find(x => x.f === FECHA) || {f:FECHA};
+  Object.entries(d).forEach(([k, v]) => { if(v != null) hoy[k] = v; });
+  const nueva = lista.filter(x => x.f !== FECHA).concat([hoy]).sort((a, b) => a.f.localeCompare(b.f));
+  store.set('atlas.cuerpo', nueva);
+}
+function lineaSVG(pts, unidad){
+  if(pts.length < 2) return '';
+  const W = 320, H = 130, L = 34, R = 10, T = 12, B = 22;
+  const vs = pts.map(p => p.v), lo = Math.min(...vs), hi = Math.max(...vs), pad = (hi - lo) * .15 || 1, y0 = lo - pad, y1 = hi + pad;
+  const x = i => L + i * (W - L - R) / (pts.length - 1), y = v => T + (y1 - v) * (H - T - B) / (y1 - y0);
+  const xy = pts.map((p, i) => [x(i), y(p.v)]);
+  return `<svg class="linea" viewBox="0 0 ${W} ${H}" role="img" aria-label="${pts.map(p => `${fmtFecha(p.f)}: ${fmtNum(p.v)} ${unidad}`).join(', ')}">
+    <line class="eje" x1="${L}" x2="${W - R}" y1="${y(hi)}" y2="${y(hi)}"/><line class="eje" x1="${L}" x2="${W - R}" y1="${y(lo)}" y2="${y(lo)}"/>
+    <text x="${L - 6}" y="${y(hi) + 4}" text-anchor="end">${fmtNum(hi)}</text><text x="${L - 6}" y="${y(lo) + 4}" text-anchor="end">${fmtNum(lo)}</text>
+    <text x="${L}" y="${H - 4}">${fmtFecha(pts[0].f)}</text><text x="${W - R}" y="${H - 4}" text-anchor="end">${fmtFecha(pts[pts.length - 1].f)}</text>
+    <polyline points="${xy.map(p => p.map(v => v.toFixed(1)).join(',')).join(' ')}"/>
+    ${xy.map((p, i) => `<g class="pt"><circle class="hit" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="12"/><circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${i === xy.length - 1 ? 4.5 : 3}"/><title>${fmtFecha(pts[i].f)}: ${fmtNum(pts[i].v)} ${unidad}</title></g>`).join('')}</svg>`;
+}
+function cuerpoHTML(){
+  const lista = store.get('atlas.cuerpo', []), hoy = lista.find(x => x.f === FECHA) || {};
+  const pesos = lista.filter(x => x.peso).map(x => ({f:x.f, v:x.peso})), cints = lista.filter(x => x.cintura).map(x => ({f:x.f, v:x.cintura}));
+  const delta = (arr, u) => arr.length > 1 ? (d => `${d > 0 ? '+' : d < 0 ? '−' : ''}${fmtNum(Math.abs(d))} ${u} desde el ${fmtFecha(arr[0].f)}`)(Math.round((arr[arr.length - 1].v - arr[0].v) * 10) / 10) : '';
+  return `<h3 class="h3">Tu cuerpo</h3>
+    <form class="cuerpo-form" id="cuerpo-form">
+      <label>Peso<span><input name="peso" inputmode="decimal" value="${hoy.peso != null ? fmtNum(hoy.peso) : ''}" placeholder="${pesos.length ? fmtNum(pesos[pesos.length - 1].v) : 'kg'}"> kg</span></label>
+      <label>Cintura<span><input name="cintura" inputmode="decimal" value="${hoy.cintura != null ? fmtNum(hoy.cintura) : ''}" placeholder="${cints.length ? fmtNum(cints[cints.length - 1].v) : 'cm'}"> cm</span></label>
+      <button class="ghost" type="submit">Guardar hoy</button>
+    </form>
+    <p class="pf-ayuda">Pesate una vez por semana, en ayunas y a la misma hora: el peso de un día a otro varía 1–2 kg por agua y comida.</p>
+    ${pesos.length ? `<div class="cuerpo-res"><p><b>${fmtNum(pesos[pesos.length - 1].v)} kg</b>${pesos.length > 1 ? ` <span>${delta(pesos, 'kg')}</span>` : ''}</p>${cints.length ? `<p><b>${fmtNum(cints[cints.length - 1].v)} cm</b> de cintura${cints.length > 1 ? ` <span>${delta(cints, 'cm')}</span>` : ''}</p>` : ''}</div>
+      ${lineaSVG(pesos, 'kg') ? `<p class="graf-tit">Peso corporal (kg)</p>${lineaSVG(pesos, 'kg')}` : ''}
+      <details class="hist"><summary><span class="hn"><b>Ver registros</b></span></summary><table><tbody>${lista.slice().reverse().map(x => `<tr><td>${fmtFecha(x.f)}</td><td>${[x.peso ? fmtNum(x.peso) + ' kg' : '', x.cintura ? fmtNum(x.cintura) + ' cm de cintura' : ''].filter(Boolean).join(' · ')}</td></tr>`).join('')}</tbody></table></details>` : ''}`;
 }
 
 /* Copia de seguridad */
@@ -2534,9 +2736,12 @@ function renderHoyBtn(){
   $('#hoy-txt').textContent = 'Hoy: ' + (d.descanso ? d.titulo.toLowerCase() : d.titulo);
 }
 function renderPlan(){
-  const p = PLANES[S.plan];
+  const p = planes()[S.plan];
   $$('[data-plan]').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.plan) === S.plan)));
   $('#plan-desc').textContent = p.desc;
+  $('#plan-seg').hidden = !!PERFIL;
+  $('#plan-perfil').innerHTML = PERFIL ? `<div class="pp"><p><b>Tu plan:</b> ${OBJS[PERFIL.obj].n.toLowerCase()} · ${PERFIL.dias} días · ${PERFIL.min} min · ${PERFIL.lugar === 'casa' ? 'en casa' : 'en el gimnasio'}${PERFIL.molestias.length ? ` · cuidando ${PERFIL.molestias.map(m => MOLESTIAS[m]).join(' y ')}` : ''}</p><button class="plain" data-ir-perfil>Editar</button></div>`
+    : `<div class="pp"><p>Contame tu objetivo y armo el plan para vos.</p><button class="hoy-btn" data-ir-perfil>Armar mi plan</button></div>`;
   $('#ir-hoy').hidden = S.dia === HOY;
   $('#week').innerHTML = DIAS.map(dd => {
     const d = diaDe(S.plan, dd.i);
@@ -2559,7 +2764,8 @@ function renderPlan(){
       <details class="plegable"><summary>Calentamiento <small>${CAL[d.cal].length} pasos</small></summary>
         <ol class="warm">${CAL[d.cal].map(x=>`<li>${x}</li>`).join('')}</ol></details>
       <h3 class="h3">Ejercicios</h3>${nota}${ayuda}
-      <ol class="exlist">${ejerciciosDe(S.plan, S.dia).map((e, k) => `<li><div class="row"><span class="n">${e[0]}${e[3]?`<small class="ex-orig">En lugar de ${e[3]}</small>`:''}<span class="acts">${demoBtn(e[0], 'sm', 'Ver')}${vid(e[0] + ' técnica', 'Video', 'sm')}${swapHTML(e, k)}</span></span><span class="s"><b>${e[1]}</b>${e[2]?`<small>${e[2]}</small>`:''}</span></div>${logHTML(e, k)}</li>`).join('')}</ol>
+      <ol class="exlist">${ejerciciosDe(S.plan, S.dia).map((e, k) => `<li><div class="row"><span class="n">${e[0]}${e[3]?`<small class="ex-orig">En lugar de ${e[3]}${e[4]?`, ${e[4]}`:''}</small>`:''}<span class="acts">${demoBtn(e[0], 'sm', 'Ver')}${vid(e[0] + ' técnica', 'Video', 'sm')}${swapHTML(e, k)}</span></span><span class="s"><b>${e[1]}</b>${e[2]?`<small>${e[2]}</small>`:''}</span></div>${logHTML(e, k)}</li>`).join('')}</ol>
+      ${d.cardio ? `<p class="cardio"><b>Cardio.</b> ${d.cardio}</p>` : ''}
       <details class="plegable"><summary>Músculos y articulaciones que trabajás</summary>
         <div class="chip-wrap">${d.mus.map(id => { const m = mBy(id); return `<button class="mchip" data-m="${id}" style="--c:${ZONAS[m.zona].c}">${m.nombre}</button>`; }).join('')}</div>
         <div class="chip-wrap" style="margin-top:8px">${d.art.map(id => `<button class="mchip jchip" data-j="${id}" style="--c:var(--green)">${jBy(id).nombre}</button>`).join('')}</div></details>`;
@@ -2574,7 +2780,7 @@ function renderSearch(){
   const res = $('#p-res');
   const searching = q.length >= 2;
   res.hidden = !searching;
-  ['musculos','articulaciones','semana','progreso'].forEach(t => { $('#p-'+t).hidden = searching || S.tab !== t; });
+  ['musculos','articulaciones','semana','progreso','perfil'].forEach(t => { $('#p-'+t).hidden = searching || S.tab !== t; });
   if(!searching){ res.innerHTML = ''; return; }
   const ms = [], js = [];
   M.forEach(m => {
@@ -2609,6 +2815,7 @@ function setTab(t){
   $$('.tab').forEach(b => b.setAttribute('aria-selected', String(b.id === 't-'+t)));
   if(S.q){ S.q = ''; $('#q').value = ''; }
   if(t === 'progreso') renderProgreso();
+  if(t === 'perfil') renderPerfil();
   if(t === 'musculos') requestAnimationFrame(fitView);
   renderSearch();
   // Si veníamos scrolleados, que la pestaña nueva arranque justo debajo de la barra fija
@@ -2838,6 +3045,18 @@ $('#rest-menos').addEventListener('click', () => { REST.fin -= 15000; tickDescan
 $('#rest-mas').addEventListener('click', () => { if(!REST.id) return iniciarDescanso(15); REST.fin += 15000; REST.total += 15; tickDescanso(); });
 $('#rest-saltar').addEventListener('click', cerrarDescanso);
 $('#exportar').addEventListener('click', exportar);
+$('#perfil-btn').addEventListener('click', () => { setTab('perfil'); window.scrollTo({top:0}); });
+document.addEventListener('click', e => { if(e.target.closest('[data-ir-perfil]')){ setTab('perfil'); window.scrollTo({top:0}); } });
+$('#p-perfil').addEventListener('submit', e => { e.preventDefault(); guardarPerfil(e.target); });
+$('#p-perfil').addEventListener('click', e => {
+  if(e.target.closest('#perfil-omitir')){ store.set('atlas.perfilOmitido', true); setTab('semana'); window.scrollTo({top:0}); }
+});
+$('#prog').addEventListener('submit', e => {
+  e.preventDefault();
+  const f = new FormData(e.target), peso = numero(f.get('peso')), cintura = numero(f.get('cintura'));
+  if(peso == null && cintura == null) return;
+  anotarCuerpo({peso, cintura}); renderProgreso();
+});
 $('#aviso-copia').addEventListener('click', e => {
   if(e.target.closest('#aviso-exportar')) exportar();
   if(e.target.closest('#aviso-luego')){
@@ -2893,6 +3112,7 @@ renderMusculos();
 renderArt();
 syncObj();
 renderPlan();
+if(!PERFIL && !store.get('atlas.perfilOmitido', false)) setTab('perfil');
 </script>
 </body>
 </html>
