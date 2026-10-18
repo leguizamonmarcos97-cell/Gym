@@ -427,6 +427,13 @@ body.con-descanso .foot{padding-bottom:84px}
 .demo-ctl .err-btn[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:#fff}
 .demo-err{margin:8px 0 0;padding:10px 12px;border-radius:10px;border-left:4px solid var(--red);background:var(--surface);font-size:14px;line-height:1.45}
 .demo-tempo{margin:8px 2px 0;font-size:14px;line-height:1.45}
+.demo-que{margin:4px 2px 12px;font-size:15px;line-height:1.45}
+.yt-box{position:relative}
+.yt{display:block;width:100%;aspect-ratio:16/9;border:0;border-radius:14px;overflow:hidden;background:#000;padding:0;cursor:pointer;position:relative}
+.yt img{width:100%;height:100%;object-fit:cover;display:block;opacity:.9}
+.yt-play{position:absolute;inset:0;margin:auto;width:64px;height:44px;border-radius:12px;background:#E33;display:flex;align-items:center;justify-content:center}
+.yt-play svg{width:24px;height:24px;fill:#fff}
+.yt-src{font-size:13px;color:var(--muted);margin:6px 2px 10px}
 .dm-ghost{fill:none;stroke:var(--ink);stroke-opacity:.16;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
 .dm-path{fill:none;stroke:var(--blue);stroke-width:1.6;stroke-dasharray:3 3;stroke-linecap:round}
 .dm-end{fill:var(--blue)}
@@ -1277,6 +1284,10 @@ function fkSide(P){
   J.neck = ad(J.sh, V(h, SG.N));
   J.head = ad(J.sh, V(h, SG.N + SG.HR));
   J.t = t; J.h = h; J.flip = P.flip ? -1 : 1;
+  // Profundidad: si el brazo o la pierna del otro lado repiten al de adelante, se corren apenas hacia atrás y arriba
+  // (como vistos por una cámara un poco elevada); así se ven los dos y la figura deja de parecer de un solo brazo
+  if(!P.ankleAt2 && P.a2 === undefined){ const o = [-5.5*J.flip, -2.6]; ['knee2','ankle2','toe2','heel2'].forEach(k => { J[k] = ad(J[k], o); }); }
+  if(!P.handAt2 && P.u2 === undefined){ const o = [-4.5*J.flip, -2.2]; ['elbow2','wrist2','hand2'].forEach(k => { J[k] = ad(J[k], o); }); }
   return J;
 }
 /* vector normal "frente" de un segmento */
@@ -2269,6 +2280,33 @@ const dbF = J => EQ.dbV([J.cx, (J.aL.wrist[1] + J.aR.wrist[1])/2]);
       A:sqF(137, 1, 1, hands), B:sqF(176, .5, -1, hands)}});
 });
 
+/* ---------- Qué es cada ejercicio, en una frase ---------- */
+const QUE = {
+  sentadilla:'Bajás doblando rodillas y cadera como si te sentaras en una silla, y volvés a pararte. Trabaja sobre todo muslos y glúteos.',
+  bisagra:'Llevás la cadera hacia atrás con las piernas casi estiradas, bajando el peso pegado a las piernas, y volvés a pararte. Trabaja la parte de atrás de los muslos, glúteos y espalda baja.',
+  press:'Acostado, bajás el peso hasta el pecho y lo empujás hacia arriba hasta estirar los brazos. Trabaja pecho, hombros y tríceps.',
+  remo:'Con el torso inclinado, tirás del peso hacia la panza llevando los codos atrás. Trabaja la espalda.',
+  jalon:'Tirás de una barra hacia abajo (o subís tu cuerpo hacia la barra) llevando los codos a los costados. Trabaja la espalda ancha (dorsales).',
+  militar:'Empujás el peso desde los hombros hasta arriba de la cabeza. Trabaja hombros y tríceps.',
+  laterales:'Con los brazos al costado, los subís abriéndolos hasta la altura de los hombros. Trabaja la parte de afuera del hombro.',
+  curl:'Con el codo quieto al costado del cuerpo, doblás el brazo subiendo el peso. Trabaja bíceps y antebrazo.',
+  triceps:'Con el codo quieto, estirás el brazo empujando el peso. Trabaja la parte de atrás del brazo (tríceps).',
+  fondos:'Apoyado con las manos, bajás el cuerpo doblando los codos y volvés a subir empujando. Trabaja pecho y tríceps.',
+  hipthrust:'Con la espalda apoyada en un banco o el piso, subís la cadera apretando la cola. Trabaja los glúteos.',
+  zancada:'Con un pie adelante y otro atrás, bajás la rodilla de atrás hacia el piso y volvés a subir. Trabaja muslos y glúteos de a una pierna.',
+  extension:'Sentado, estirás la rodilla subiendo el pie. Trabaja el músculo de adelante del muslo (cuádriceps).',
+  curlfem:'Doblás la rodilla llevando el talón hacia la cola. Trabaja la parte de atrás del muslo (isquiotibiales).',
+  pantorrillas:'Subís en puntas de pie y bajás estirando el talón. Trabaja las pantorrillas (gemelos).',
+  abdominales:'Ejercicios para el abdomen: apretarlo, enrollar la columna o aguantar el cuerpo firme sin moverse.',
+  facepull:'Tirás de una soga hacia la cara abriendo los codos hacia arriba. Trabaja la parte de atrás del hombro y mejora la postura.',
+  encogimientos:'Con los brazos colgando con peso, subís los hombros hacia las orejas. Trabaja el trapecio.',
+  abduccion:'Abrís las piernas hacia los costados contra una resistencia. Trabaja el glúteo de costado, que estabiliza la rodilla.',
+  aductores:'Cerrás las piernas contra una resistencia. Trabaja la parte de adentro del muslo.',
+  pajaros:'Inclinado hacia adelante (o sentado en la máquina), abrís los brazos hacia los costados. Trabaja la parte de atrás del hombro.',
+  rotacion:'Con los codos pegados al cuerpo, abrís las manos hacia afuera. Activa los músculos chicos que protegen el hombro.'
+};
+Object.entries(QUE).forEach(([k, t]) => { if(DEMOS[k]) DEMOS[k].que = t; });
+
 /* ---------- Indicaciones en los extremos del movimiento ---------- */
 const EN = {
   sentadilla:['Arriba: apretá cola y abdomen', 'Abajo: rodillas afuera, pecho arriba'],
@@ -3246,6 +3284,7 @@ function sheetD(mov, v){
   const z = zonaMov(mov), frente = DOPT.vista === 'frente' && !!v.frente;
   const err = frente ? v.frente.err : v.err, mal = DOPT.error && !!err;
   return `<div class="sh-head" style="--c:${ZONAS[z].c}"><h2 id="sheet-title">${mov.nombre}</h2><p>${v.nombre}</p></div>
+    ${mov.que ? `<p class="demo-que">${mov.que}</p>` : ''}
     <div class="dv-tabs" role="group" aria-label="Opciones para hacerlo">${mov.vars.map(x => `<button data-dvar="${x.id}" aria-pressed="${x.id === v.id}"><b>${x.eq}</b><span>${x.nombre}</span></button>`).join('')}</div>
     <div class="demo-stage${mal ? ' mal' : ''}">
       ${mal ? `<span class="demo-tag">Así no</span>` : ''}
@@ -3265,7 +3304,18 @@ function sheetD(mov, v){
     <ol class="warm">${v.cues.map(c => `<li>${c}</li>`).join('')}</ol>
     <h3>Músculos que trabaja</h3>
     <div class="chip-wrap">${mov.mus.filter(n => PARTES[n]).map(n => { const P = PARTES[n], m = mBy(P.g); return `<button class="mchip" data-m="${m.id}" data-p="${n}" style="--c:${ZONAS[m.zona].c}">${n}</button>`; }).join('')}</div>
-    ${vid(v.nombre + ' técnica', 'Ver video en YouTube')}`;
+    ${videoHTML(mov, v)}`;
+}
+/* Videos reales (YouTube, sin cookies). Clave 'movimiento:variante'; si la variante no tiene, se usa la de otra del mismo movimiento */
+const VIDEOS = {/*VIDEOS*/};
+function videoHTML(mov, v){
+  const id = Object.keys(DEMO.DEMOS).find(k => DEMO.DEMOS[k] === mov), propio = VIDEOS[`${id}:${v.id}`];
+  const vd = propio || VIDEOS[Object.keys(VIDEOS).find(k => k.startsWith(id + ':'))];
+  const mas = vid(v.nombre + ' técnica', 'Más videos en YouTube');
+  if(!vd) return `<h3>Video</h3>${mas}`;
+  return `<h3>Video</h3>
+    <div class="yt-box"><button class="yt" data-yt="${vd.v}" aria-label="Reproducir video: ${esc(vd.t)}"><img src="https://i.ytimg.com/vi/${vd.v}/hqdefault.jpg" alt="" loading="lazy"><span class="yt-play" aria-hidden="true">${PLAY}</span></button></div>
+    <p class="yt-src">${esc(vd.t)} · ${esc(vd.c)}${propio ? '' : '<br>Es de una variante parecida del mismo ejercicio.'}</p>${mas}`;
 }
 function sheetM(m, p){
   const o = OBJ[S.obj];
@@ -3348,6 +3398,13 @@ function closeSheet(){
 document.addEventListener('click', e => {
   const dm = e.target.closest('[data-demo]');
   if(dm){ openSheet({t:'d', id:dm.dataset.demo, v:dm.dataset.var}); return; }
+  const yt = e.target.closest('[data-yt]');
+  if(yt){
+    if(!navigator.onLine){ yt.insertAdjacentHTML('afterend', '<p class="yt-src">Para ver el video necesitás internet.</p>'); return; }
+    if(ANIM.v && !ANIM.paused) togglePlay();   // pausa el dibujo mientras mirás el video
+    yt.outerHTML = `<iframe class="yt" src="https://www.youtube-nocookie.com/embed/${yt.dataset.yt}?autoplay=1&rel=0&playsinline=1" title="Video del ejercicio" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+    return;
+  }
   const dop = e.target.closest('[data-dopt]');
   if(dop){ DOPT[dop.dataset.dopt] = !DOPT[dop.dataset.dopt]; renderSheet(true); return; }
   const dvi = e.target.closest('[data-dvista]');
