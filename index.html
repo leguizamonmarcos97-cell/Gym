@@ -191,6 +191,9 @@ svg.fig.off{display:none}
 .ex-last,.ex-sug{margin:8px 0 0 30px;font-size:13px;line-height:1.35;color:var(--muted)}
 .ex-last b{color:var(--ink);font-weight:600}
 .ex-sug{color:var(--green);font-weight:600}
+.ex-rec{margin:8px 0 0 30px;font-size:14px;line-height:1.4}
+.ex-rec b{font-size:16px}
+.ex-rec small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
 .log{margin:8px 0 0 30px}
 .coach,.coach *,.calent,.calent *,.pf,.pf *,.cuerpo-form *,.pp *,.log,.log *,.plegable,.plegable *,.igual,.igual *,.aviso *{box-sizing:border-box}
 .log summary{display:flex;width:fit-content;align-items:center;gap:8px;list-style:none;cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 13px;font:600 14px/1 var(--text);min-height:36px}
@@ -2701,22 +2704,46 @@ function resumen(reg, seg){
   });
   return grupos.map(g => (g.kg ? `${fmtNum(g.kg)} kg × ` : '') + g.r.join(', ') + (g.kg ? u : (u || ' reps'))).join(' · ');
 }
-// Si la vez pasada completó todas las series en el tope de repeticiones, sugerir subir el peso
-function sugerencia(esq, prev){
-  const tope = repsTope(esq), s = prev ? prev.s.filter(x => x.r != null) : [];
-  if(!tope || s.length < nSeries(esq) || !s.every(x => x.kg && x.r >= tope)) return null;
-  const kg = Math.max(...s.map(x => x.kg));
-  return kg + (kg < 20 ? 1 : 2.5);
+/* Peso recomendado por serie.
+   Con la mejor serie (de la vez pasada o de hoy) se estima el máximo a 1 repetición (Epley: kg × (1 + reps/30))
+   y se despeja el peso para las repeticiones mínimas del plan más las que hay que dejar en reserva esa semana. */
+const RIR_NUM = [3, 2, 1.5, .5];
+const rangoReps = esq => { const m = esq.match(/×\s*(\d+)(?:–(\d+))?$/); return m ? [Number(m[1]), Number(m[2] || m[1])] : null; };
+const e1rm = (kg, r) => kg * (1 + r / 30);
+const redondearKg = kg => kg < 20 ? Math.round(kg) : Math.round(kg / 2.5) * 2.5;
+const mejorE1 = series => Math.max(0, ...series.filter(x => x.kg && x.r).map(x => e1rm(x.kg, x.r)));
+function recomendacion(esq, prev, seriesHoy){
+  const rg = rangoReps(esq);
+  if(!rg) return null;
+  const B = bloque(), rir = B.descarga ? 4 : RIR_NUM[B.sem - 1];
+  const hechas = (seriesHoy || []).filter(x => x.kg && x.r), e1Prev = prev ? mejorE1(prev.s) : 0, e1Hoy = mejorE1(hechas);
+  let base = e1Prev, fuente = 'prev';
+  // Las series de hoy mandan si no llegaste al mínimo (bajar) o si rendiste más que la vez pasada (subir)
+  if(hechas.length && (hechas.some(x => x.r < rg[0]) || e1Hoy > e1Prev || !e1Prev)){ base = e1Hoy; fuente = 'hoy'; }
+  if(!base) return null;
+  let kg = base / (1 + (rg[0] + rir) / 30);
+  if(B.descarga) kg *= .9;
+  return {kg:Math.max(1, redondearKg(kg)), fuente, rg};
 }
+function recHTML(esq, prev, seriesHoy){
+  const r = recomendacion(esq, prev, seriesHoy), B = bloque();
+  if(!r){
+    return rangoReps(esq) && !(prev && prev.s.some(x => x.r != null)) ? `<p class="ex-rec">Primera vez: elegí un peso que podrías levantar unas 15 veces y hacé la primera serie. Anotala y te calculo el peso para las siguientes.</p>` : '';
+  }
+  const kgPrev = prev ? Math.max(0, ...prev.s.filter(x => x.r != null && x.kg).map(x => x.kg)) : 0;
+  const por = r.fuente === 'hoy' ? 'calculado con tu serie de hoy' : `calculado con tu última vez, el ${fmtFecha(prev.f)}`;
+  const nota = B.descarga ? ' Semana liviana: sin llegar al límite.'
+    : r.kg < kgPrev && r.fuente === 'prev' ? ' Es menos que la vez pasada porque esta semana no hace falta llegar al límite.' : '';
+  return `<p class="ex-rec">Recomendado: <b>${fmtNum(r.kg)} kg</b> por serie, buscando ${r.rg[0] === r.rg[1] ? r.rg[0] : `${r.rg[0]} a ${r.rg[1]}`} repeticiones <small>(${por}).${nota}</small></p>`;
+}
+
 function logHTML(e, k){
   const [nombre, esq] = e, seg = enSegundos(esq), n = nSeries(esq);
   const prev = anterior(nombre), hoy = deHoy(nombre), B = bloque();
-  const sug = B.descarga ? null : sugerencia(esq, prev);
-  const kgPrev = prev ? Math.max(0, ...prev.s.filter(x => x.r != null && x.kg).map(x => x.kg)) : 0;
-  const tope = repsTope(esq);
+  const rec = recomendacion(esq, prev, hoy && hoy.s);
   const filas = Array.from({length:n}, (_, i) => {
     const h = (hoy && hoy.s[i]) || {}, p = (prev && prev.s[i]) || {};
-    const phKg = sug != null ? fmtNum(sug) : B.descarga && p.kg ? fmtNum(redondear(p.kg * .9)) : (p.kg ? fmtNum(p.kg) : '');
+    const phKg = rec ? fmtNum(rec.kg) : (p.kg ? fmtNum(p.kg) : '');
     const phR = p.r != null ? p.r : (repsTope(esq) || (esq.match(/(\d+)\s*s$/) || [])[1] || '');
     return `<div class="set${h.ok?' done':''}" data-i="${i}"><span class="i">${i+1}</span>
       <input class="kg" inputmode="decimal" aria-label="Serie ${i+1}: kilos" placeholder="${phKg || 'kg'}" value="${h.kg != null ? fmtNum(h.kg) : ''}"><span class="u">kg ×</span>
@@ -2725,9 +2752,7 @@ function logHTML(e, k){
   }).join('');
   const hechas = hoy ? hoy.s.filter(x => x.ok).length : 0;
   return (prev ? `<p class="ex-last">La vez pasada · ${fmtFecha(prev.f)}: <b>${resumen(prev, seg)}</b></p>` : '') +
-    (B.descarga && kgPrev ? `<p class="ex-sug">Semana liviana: usá unos ${fmtNum(redondear(kgPrev * .9))} kg, sin llegar al límite.</p>`
-      : sug != null ? `<p class="ex-sug">Completaste todo: probá con ${fmtNum(sug)} kg</p>`
-      : kgPrev && tope ? `<p class="ex-last">Mantené ${fmtNum(kgPrev)} kg hasta hacer ${tope} reps en todas las series; ahí subís.</p>` : '') +
+    `<div class="ex-rec-box">${recHTML(esq, prev, hoy && hoy.s)}</div>` +
     (!B.descarga && estancado(nombre) ? `<p class="ex-alerta"><b>Sin progreso en 3 sesiones.</b> Bajá ~10% el peso y volvé a subir de a poco, o probá otra variante con “⇄ Cambiar”. Revisá también descanso y sueño.</p>` : '') +
     `<details class="log" data-k="${k}"${hoy || S.dia === HOY || S.entrenar ? ' open' : ''}><summary>Anotar series <span class="cnt${hechas>=n?' full':''}">${hechas}/${n}</span></summary><div class="sets">${filas}</div></details>`;
 }
@@ -2746,6 +2771,9 @@ function guardarSerie(det){
   store.set('atlas.log', LOG);
   const hechas = s.filter(x => x.ok).length, cnt = det.querySelector('.cnt');
   cnt.textContent = `${hechas}/${s.length}`; cnt.classList.toggle('full', hechas >= s.length);
+  const esq = ejerciciosDe(S.plan, S.dia)[Number(det.dataset.k)][1], prev = anterior(nombre), r = recomendacion(esq, prev, s);
+  const box = det.closest('li').querySelector('.ex-rec-box'); if(box) box.innerHTML = recHTML(esq, prev, s);
+  if(r) det.querySelectorAll('.kg').forEach(i => { if(!i.value) i.placeholder = fmtNum(r.kg); });
 }
 
 /* Cambiar ejercicios del plan: atlas.swap = { '4-TA-0': 'Press inclinado con barra' } */
