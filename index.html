@@ -391,6 +391,13 @@ body.con-descanso .foot{padding-bottom:84px}
 .bk-txt{color:var(--muted);margin:0 0 12px;max-width:62ch}
 .bk-acts{display:flex;gap:8px;flex-wrap:wrap}
 .bk-msg{min-height:1.5em;margin:10px 0 0;font-size:14px;font-weight:600}
+.h-acc{text-align:right;white-space:nowrap;width:1%}
+.h-btn{appearance:none;border:0;background:none;color:var(--blue);font:600 13px/1 var(--text);padding:6px 4px;cursor:pointer}
+.h-btn.del{color:var(--red)}
+.h-edit p{margin:4px 0 8px;font-size:13px;color:var(--muted)}
+.h-set{display:flex;align-items:center;gap:6px;margin:4px 0;font-size:13px;color:var(--muted)}
+.h-set input{width:70px;height:38px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:9px;text-align:center;font:600 16px var(--text)}
+.h-edit .bk-acts{margin:10px 0 4px}
 .nube{margin-top:8px}
 .nube-ok p{margin:0 0 12px}
 .nube-ok span{font-size:14px;color:var(--muted)}
@@ -2878,11 +2885,28 @@ function logHTML(e, k){
     `<details class="log" data-k="${k}"${hoy || S.dia === HOY || S.entrenar ? ' open' : ''}><summary>Anotar series <span class="cnt${hechas>=n?' full':''}">${hechas}/${n}</span></summary><div class="sets">${filas}</div></details>`;
 }
 // Guarda las series de hoy de un ejercicio (s: [{kg, r, ok}, ...])
-function guardarRegistro(nombre, s){
-  const lista = (LOG[nombre] || []).filter(x => x.f !== FECHA);
-  if(s.some(x => Object.keys(x).length)) lista.push(bloque().descarga ? {f: FECHA, s, d: true} : {f: FECHA, s});
+// Marcas de borrado (para que lo borrado no vuelva desde la nube): atlas.borrados = {'log|Press de banca|2026-10-18': hora}
+function marcarBorrado(clave, on){
+  const b = store.get('atlas.borrados', {});
+  if(on) b[clave] = Date.now(); else delete b[clave];
+  store.set('atlas.borrados', b);
+}
+// Guarda las series de un día (hoy por defecto) de un ejercicio; m = hora de modificación
+function guardarRegistro(nombre, s, f = FECHA, desc){
+  const previo = (LOG[nombre] || []).find(x => x.f === f);
+  const lista = (LOG[nombre] || []).filter(x => x.f !== f);
+  const d = desc !== undefined ? desc : (f === FECHA ? bloque().descarga : !!(previo && previo.d));
+  if(s.some(x => Object.keys(x).length)) lista.push(Object.assign({f, s, m:Date.now()}, d ? {d:true} : {}));
+  lista.sort((a, b) => a.f.localeCompare(b.f));
   if(lista.length) LOG[nombre] = lista; else delete LOG[nombre];
   store.set('atlas.log', LOG);
+  marcarBorrado(`log|${nombre}|${f}`, false);
+}
+function borrarRegistro(nombre, f){
+  const lista = (LOG[nombre] || []).filter(x => x.f !== f);
+  if(lista.length) LOG[nombre] = lista; else delete LOG[nombre];
+  store.set('atlas.log', LOG);
+  marcarBorrado(`log|${nombre}|${f}`, true);
 }
 function guardarSerie(det){
   const nombre = ejerciciosDe(S.plan, S.dia)[Number(det.dataset.k)][0];
@@ -3145,7 +3169,7 @@ function renderProgreso(){
       const ult = regs[regs.length - 1], mejor = Math.max(0, ...regs.flatMap(r => r.s.filter(x => x.r != null && x.kg).map(x => x.kg)));
       return `<details class="hist"><summary><span class="hn"><b>${esc(n)}</b><small>${fmtFecha(ult.f)} · ${resumen(ult, seg)}</small></span>${sparkSVG(regs)}
         <span class="hb">${mejor ? `<b>${fmtNum(mejor)}</b><small>kg máx.</small>` : `<b>${regs.length}</b><small>${regs.length === 1 ? 'sesión' : 'sesiones'}</small>`}</span></summary>
-        <table><tbody>${regs.slice().reverse().map(r => `<tr><td>${fmtFecha(r.f)}</td><td>${resumen(r, seg)}</td></tr>`).join('')}</tbody></table></details>`;
+        <table><tbody>${regs.slice().reverse().map(r => `<tr data-n="${esc(n)}" data-f="${r.f}"><td>${fmtFecha(r.f)}</td><td>${resumen(r, seg)}</td><td class="h-acc"><button class="h-btn" data-hed aria-label="Corregir ${esc(n)} del ${fmtFecha(r.f)}">Corregir</button><button class="h-btn del" data-hdel aria-label="Borrar ${esc(n)} del ${fmtFecha(r.f)}">Borrar</button></td></tr>`).join('')}</tbody></table></details>`;
     }).join('')}</div>` : `<p class="empty-prog">Todavía no anotaste nada. En <b>Mi semana</b>, abrí “Anotar series” en un ejercicio y acá vas a ver tu progreso.</p>`}`;
 }
 
@@ -3234,8 +3258,14 @@ function guardarPerfil(form){
 function anotarCuerpo(d){
   const lista = store.get('atlas.cuerpo', []), hoy = lista.find(x => x.f === FECHA) || {f:FECHA};
   Object.entries(d).forEach(([k, v]) => { if(v != null) hoy[k] = v; });
+  hoy.m = Date.now();
   const nueva = lista.filter(x => x.f !== FECHA).concat([hoy]).sort((a, b) => a.f.localeCompare(b.f));
   store.set('atlas.cuerpo', nueva);
+  marcarBorrado(`cuerpo|${FECHA}`, false);
+}
+function borrarCuerpo(f){
+  store.set('atlas.cuerpo', store.get('atlas.cuerpo', []).filter(x => x.f !== f));
+  marcarBorrado(`cuerpo|${f}`, true);
 }
 function lineaSVG(pts, unidad){
   if(pts.length < 2) return '';
@@ -3263,7 +3293,7 @@ function cuerpoHTML(){
     <p class="pf-ayuda">Pesate una vez por semana, en ayunas y a la misma hora: el peso de un día a otro varía 1–2 kg por agua y comida.</p>
     ${pesos.length ? `<div class="cuerpo-res"><p><b>${fmtNum(pesos[pesos.length - 1].v)} kg</b>${pesos.length > 1 ? ` <span>${delta(pesos, 'kg')}</span>` : ''}</p>${cints.length ? `<p><b>${fmtNum(cints[cints.length - 1].v)} cm</b> de cintura${cints.length > 1 ? ` <span>${delta(cints, 'cm')}</span>` : ''}</p>` : ''}</div>
       ${lineaSVG(pesos, 'kg') ? `<p class="graf-tit">Peso corporal (kg)</p>${lineaSVG(pesos, 'kg')}` : ''}
-      <details class="hist"><summary><span class="hn"><b>Ver registros</b></span></summary><table><tbody>${lista.slice().reverse().map(x => `<tr><td>${fmtFecha(x.f)}</td><td>${[x.peso ? fmtNum(x.peso) + ' kg' : '', x.cintura ? fmtNum(x.cintura) + ' cm de cintura' : ''].filter(Boolean).join(' · ')}</td></tr>`).join('')}</tbody></table></details>` : ''}`;
+      <details class="hist"><summary><span class="hn"><b>Ver registros</b></span></summary><table><tbody>${lista.slice().reverse().map(x => `<tr data-cf="${x.f}"><td>${fmtFecha(x.f)}</td><td>${[x.peso ? fmtNum(x.peso) + ' kg' : '', x.cintura ? fmtNum(x.cintura) + ' cm de cintura' : ''].filter(Boolean).join(' · ')}</td><td class="h-acc"><button class="h-btn del" data-cdel aria-label="Borrar el registro del ${fmtFecha(x.f)}">Borrar</button></td></tr>`).join('')}</tbody></table></details>` : ''}`;
 }
 
 /* Nube: los datos se guardan en Supabase (proyecto de Finanzas-app, tabla gym_datos, una fila por usuario).
@@ -3304,16 +3334,25 @@ function fusionar(L, R, remotoMasNuevo){
   const M = remotoMasNuevo ? Object.assign({}, L, R) : Object.assign({}, R, L);
   const js = x => { try{ return JSON.parse(x); } catch(e){ return null; } };
   const nSer = e => (e && e.s ? e.s.filter(x => x.r != null).length : 0);
+  // Marcas de borrado de los dos lados (la más reciente)
+  const bor = Object.assign({}, js(R['atlas.borrados']) || {});
+  Object.entries(js(L['atlas.borrados']) || {}).forEach(([k, t]) => { bor[k] = Math.max(bor[k] || 0, t); });
+  if(Object.keys(bor).length) M['atlas.borrados'] = JSON.stringify(bor);
+  const vivo = (clave, e) => !bor[clave] || (e.m || 0) > bor[clave];   // vuelve solo si se anotó de nuevo después de borrarlo
+  const elegir = (a, b) => !a ? b : !b ? a : (a.m || b.m) ? ((a.m || 0) >= (b.m || 0) ? a : b) : (nSer(a) >= nSer(b) ? a : b);
   const lg = js(L['atlas.log']) || {}, rg = js(R['atlas.log']) || {}, log = {};
   new Set([...Object.keys(lg), ...Object.keys(rg)]).forEach(n => {
     const por = {};
     (rg[n] || []).forEach(e => { por[e.f] = e; });
-    (lg[n] || []).forEach(e => { const o = por[e.f]; por[e.f] = !o || nSer(e) >= nSer(o) ? e : o; });
-    log[n] = Object.values(por).sort((a, b) => a.f.localeCompare(b.f));
+    (lg[n] || []).forEach(e => { por[e.f] = elegir(e, por[e.f]); });
+    const lista = Object.values(por).filter(e => vivo(`log|${n}|${e.f}`, e)).sort((a, b) => a.f.localeCompare(b.f));
+    if(lista.length) log[n] = lista;
   });
-  if(Object.keys(log).length) M['atlas.log'] = JSON.stringify(log);
+  if(L['atlas.log'] || R['atlas.log']) M['atlas.log'] = JSON.stringify(log);
   const lc = js(L['atlas.cuerpo']) || [], rc = js(R['atlas.cuerpo']) || [];
-  if(lc.length || rc.length){ const por = {}; rc.forEach(x => { por[x.f] = x; }); lc.forEach(x => { por[x.f] = Object.assign({}, por[x.f], x); }); M['atlas.cuerpo'] = JSON.stringify(Object.values(por).sort((a, b) => a.f.localeCompare(b.f))); }
+  if(lc.length || rc.length){ const por = {}; rc.forEach(x => { por[x.f] = x; }); lc.forEach(x => { por[x.f] = (x.m || por[x.f] && por[x.f].m) ? elegir(x, por[x.f]) : Object.assign({}, por[x.f], x); }); M['atlas.cuerpo'] = JSON.stringify(Object.values(por).filter(x => vivo(`cuerpo|${x.f}`, x)).sort((a, b) => a.f.localeCompare(b.f))); }
+  const la = js(L['atlas.cardio']) || [], ra = js(R['atlas.cardio']) || [];
+  if(la.length || ra.length){ const por = {}; ra.forEach(x => { por[x.id] = x; }); la.forEach(x => { por[x.id] = elegir(x, por[x.id]); }); M['atlas.cardio'] = JSON.stringify(Object.values(por).filter(x => vivo(`cardio|${x.id}`, x)).sort((a, b) => a.f.localeCompare(b.f))); }
   const lk = js(L['atlas.cal']), rk = js(R['atlas.cal']);
   if(lk && rk) M['atlas.cal'] = JSON.stringify(lk.f === rk.f ? {f:lk.f, hechos:[...new Set([...lk.hechos, ...rk.hechos])]} : (lk.f > rk.f ? lk : rk));
   return M;
@@ -3871,7 +3910,34 @@ $('#p-perfil').addEventListener('submit', e => { e.preventDefault(); guardarPerf
 $('#p-perfil').addEventListener('click', e => {
   if(e.target.closest('#perfil-omitir')){ store.set('atlas.perfilOmitido', true); setTab('semana'); window.scrollTo({top:0}); }
 });
+$('#prog').addEventListener('click', e => {
+  const tr = e.target.closest('tr');
+  if(e.target.closest('[data-hdel]')){
+    if(!confirm(`¿Borrar ${tr.dataset.n} del ${fmtFecha(tr.dataset.f)}?`)) return;
+    borrarRegistro(tr.dataset.n, tr.dataset.f); renderProgreso(); return;
+  }
+  if(e.target.closest('[data-cdel]')){
+    if(!confirm(`¿Borrar el registro del ${fmtFecha(tr.dataset.cf)}?`)) return;
+    borrarCuerpo(tr.dataset.cf); renderProgreso(); return;
+  }
+  if(e.target.closest('[data-hed]')){
+    const reg = (LOG[tr.dataset.n] || []).find(x => x.f === tr.dataset.f); if(!reg) return;
+    const filas = reg.s.filter(x => x.r != null).concat([{}]);   // una fila vacía para sumar una serie
+    tr.innerHTML = `<td colspan="3"><form class="h-edit" data-n="${esc(tr.dataset.n)}" data-f="${tr.dataset.f}"><p><b>${fmtFecha(tr.dataset.f)}</b> · dejá vacía una serie para quitarla</p>
+      ${filas.map((x, i) => `<div class="h-set"><span>${i + 1}</span><input name="kg" inputmode="decimal" value="${x.kg != null ? fmtNum(x.kg) : ''}" placeholder="kg" aria-label="Serie ${i + 1}: kilos"><span>kg ×</span><input name="r" inputmode="numeric" value="${x.r != null ? x.r : ''}" placeholder="reps" aria-label="Serie ${i + 1}: repeticiones"></div>`).join('')}
+      <div class="bk-acts"><button class="ghost" type="submit">Guardar</button><button class="plain" type="button" data-hcancel>Cancelar</button></div></form></td>`;
+    return;
+  }
+  if(e.target.closest('[data-hcancel]')) renderProgreso();
+});
 $('#prog').addEventListener('submit', e => {
+  if(e.target.classList.contains('h-edit')){
+    e.preventDefault();
+    const f = e.target, kgs = [...f.querySelectorAll('[name=kg]')].map(i => numero(i.value)), rs = [...f.querySelectorAll('[name=r]')].map(i => numero(i.value));
+    const s = rs.map((r, i) => r == null ? null : Object.assign(kgs[i] != null ? {kg:kgs[i]} : {}, {r, ok:true})).filter(Boolean);
+    if(s.length) guardarRegistro(f.dataset.n, s, f.dataset.f); else borrarRegistro(f.dataset.n, f.dataset.f);
+    renderProgreso(); return;
+  }
   e.preventDefault();
   const f = new FormData(e.target), peso = numero(f.get('peso')), cintura = numero(f.get('cintura'));
   if(peso == null && cintura == null) return;
