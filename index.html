@@ -192,7 +192,7 @@ svg.fig.off{display:none}
 .ex-last b{color:var(--ink);font-weight:600}
 .ex-sug{color:var(--green);font-weight:600}
 .log{margin:8px 0 0 30px}
-.log,.log *{box-sizing:border-box}
+.log,.log *,.plegable,.plegable *,.igual,.igual *,.aviso *{box-sizing:border-box}
 .log summary{display:flex;width:fit-content;align-items:center;gap:8px;list-style:none;cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 13px;font:600 14px/1 var(--text);min-height:36px}
 .log summary::-webkit-details-marker{display:none}
 .log .cnt{color:var(--muted);font-weight:500}
@@ -206,6 +206,28 @@ svg.fig.off{display:none}
 .set .ok{appearance:none;margin-left:auto;width:40px;height:40px;flex:none;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);font:700 17px/1 var(--text);cursor:pointer}
 .set .ok[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:#fff}
 .set.done input{border-color:var(--green)}
+/* Día de entrenamiento */
+.plegable{margin-top:16px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.plegable summary{list-style:none;cursor:pointer;padding:12px 14px;font-weight:600;display:flex;align-items:center;gap:8px}
+.plegable summary::-webkit-details-marker{display:none}
+.plegable summary small{color:var(--muted);font-weight:400}
+.plegable summary::after{content:"";margin-left:auto;width:7px;height:7px;border:solid var(--muted);border-width:0 2px 2px 0;transform:translateY(-2px) rotate(45deg)}
+.plegable[open] summary::after{transform:translateY(2px) rotate(-135deg)}
+.plegable > :not(summary){margin:0 14px 14px}
+.plegable .warm{padding-left:22px}
+.nota-fecha{margin:-4px 0 10px;font-size:13px;color:var(--muted)}
+.ayuda{display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin:0 0 12px;padding:12px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--green)}
+.ayuda p{margin:0;font-size:14px;line-height:1.45}
+.ok-mini{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--green);color:#fff;font-size:12px;font-weight:700;vertical-align:-3px}
+.igual{margin-top:18px}
+.igual summary{list-style:none;display:inline-flex;align-items:center}
+.igual summary::-webkit-details-marker{display:none}
+.igual-op{display:grid;gap:6px;margin-top:10px}
+.igual-op .plain{display:flex;flex-direction:column;align-items:flex-start;gap:3px;border-radius:12px;padding:10px 14px;text-align:left;line-height:1.2}
+.igual-op small{font-weight:400;color:var(--muted);font-size:13px}
+.aviso{margin:0 0 14px;padding:12px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--yellow)}
+.aviso p{margin:0 0 10px;font-size:14px}
+.aviso-acts{display:flex;gap:8px;flex-wrap:wrap}
 /* Cambiar ejercicio */
 .swap{position:relative;display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font:600 12px/1 var(--text);color:var(--ink)}
 .swap select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px}
@@ -387,8 +409,8 @@ body.con-descanso .foot{padding-bottom:84px}
       <input type="search" id="q" placeholder="Buscar músculo, ejercicio o lesión" aria-label="Buscar" autocomplete="off">
     </div>
     <nav class="tabs" role="tablist" aria-label="Secciones">
-      <button class="tab" role="tab" id="t-musculos" aria-controls="p-musculos" aria-selected="true">Músculos</button>
-      <button class="tab" role="tab" id="t-semana" aria-controls="p-semana" aria-selected="false">Mi semana</button>
+      <button class="tab" role="tab" id="t-musculos" aria-controls="p-musculos" aria-selected="false">Músculos</button>
+      <button class="tab" role="tab" id="t-semana" aria-controls="p-semana" aria-selected="true">Mi semana</button>
       <button class="tab" role="tab" id="t-progreso" aria-controls="p-progreso" aria-selected="false">Progreso</button>
     </nav>
   </div>
@@ -397,7 +419,7 @@ body.con-descanso .foot{padding-bottom:84px}
 <main class="wrap">
 
   <!-- MÚSCULOS -->
-  <section class="panel" id="p-musculos" role="tabpanel" aria-labelledby="t-musculos">
+  <section class="panel" id="p-musculos" role="tabpanel" aria-labelledby="t-musculos" hidden>
     <div class="musc">
       <div class="figure">
         <div class="fig-controls">
@@ -460,7 +482,8 @@ body.con-descanso .foot{padding-bottom:84px}
   </section>
 
   <!-- SEMANA -->
-  <section class="panel" id="p-semana" role="tabpanel" aria-labelledby="t-semana" hidden>
+  <section class="panel" id="p-semana" role="tabpanel" aria-labelledby="t-semana">
+    <div id="aviso-copia"></div>
     <div class="plan-head">
       <div class="seg" role="group" aria-label="Días por semana" id="plan-seg">
         <button data-plan="3">3 días</button>
@@ -2146,7 +2169,7 @@ const store = {
 };
 const HOY = new Date().getDay();
 const S = {
-  tab:'musculos', vista:'frente', arts:false, zona:'todas', names: store.get('atlas.names', true), lista: store.get('atlas.lista','grupos'),
+  tab:'semana', vista:'frente', arts:false, zona:'todas', names: store.get('atlas.names', true), lista: store.get('atlas.lista','grupos'),
   obj: store.get('atlas.obj','volumen'),
   plan: store.get('atlas.plan',4),
   dia: HOY, stack:[], q:''
@@ -2329,7 +2352,7 @@ function logHTML(e, k){
   const hechas = hoy ? hoy.s.filter(x => x.ok).length : 0;
   return (prev ? `<p class="ex-last">La vez pasada · ${fmtFecha(prev.f)}: <b>${resumen(prev, seg)}</b></p>` : '') +
     (sug != null ? `<p class="ex-sug">Completaste todo: probá con ${fmtNum(sug)} kg</p>` : '') +
-    `<details class="log" data-k="${k}"${hoy ? ' open' : ''}><summary>Anotar series <span class="cnt${hechas>=n?' full':''}">${hechas}/${n}</span></summary><div class="sets">${filas}</div></details>`;
+    `<details class="log" data-k="${k}"${hoy || S.dia === HOY || S.entrenar ? ' open' : ''}><summary>Anotar series <span class="cnt${hechas>=n?' full':''}">${hechas}/${n}</span></summary><div class="sets">${filas}</div></details>`;
 }
 function guardarSerie(det){
   const nombre = ejerciciosDe(S.plan, S.dia)[Number(det.dataset.k)][0];
@@ -2466,6 +2489,15 @@ function renderProgreso(){
 }
 
 /* Copia de seguridad */
+// Aviso si hay entrenamientos de 2 días o más sin copia, o pasaron 14 días desde la última
+function renderAvisoCopia(){
+  const ult = store.get('atlas.copia', ''), pausa = store.get('atlas.copiaPausa', '');
+  const dias = new Set(); Object.values(LOG).forEach(regs => regs.forEach(r => { if(r.f > ult && conSeries(r)) dias.add(r.f); }));
+  const hace = ult ? Math.round((new Date(FECHA) - new Date(ult)) / 864e5) : null;
+  const toca = dias.size >= 2 && (!ult || hace >= 14) && !(pausa && pausa > FECHA);
+  $('#aviso-copia').innerHTML = toca ? `<div class="aviso"><p>${ult ? `Hace ${hace} días que no hacés una copia de tus entrenamientos.` : 'Todavía no hiciste una copia de tus entrenamientos.'} Se guardan solo en este celular.</p>
+    <div class="aviso-acts"><button class="ghost" id="aviso-exportar">Exportar copia</button><button class="plain" id="aviso-luego">Más tarde</button></div></div>` : '';
+}
 function bkMsg(t){ $('#bk-msg').textContent = t; }
 async function exportar(){
   const datos = {};
@@ -2475,14 +2507,15 @@ async function exportar(){
   const blob = new Blob([json], {type:'application/json'});
   try{
     const file = new File([blob], nombre, {type:'application/json'});
-    if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:'Copia de Atlas Gym'}); bkMsg('Copia lista.'); return; }
+    if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:'Copia de Atlas Gym'}); copiaHecha('Copia lista.'); return; }
   } catch(e){ if(e && e.name === 'AbortError') return; }
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob); a.download = nombre;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-  bkMsg('Copia descargada: ' + nombre);
+  copiaHecha('Copia descargada: ' + nombre);
 }
+function copiaHecha(t){ store.set('atlas.copia', FECHA); bkMsg(t); renderAvisoCopia(); }
 async function importar(file){
   let o;
   try{ o = JSON.parse(await file.text()); } catch(e){ bkMsg('Ese archivo no es una copia válida.'); return; }
@@ -2514,18 +2547,24 @@ function renderPlan(){
   const nombreDia = DIAS.find(x => x.i === S.dia).n;
   const when = `<p class="day-when">${S.dia===HOY?'<span class="hoy">Hoy</span>':''}${nombreDia}</p>`;
   if(d.descanso){
-    $('#day').innerHTML = `${when}<h2 class="day-title">${d.titulo}</h2><p class="day-sub">${d.texto}</p><ul class="rest-list">${d.sug.map(s=>`<li>${s}</li>`).join('')}</ul>`;
+    const rutinas = Object.entries(p.dias);
+    $('#day').innerHTML = `${when}<h2 class="day-title">${d.titulo}</h2><p class="day-sub">${d.texto}</p><ul class="rest-list">${d.sug.map(s=>`<li>${s}</li>`).join('')}</ul>
+      <details class="igual"><summary class="ghost">Entrené igual: elegir rutina</summary>
+        <div class="igual-op">${rutinas.map(([k, r]) => `<button class="plain" data-rutina="${k}">${r.titulo}<small>${r.sub}</small></button>`).join('')}</div></details>`;
   } else {
+    // Lo que se anota siempre queda con la fecha de hoy, aunque se mire otro día del plan
+    const nota = S.dia !== HOY ? `<p class="nota-fecha">Lo que anotes se guarda con la fecha de hoy, ${new Date().toLocaleDateString('es-AR', {weekday:'long', day:'numeric', month:'short'})}.</p>` : '';
+    const ayuda = store.get('atlas.ayuda', false) ? '' : `<div class="ayuda" id="ayuda"><p><b>Cómo anotar:</b> tocá <span class="ok-mini">✓</span> para repetir lo que hiciste la vez pasada (los números grises). Si hiciste otra cosa, escribí los kilos y las reps y después tocá ✓. Al marcar una serie arranca el descanso.</p><button class="plain" id="ayuda-ok">Entendido</button></div>`;
     $('#day').innerHTML = `${when}<h2 class="day-title">${d.titulo}</h2><p class="day-sub">${d.sub}</p>
-      <h3 class="h3">Músculos</h3>
-      <div class="chip-wrap">${d.mus.map(id => { const m = mBy(id); return `<button class="mchip" data-m="${id}" style="--c:${ZONAS[m.zona].c}">${m.nombre}</button>`; }).join('')}</div>
-      <h3 class="h3">Articulaciones que más cargás</h3>
-      <div class="chip-wrap">${d.art.map(id => `<button class="mchip jchip" data-j="${id}" style="--c:var(--green)">${jBy(id).nombre}</button>`).join('')}</div>
-      <h3 class="h3">Calentamiento</h3>
-      <ol class="warm">${CAL[d.cal].map(x=>`<li>${x}</li>`).join('')}</ol>
-      <h3 class="h3">Ejercicios</h3>
-      <ol class="exlist">${ejerciciosDe(S.plan, S.dia).map((e, k) => `<li><div class="row"><span class="n">${e[0]}${e[3]?`<small class="ex-orig">En lugar de ${e[3]}</small>`:''}<span class="acts">${demoBtn(e[0], 'sm', 'Ver')}${vid(e[0] + ' técnica', 'Video', 'sm')}${swapHTML(e, k)}</span></span><span class="s"><b>${e[1]}</b>${e[2]?`<small>${e[2]}</small>`:''}</span></div>${logHTML(e, k)}</li>`).join('')}</ol>`;
+      <details class="plegable"><summary>Calentamiento <small>${CAL[d.cal].length} pasos</small></summary>
+        <ol class="warm">${CAL[d.cal].map(x=>`<li>${x}</li>`).join('')}</ol></details>
+      <h3 class="h3">Ejercicios</h3>${nota}${ayuda}
+      <ol class="exlist">${ejerciciosDe(S.plan, S.dia).map((e, k) => `<li><div class="row"><span class="n">${e[0]}${e[3]?`<small class="ex-orig">En lugar de ${e[3]}</small>`:''}<span class="acts">${demoBtn(e[0], 'sm', 'Ver')}${vid(e[0] + ' técnica', 'Video', 'sm')}${swapHTML(e, k)}</span></span><span class="s"><b>${e[1]}</b>${e[2]?`<small>${e[2]}</small>`:''}</span></div>${logHTML(e, k)}</li>`).join('')}</ol>
+      <details class="plegable"><summary>Músculos y articulaciones que trabajás</summary>
+        <div class="chip-wrap">${d.mus.map(id => { const m = mBy(id); return `<button class="mchip" data-m="${id}" style="--c:${ZONAS[m.zona].c}">${m.nombre}</button>`; }).join('')}</div>
+        <div class="chip-wrap" style="margin-top:8px">${d.art.map(id => `<button class="mchip jchip" data-j="${id}" style="--c:var(--green)">${jBy(id).nombre}</button>`).join('')}</div></details>`;
   }
+  renderAvisoCopia();
   renderHoyBtn();
 }
 
@@ -2570,6 +2609,7 @@ function setTab(t){
   $$('.tab').forEach(b => b.setAttribute('aria-selected', String(b.id === 't-'+t)));
   if(S.q){ S.q = ''; $('#q').value = ''; }
   if(t === 'progreso') renderProgreso();
+  if(t === 'musculos') requestAnimationFrame(fitView);
   renderSearch();
   // Si veníamos scrolleados, que la pestaña nueva arranque justo debajo de la barra fija
   const tope = $('.top').getBoundingClientRect().bottom, ini = $('main').getBoundingClientRect().top;
@@ -2762,7 +2802,7 @@ document.addEventListener('click', e => {
   const p = e.target.closest('[data-plan]');
   if(p){ S.plan = Number(p.dataset.plan); store.set('atlas.plan', S.plan); renderPlan(); return; }
   const d = e.target.closest('[data-dia]');
-  if(d){ S.dia = Number(d.dataset.dia); renderPlan(); return; }
+  if(d){ S.dia = Number(d.dataset.dia); S.entrenar = false; renderPlan(); return; }
 });
 document.addEventListener('keydown', e => {
   if(e.key === 'Escape' && sheet.classList.contains('open')){ closeSheet(); return; }
@@ -2798,6 +2838,12 @@ $('#rest-menos').addEventListener('click', () => { REST.fin -= 15000; tickDescan
 $('#rest-mas').addEventListener('click', () => { if(!REST.id) return iniciarDescanso(15); REST.fin += 15000; REST.total += 15; tickDescanso(); });
 $('#rest-saltar').addEventListener('click', cerrarDescanso);
 $('#exportar').addEventListener('click', exportar);
+$('#aviso-copia').addEventListener('click', e => {
+  if(e.target.closest('#aviso-exportar')) exportar();
+  if(e.target.closest('#aviso-luego')){
+    store.set('atlas.copiaPausa', fechaISO(new Date(Date.now() + 3 * 864e5))); renderAvisoCopia();
+  }
+});
 $('#importar').addEventListener('click', () => $('#importar-file').click());
 $('#importar-file').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if(f) importar(f); });
 $('#ver-art').addEventListener('click', () => { $('#more').open = false; setTab('articulaciones'); window.scrollTo({top:0}); });
@@ -2805,6 +2851,15 @@ $('#volver-musc').addEventListener('click', () => setTab('musculos'));
 document.addEventListener('click', e => { const m = $('#more'); if(m.open && !m.contains(e.target)) m.open = false; });
 $('#day').addEventListener('input', e => { const det = e.target.closest('.log'); if(det) guardarSerie(det); });
 $('#day').addEventListener('click', e => {
+  if(e.target.closest('#ayuda-ok')){ store.set('atlas.ayuda', true); $('#ayuda').remove(); return; }
+  const ru = e.target.closest('[data-rutina]');
+  if(ru){
+    const dia = DIAS.find(x => PLANES[S.plan].semana[x.i] === ru.dataset.rutina).i;
+    S.dia = dia; S.entrenar = true; renderPlan();
+    // Llevar a la rutina elegida, dejando lugar para la barra fija
+    const ej = $('#day .day-when'); if(ej) window.scrollTo({top: ej.getBoundingClientRect().top + scrollY - $('.top').offsetHeight - 12});
+    return;
+  }
   const ok = e.target.closest('.set .ok'); if(!ok) return;
   const fila = ok.closest('.set'), hecha = ok.getAttribute('aria-pressed') !== 'true';
   // Al marcar una serie vacía, se completa con lo sugerido (la vez pasada o el objetivo)
