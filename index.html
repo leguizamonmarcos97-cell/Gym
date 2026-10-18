@@ -2251,6 +2251,9 @@ function setTab(t){
   $$('.tab').forEach(b => b.setAttribute('aria-selected', String(b.id === 't-'+t)));
   if(S.q){ S.q = ''; $('#q').value = ''; }
   renderSearch();
+  // Si veníamos scrolleados, que la pestaña nueva arranque justo debajo de la barra fija
+  const tope = $('.top').getBoundingClientRect().bottom, ini = $('main').getBoundingClientRect().top;
+  if(ini < tope) window.scrollBy(0, ini - tope);
 }
 
 /* Hoja */
