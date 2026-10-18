@@ -392,6 +392,14 @@ body.con-descanso .foot{padding-bottom:84px}
 .bk-acts{display:flex;gap:8px;flex-wrap:wrap}
 .bk-msg{min-height:1.5em;margin:10px 0 0;font-size:14px;font-weight:600}
 .h-acc{text-align:right;white-space:nowrap;width:1%}
+.cardio-sem{margin:0 0 6px}
+.meter{height:10px;border-radius:5px;background:var(--sunk);overflow:hidden;margin-bottom:8px}
+.meter span{display:block;height:100%;background:var(--blue);border-radius:5px}
+.cuerpo-form select{height:42px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:0 8px;font:600 15px var(--text)}
+.cardio-tab{width:100%;border-collapse:collapse;margin:8px 0 4px;font-size:14px}
+.cardio-tab td{padding:6px 0;border-top:1px solid var(--line)}
+.cardio-tab td:first-child{color:var(--muted);width:64px}
+.nutri .stat b{font-size:26px}
 .h-btn{appearance:none;border:0;background:none;color:var(--blue);font:600 13px/1 var(--text);padding:6px 4px;cursor:pointer}
 .h-btn.del{color:var(--red)}
 .h-edit p{margin:4px 0 8px;font-size:13px;color:var(--muted)}
@@ -3153,7 +3161,7 @@ function renderProgreso(){
     return `<span class="d${cls}" title="${fmtFecha(f)}${dias.has(f) ? ': entrenaste' : ''}">${d.getDate()}</span>`;
   }).join('');
   const meses = [...new Set([ini, hoy].map(d => d.toLocaleDateString('es-AR', {month:'long'})))].join(' – ');
-  $('#prog').innerHTML = cuerpoHTML() + `
+  $('#prog').innerHTML = cuerpoHTML() + nutriHTML() + cardioHTML() + `
     <h3 class="h3">Entrenamientos</h3>
     <div class="stats">
       <div class="stat"><b>${semana}</b><span>días esta semana</span></div>
@@ -3210,15 +3218,19 @@ function renderEntrenador(){
     if(PERFIL.obj === 'musculo') items.push(ritmo > 0.5 ? `Estás subiendo rápido (${r}): parte puede ser grasa. Bajá un poco las cantidades.`
       : ritmo >= 0.1 ? `Buen ritmo para ganar músculo (${r}).` : `No estás subiendo de peso (${r}). Sumá unas 200–300 kcal por día.`);
   }
-  if(peso) items.push(`Proteína: apuntá a <b>${Math.round(peso * 1.6 / 5) * 5}–${Math.round(peso * 2.2 / 5) * 5} g por día</b> (1,6–2,2 g por kilo), repartida en 3–4 comidas.`);
+  const cs = cardioSemana();
+  if(cs.min || (PERFIL && PERFIL.obj === 'grasa')) items.push(`Cardio esta semana: <b>${cs.min} de ${META_CARDIO} min</b>.`);
+  const nu = nutricion();
+  if(nu) items.push(`Comida: unas <b>${nu.kcal.toLocaleString('es-AR')} calorías</b> y <b>${nu.prot} g de proteína</b> por día, repartida en 3–4 comidas. El detalle está en Progreso.`);
+  else if(peso) items.push(`Proteína: apuntá a <b>${Math.round(peso * 1.6 / 5) * 5}–${Math.round(peso * 2.2 / 5) * 5} g por día</b> (1,6–2,2 g por kilo), repartida en 3–4 comidas.`);
   else items.push('Anotá tu peso en Progreso para que te calcule la proteína y siga cómo cambia.');
   $('#entrenador').innerHTML = `<details class="coach"${S.coach ? ' open' : ''}><summary><span class="coach-t"><b>Tu entrenador</b><small>${B.descarga ? 'Semana liviana' : `Semana ${B.sem} de ${SEMANAS_BLOQUE}`} · entrenaste ${esta} de ${meta} días</small></span></summary>
     <ul>${items.map(t => `<li>${t}</li>`).join('')}</ul></details>`;
 }
 
 /* Perfil */
-function opciones(nombre, ops, sel, tipo = 'radio'){
-  return Object.entries(ops).map(([v, t]) => `<label class="op"><input type="${tipo}" name="${nombre}" value="${v}"${(tipo === 'radio' ? sel === v : (sel || []).includes(v)) ? ' checked' : ''}${tipo === 'radio' ? ' required' : ''}><span>${t}</span></label>`).join('');
+function opciones(nombre, ops, sel, tipo = 'radio', req = true){
+  return Object.entries(ops).map(([v, t]) => `<label class="op"><input type="${tipo}" name="${nombre}" value="${v}"${(tipo === 'radio' ? sel === v : (sel || []).includes(v)) ? ' checked' : ''}${tipo === 'radio' && req ? ' required' : ''}><span>${t}</span></label>`).join('');
 }
 function renderPerfil(){
   const P = PERFIL || {dias:S.plan, min:60, lugar:'gym', molestias:[]};
@@ -3233,6 +3245,9 @@ function renderPerfil(){
       <fieldset class="pf"><legend>¿Cuánto tiempo por sesión?</legend><div class="pf-ops">${opciones('min', {45:'45 min', 60:'1 hora', 75:'1 h 15', 90:'1 h 30'}, String(P.min))}</div></fieldset>
       <fieldset class="pf"><legend>¿Dónde entrenás?</legend><div class="pf-ops">${opciones('lugar', LUGARES, P.lugar)}</div></fieldset>
       <fieldset class="pf"><legend>¿Tenés alguna molestia o lesión?</legend><p class="pf-ayuda">Marcá las que tengas. Si no tenés ninguna, dejalo vacío.</p><div class="pf-ops">${opciones('molestias', Object.fromEntries(Object.entries(MOLESTIAS).map(([k, t]) => [k, t[0].toUpperCase() + t.slice(1)])), P.molestias, 'checkbox')}</div></fieldset>
+      <fieldset class="pf"><legend>Para calcular tu alimentación</legend><p class="pf-ayuda">Opcional. Sexo, porque cambia el gasto de energía, y cuánto te movés fuera del gimnasio.</p>
+        <div class="pf-ops">${opciones('sexo', {h:'Hombre', m:'Mujer'}, P.sexo, 'radio', false)}</div>
+        <div class="pf-ops" style="margin-top:8px">${opciones('actividad', ACTIVIDAD, P.actividad, 'radio', false)}</div></fieldset>
       <fieldset class="pf"><legend>Tus datos</legend><div class="pf-datos">
         <label>Peso<span><input name="peso" inputmode="decimal" value="${ultPeso ? fmtNum(ultPeso) : ''}" placeholder="75"> kg</span></label>
         <label>Altura<span><input name="altura" inputmode="numeric" value="${P.altura || ''}" placeholder="175"> cm</span></label>
@@ -3245,7 +3260,8 @@ function renderPerfil(){
 function guardarPerfil(form){
   const f = new FormData(form);
   PERFIL = {obj:f.get('obj'), nivel:f.get('nivel'), dias:Number(f.get('dias')), min:Number(f.get('min')), lugar:f.get('lugar'),
-            molestias:f.getAll('molestias'), altura:numero(f.get('altura')), edad:numero(f.get('edad')), peso:numero(f.get('peso'))};
+            molestias:f.getAll('molestias'), altura:numero(f.get('altura')), edad:numero(f.get('edad')), peso:numero(f.get('peso')),
+            sexo:f.get('sexo') || null, actividad:f.get('actividad') || null};
   store.set('atlas.perfil', PERFIL);
   if(PERFIL.peso) anotarCuerpo({peso:PERFIL.peso});
   Object.keys(SWAP).forEach(k => delete SWAP[k]); store.set('atlas.swap', SWAP);
@@ -3280,6 +3296,88 @@ function lineaSVG(pts, unidad){
     <polyline points="${xy.map(p => p.map(v => v.toFixed(1)).join(',')).join(' ')}"/>
     ${xy.map((p, i) => `<g class="pt"><circle class="hit" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="12"/><circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${i === xy.length - 1 ? 4.5 : 3}"/><title>${fmtFecha(pts[i].f)}: ${fmtNum(pts[i].v)} ${unidad}</title></g>`).join('')}</svg>`;
 }
+/* Cardio y pasos: atlas.cardio = [{id, f, tipo, min, pasos, m}] */
+const TIPOS_CARDIO = ['Caminata', 'Bici', 'Cinta', 'Escaladora', 'Correr', 'Natación', 'Otro'];
+const META_CARDIO = 150;   // minutos por semana (recomendación general de actividad moderada)
+function anotarCardio(d){
+  const lista = store.get('atlas.cardio', []);
+  lista.push(Object.assign({id:Date.now().toString(36) + Math.random().toString(36).slice(2, 6), f:FECHA, m:Date.now()}, d));
+  store.set('atlas.cardio', lista);
+}
+function borrarCardio(id){
+  store.set('atlas.cardio', store.get('atlas.cardio', []).filter(x => x.id !== id));
+  marcarBorrado(`cardio|${id}`, true);
+}
+function cardioSemana(){
+  const desde = isoDe(lunesDe(new Date())), l = store.get('atlas.cardio', []).filter(x => x.f >= desde);
+  return {min:l.reduce((a, x) => a + (x.min || 0), 0), dias:new Set(l.map(x => x.f)).size};
+}
+function cardioHTML(){
+  const lista = store.get('atlas.cardio', []), sem = cardioSemana(), pct = Math.min(1, sem.min / META_CARDIO);
+  const grasa = PERFIL && PERFIL.obj === 'grasa', recientes = lista.slice().reverse().slice(0, 8);
+  return `<h3 class="h3" id="cardio">Cardio y pasos</h3>
+    <p class="cardio-sem"><b>${sem.min} de ${META_CARDIO} min</b> esta semana</p>
+    <div class="meter" role="img" aria-label="${sem.min} de ${META_CARDIO} minutos"><span style="width:${pct * 100}%"></span></div>
+    <p class="pf-ayuda">${grasa ? 'Para bajar grasa sumá además 8.000 a 10.000 pasos por día: es lo que más gasto suma sin cansarte para el gimnasio.' : 'Unos 150 minutos por semana de cardio suave mejoran la recuperación y la salud del corazón.'}</p>
+    <form class="cuerpo-form" id="cardio-form">
+      <label>Qué hiciste<span><select name="tipo">${TIPOS_CARDIO.map(t => `<option>${t}</option>`).join('')}</select></span></label>
+      <label>Minutos<span><input name="min" inputmode="numeric" placeholder="20"></span></label>
+      <label>Pasos del día<span><input name="pasos" inputmode="numeric" placeholder="8000"></span></label>
+      <button class="ghost" type="submit">Guardar</button>
+    </form>
+    ${recientes.length ? `<table class="cardio-tab"><tbody>${recientes.map(x => `<tr data-cid="${x.id}"><td>${fmtFecha(x.f)}</td><td>${esc(x.tipo || 'Cardio')}${x.min ? ` · ${x.min} min` : ''}${x.pasos ? ` · ${x.pasos.toLocaleString('es-AR')} pasos` : ''}</td><td class="h-acc"><button class="h-btn del" data-cardio-del aria-label="Borrar este registro de cardio">Borrar</button></td></tr>`).join('')}</tbody></table>` : ''}`;
+}
+
+/* Alimentación: calorías y macros estimadas (Mifflin-St Jeor) y ajuste según cómo cambia el peso */
+const ACTIVIDAD = {poco:'Poco: trabajo sentado', algo:'Algo: camino o estoy de pie parte del día', mucho:'Mucho: trabajo físico o muchos pasos'};
+function pesoActual(){ const c = store.get('atlas.cuerpo', []).filter(x => x.peso); return c.length ? c[c.length - 1].peso : PERFIL && PERFIL.peso; }
+function nutricion(){
+  const P = PERFIL, peso = pesoActual();
+  if(!P || !peso || !P.altura || !P.edad || !P.sexo || !P.actividad) return null;
+  const bmr = 10 * peso + 6.25 * P.altura - 5 * P.edad + (P.sexo === 'h' ? 5 : -161);
+  const gasto = bmr * ({poco:1.2, algo:1.375, mucho:1.55}[P.actividad] + .035 * (P.dias || 4));
+  const objetivo = {grasa:-.2, musculo:.1, fuerza:.05, forma:0}[P.obj] || 0, ajuste = store.get('atlas.nutri', {}).ajuste || 0;
+  const kcal = Math.round(Math.max(bmr, gasto * (1 + objetivo) + ajuste) / 50) * 50;   // nunca menos que el gasto en reposo
+  const [p1, p2] = P.obj === 'grasa' ? [1.8, 2.2] : [1.6, 2.2];
+  const prot = Math.round(peso * (p1 + p2) / 2 / 5) * 5, grasas = Math.round(peso * .8 / 5) * 5, carbos = Math.max(0, Math.round((kcal - prot * 4 - grasas * 9) / 4 / 5) * 5);
+  return {kcal, gasto:Math.round(gasto / 50) * 50, prot, protR:[Math.round(peso * p1 / 5) * 5, Math.round(peso * p2 / 5) * 5], grasas, carbos, ajuste};
+}
+// Sugerencia de ajuste: con al menos dos pesajes separados por 2 semanas, compara el ritmo con el del objetivo
+function ajusteSugerido(){
+  if(!PERFIL || !['grasa', 'musculo'].includes(PERFIL.obj)) return null;
+  const n = store.get('atlas.nutri', {}), hace = d => isoDe(new Date(Date.now() - d * 864e5));
+  if(n.f && n.f > hace(14)) return null;   // no cambiar más de una vez cada 2 semanas
+  const c = store.get('atlas.cuerpo', []).filter(x => x.peso && x.f >= hace(35));
+  if(c.length < 2) return null;
+  const a = c[0], b = c[c.length - 1], sem = (new Date(b.f) - new Date(a.f)) / (7 * 864e5);
+  if(sem < 2) return null;
+  const ritmo = (b.peso - a.peso) / sem;
+  if(PERFIL.obj === 'grasa'){
+    if(ritmo > -0.2) return {d:-150, t:`Tu peso casi no baja (${fmtNum(Math.round(ritmo * 10) / 10)} kg por semana).`};
+    if(ritmo < -b.peso * .01) return {d:150, t:`Estás bajando muy rápido (${fmtNum(Math.round(ritmo * 10) / 10)} kg por semana) y podés perder músculo.`};
+  } else {
+    if(ritmo < 0.1) return {d:150, t:`Tu peso no sube (${fmtNum(Math.round(ritmo * 10) / 10)} kg por semana).`};
+    if(ritmo > 0.5) return {d:-150, t:`Estás subiendo rápido (+${fmtNum(Math.round(ritmo * 10) / 10)} kg por semana): parte puede ser grasa.`};
+  }
+  return null;
+}
+function nutriHTML(){
+  const n = nutricion();
+  if(!n) return `<h3 class="h3">Alimentación</h3><p class="bk-txt">Para calcular cuántas calorías y proteína te conviene comer, completá en tu perfil: sexo, cuánto te movés, altura, edad y peso.</p><button class="ghost" data-ir-perfil>Completar perfil</button>`;
+  const sug = ajusteSugerido(), obj = PERFIL.obj;
+  const que = {grasa:'un 20% menos de lo que gastás, para bajar grasa sin perder músculo', musculo:'un 10% más de lo que gastás, para ganar músculo con poca grasa', fuerza:'apenas más de lo que gastás', forma:'lo mismo que gastás'}[obj];
+  return `<h3 class="h3">Alimentación</h3>
+    <div class="stats nutri">
+      <div class="stat"><b>${n.kcal.toLocaleString('es-AR')}</b><span>calorías por día</span></div>
+      <div class="stat"><b>${n.prot} g</b><span>proteína (${n.protR[0]}–${n.protR[1]})</span></div>
+      <div class="stat"><b>${n.carbos} g</b><span>carbohidratos · ${n.grasas} g grasas</span></div>
+    </div>
+    <p class="pf-ayuda">Gastás unas ${n.gasto.toLocaleString('es-AR')} calorías por día; el objetivo es ${que}.${n.ajuste ? ` Incluye tu ajuste de ${n.ajuste > 0 ? '+' : ''}${n.ajuste} calorías.` : ''} Es una estimación: el peso de las próximas semanas dice si hay que ajustar.</p>
+    <p class="pf-ayuda">Proteína fácil: 100 g de pollo o carne tienen unos 25 g; 2 huevos, 12 g; un yogur proteico, 15–20 g.</p>
+    ${sug ? `<div class="aviso"><p>${sug.t} Te sugiero ${sug.d > 0 ? 'sumar' : 'restar'} ${Math.abs(sug.d)} calorías por día.</p><div class="aviso-acts"><button class="ghost" data-nutri-aj="${sug.d}">Aplicar</button><button class="plain" data-nutri-aj="0">Por ahora no</button></div></div>`
+      : `<p class="pf-ayuda">Pesate una vez por semana: con dos semanas de datos te digo si conviene ajustar.</p>`}`;
+}
+
 function cuerpoHTML(){
   const lista = store.get('atlas.cuerpo', []), hoy = lista.find(x => x.f === FECHA) || {};
   const pesos = lista.filter(x => x.peso).map(x => ({f:x.f, v:x.peso})), cints = lista.filter(x => x.cintura).map(x => ({f:x.f, v:x.cintura}));
@@ -3493,7 +3591,7 @@ function renderPlan(){
         ${pasosHTML(d.cal)}</details>
       <h3 class="h3">Ejercicios</h3>${nota}${ayuda}
       <ol class="exlist">${ejerciciosDe(S.plan, S.dia).map((e, k) => `<li><div class="row"><span class="n">${e[0]}${e[3]?`<small class="ex-orig">En lugar de ${e[3]}${e[4]?`, ${e[4]}`:''}</small>`:''}<span class="acts">${demoBtn(e[0], 'sm', 'Ver')}${vid(e[0] + ' técnica', 'Video', 'sm')}${swapHTML(e, k)}</span></span><span class="s"><b>${e[1]}</b>${e[2]?`<small>${e[2]}</small>`:''}</span></div>${logHTML(e, k)}</li>`).join('')}</ol>
-      ${d.cardio ? `<p class="cardio"><b>Cardio.</b> ${d.cardio}</p>` : ''}
+      ${d.cardio ? `<p class="cardio"><b>Cardio.</b> ${d.cardio} <button class="h-btn" data-ir-cardio>Anotar cardio</button></p>` : ''}
       <details class="plegable" id="est"${S.estAbierto ? ' open' : ''}><summary>Estiramientos al terminar <small class="paso-cnt">${calHechos('est-' + d.cal)} de ${ESTIR[d.cal].length} hechos</small></summary>
         <p class="cal-intro">5 minutos, sin rebotar y sin dolor: solo tensión suave.</p>
         ${pasosHTML('est-' + d.cal)}</details>
@@ -3548,6 +3646,7 @@ function setTab(t){
   if(S.q){ S.q = ''; $('#q').value = ''; }
   if(t === 'progreso'){ renderProgreso(); renderNube(); }
   if(t === 'perfil') renderPerfil();
+  if(t === 'semana') renderPlan();
   if(t === 'musculos') requestAnimationFrame(fitView);
   renderSearch();
   // Si veníamos scrolleados, que la pestaña nueva arranque justo debajo de la barra fija
@@ -3929,8 +4028,18 @@ $('#prog').addEventListener('click', e => {
     return;
   }
   if(e.target.closest('[data-hcancel]')) renderProgreso();
+  if(e.target.closest('[data-cardio-del]')){ if(confirm('¿Borrar este registro de cardio?')){ borrarCardio(tr.dataset.cid); renderProgreso(); } return; }
+  const aj = e.target.closest('[data-nutri-aj]');
+  if(aj){ const n = store.get('atlas.nutri', {}); n.ajuste = (n.ajuste || 0) + Number(aj.dataset.nutriAj); n.f = FECHA; store.set('atlas.nutri', n); renderProgreso(); }
 });
 $('#prog').addEventListener('submit', e => {
+  if(e.target.id === 'cardio-form'){
+    e.preventDefault();
+    const f = new FormData(e.target), min = numero(f.get('min')), pasos = numero(f.get('pasos'));
+    if(min == null && pasos == null) return;
+    anotarCardio(Object.assign({tipo:f.get('tipo')}, min != null ? {min:Math.round(min)} : {}, pasos != null ? {pasos:Math.round(pasos)} : {}));
+    renderProgreso(); document.getElementById('cardio').scrollIntoView({block:'center'}); return;
+  }
   if(e.target.classList.contains('h-edit')){
     e.preventDefault();
     const f = e.target, kgs = [...f.querySelectorAll('[name=kg]')].map(i => numero(i.value)), rs = [...f.querySelectorAll('[name=r]')].map(i => numero(i.value));
@@ -3957,6 +4066,7 @@ document.addEventListener('click', e => { const m = $('#more'); if(m.open && !m.
 $('#day').addEventListener('input', e => { const det = e.target.closest('.log'); if(det) guardarSerie(det); });
 $('#day').addEventListener('click', e => {
   if(e.target.closest('[data-modo]')){ abrirModo(); return; }
+  if(e.target.closest('[data-ir-cardio]')){ setTab('progreso'); document.getElementById('cardio').scrollIntoView({block:'start'}); window.scrollBy(0, -130); return; }
   const co = e.target.closest('.cal-ok');
   if(co){
     marcarCal(co.dataset.cal, Number(co.dataset.i));
