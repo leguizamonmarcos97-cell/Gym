@@ -314,6 +314,13 @@ body.en-modo{overflow:hidden}
 .modo-desc b{font:800 56px/1 var(--display);font-variant-numeric:tabular-nums}
 .modo-desc small{font-size:13px;opacity:.8}
 .modo-desc.fin{background:var(--green);color:#fff}
+.modo-sig{margin:10px 0 0;font-size:14px;color:var(--muted)}
+.modo-sig b{color:var(--ink)}
+.modo-sigue{margin:14px 0 6px;padding:12px 14px;border-radius:14px;background:var(--surface);border:1px dashed var(--line)}
+.modo-sigue span{display:block;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.modo-sigue b{display:block;font:800 24px/1.1 var(--display);margin:4px 0 2px}
+.modo-sigue small{font-size:14px;color:var(--muted)}
+.modo-sigue .acts{margin-top:8px}
 .modo-fin-ej{margin:16px 0 10px;padding:14px 16px;border-radius:14px;background:var(--surface);border-left:4px solid var(--green);font-size:15px}
 .modo-chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 14px}
 .mchip-s{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:7px 12px;font:600 14px/1 var(--text);cursor:pointer;min-height:36px}
@@ -3157,6 +3164,15 @@ function irModo(i, j = 0){
   MODO.i = Math.max(-1, Math.min(N + 1, i)); MODO.j = j;
   store.set('atlas.modo', MODO); renderModo(); $('#modo-body').scrollTop = 0;
 }
+// Lo que viene después del ejercicio i (con series y peso sugerido) para prepararlo durante el descanso
+function sigueHTML(ej, i, grande, titulo = 'Lo que sigue · preparalo mientras descansás'){
+  const sig = ej[i + 1];
+  if(!sig) return grande ? `<div class="modo-sigue"><span>Lo que sigue</span><b>Estiramientos</b><small>5 minutos y terminaste.</small></div>` : `<p class="modo-sig">Después: <b>estiramientos</b></p>`;
+  const [n, esq] = sig, h = deHoy(n), rec = recomendacion(esq, anterior(n), h && h.s);
+  const det = `${esq}${rec ? ` · ${fmtNum(rec.kg)} kg` : ''}`;
+  return grande ? `<div class="modo-sigue"><span>${titulo}</span><b>${esc(n)}</b><small>${det}</small><div class="acts">${demoBtn(n, 'sm', 'Ver cómo se hace')}</div></div>`
+    : `<p class="modo-sig">Después: <b>${esc(n)}</b> · ${det}</p>`;
+}
 function renderModo(){
   const d = diaDe(MODO.plan, MODO.dia), ej = ejerciciosDe(MODO.plan, MODO.dia), N = ej.length, i = MODO.i;
   $('#modo-dia').textContent = d.titulo;
@@ -3167,6 +3183,7 @@ function renderModo(){
   if(i < 0){
     body.innerHTML = `<h2 class="modo-ej">Calentamiento</h2><p class="modo-sub">Unos 10 minutos para preparar el cuerpo. Marcá cada paso al terminarlo.</p>
       ${pasosHTML(d.cal)}
+      ${sigueHTML(ej, -1, true, 'Primer ejercicio')}
       <div class="modo-nav"><button class="plain" data-mir="0">Saltar calentamiento</button><button class="modo-ok" data-mir="0">Empezar ejercicios</button></div>`;
     return;
   }
@@ -3187,7 +3204,7 @@ function renderModo(){
     <p class="modo-sub"><b>${esq}</b>${nota ? ` ${nota}` : ''} · descanso ${fmtDur(descansoDe(esq) * 1000)}</p>
     <div class="acts">${demoBtn(nombre, 'sm', 'Ver cómo se hace')}</div>
     <div class="modo-rec">${recHTML(esq, prev, s)}${prev ? `<p class="ex-last">La vez pasada · ${fmtFecha(prev.f)}: <b>${resumen(prev, seg)}</b></p>` : ''}</div>
-    <div class="modo-desc" id="modo-desc"${REST.id ? '' : ' hidden'}><span>Descansá</span><b id="modo-desc-t">${$('#rest-t').textContent}</b><small>${j >= 0 ? `Después: serie ${j + 1} de ${s.length}` : 'Después: siguiente ejercicio'}</small></div>
+    <div class="modo-desc" id="modo-desc"${REST.id ? '' : ' hidden'}><span>Descansá</span><b id="modo-desc-t">${$('#rest-t').textContent}</b><small>${j >= 0 ? `Después: serie ${j + 1} de ${s.length}` : `Después: ${i + 1 < N ? esc(ej[i + 1][0]) : 'estiramientos'}`}</small></div>
     ${j >= 0 ? `<div class="modo-serie">
       <p class="modo-sn">Serie ${j + 1} de ${s.length}</p>
       <div class="modo-in">
@@ -3199,6 +3216,7 @@ function renderModo(){
       <button class="modo-ok" id="m-ok">✓ Serie hecha</button>
       <p class="modo-ayuda">Si hiciste lo que está en gris, tocá directo el botón.</p>
     </div>` : `<div class="modo-fin-ej"><b>¡Ejercicio completo!</b> ${hechas} series anotadas.</div>`}
+    ${j < 0 || j === s.length - 1 ? sigueHTML(ej, i, true) : sigueHTML(ej, i, false)}
     <div class="modo-chips">${s.map((x, k) => `<button class="mchip-s${x.ok ? ' ok' : ''}${k === j ? ' cur' : ''}" data-mserie="${k}" aria-label="Serie ${k + 1}">${k + 1}: ${x.r != null ? `${x.kg ? fmtNum(x.kg) + '×' : ''}${x.r}` : '—'}</button>`).join('')}
       <button class="mchip-s mas" data-mmas aria-label="Agregar una serie">+ serie</button></div>
     <div class="modo-nav"><button class="plain" data-mir="${i - 1}">‹ Anterior</button>
