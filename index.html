@@ -362,7 +362,7 @@ body.en-modo{overflow:hidden}
 .cal-como{margin:6px 0 0 26px;font-size:14px;line-height:1.45;color:var(--ink)}
 .calent .acts{margin:8px 0 0 26px}
 .calent li.hecho .cal-t b{color:var(--muted);text-decoration:line-through}
-.calent li.hecho .cal-como,.calent li.hecho .acts{display:none}
+.calent li.hecho .cal-como,.calent li.hecho .acts,.calent li.hecho .paso-vid{display:none}
 .sm-btn{min-height:30px;padding:4px 11px;font-size:12px}
 .nota-fecha{margin:-4px 0 10px;font-size:13px;color:var(--muted)}
 .ayuda{display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin:0 0 12px;padding:12px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--green)}
@@ -581,6 +581,10 @@ body.con-descanso .foot{padding-bottom:84px}
 .yt img{width:100%;height:100%;object-fit:cover;display:block;opacity:.9}
 .yt-play{position:absolute;inset:0;margin:auto;width:64px;height:44px;border-radius:12px;background:#E33;display:flex;align-items:center;justify-content:center}
 .yt-play svg{width:24px;height:24px;fill:#fff}
+.yt-dur{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.78);color:#fff;font:600 12px/1 var(--text);padding:4px 6px;border-radius:6px}
+.paso-vid{margin:10px 0 0 26px;max-width:340px}
+.paso-vid .yt{border-radius:12px}
+.paso-vid .yt-play{width:52px;height:36px}
 .yt-src{font-size:13px;color:var(--muted);margin:6px 2px 10px}
 .dm-ghost{fill:none;stroke:var(--ink);stroke-opacity:.16;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
 .dm-path{fill:none;stroke:var(--blue);stroke-width:1.6;stroke-dasharray:3 3;stroke-linecap:round}
@@ -1096,26 +1100,26 @@ const J = [
 const W = {
   cardio:{t:'Cardio suave', d:'5 min', min:5, como:'Bici, cinta o escaladora a un ritmo en el que puedas hablar sin agitarte. Sube la temperatura del cuerpo y prepara el corazón.'},
   bici:{t:'Bici suave', d:'5 min', min:5, como:'Pedaleá tranquilo, sin mucha resistencia. Calienta rodillas y cadera antes de las piernas.'},
-  rotacion:{t:'Rotación externa con banda', d:'2 × 15', demo:'Rotación externa con banda', como:'Agarrá una banda con las dos manos, codos pegados al cuerpo y doblados a 90°. Abrí las manos hacia afuera sin despegar los codos y volvé lento. Activa los músculos chicos que protegen el hombro.'},
-  facepull:{t:'Face pull liviano', d:'2 × 15', demo:'Face pull', como:'Polea o banda a la altura de la cara. Tirá la soga hacia la frente abriendo los codos hacia arriba. Peso muy liviano: es para activar, no para cansarte.'},
-  pared:{t:'Rodilla a la pared', d:'10 por lado', como:'Parate mirando una pared con la punta del pie a unos 10 cm. Llevá la rodilla a tocar la pared sin despegar el talón del piso y volvé. Si tocás fácil, alejá el pie. Suelta el tobillo para bajar mejor en la sentadilla.'},
-  puente:{t:'Puente de glúteo', d:'2 × 12', demo:'Puente de glúteo', como:'Acostado boca arriba, rodillas dobladas y pies apoyados. Subí la cadera apretando la cola hasta quedar en línea con el torso y bajá lento. Despierta los glúteos.'},
-  lateral:{t:'Caminata lateral con banda', d:'2 × 10 pasos por lado', demo:'Caminata lateral con banda', como:'Banda alrededor de las rodillas, rodillas un poco dobladas. Dá pasos cortos de costado sin juntar los pies. Activa el glúteo que estabiliza la rodilla.'},
-  sentadilla:{t:'Sentadilla sin peso', d:'2 × 10', demo:'Sentadilla sin peso', como:'Pies al ancho de los hombros. Bajá como sentándote en una silla, rodillas hacia afuera y pecho arriba. Lento, buscando bajar cada vez un poco más.'},
-  aprox:{t:'Series de aproximación', d:'1–2 series', como:'Con el primer ejercicio del día: hacé 8 repeticiones con la mitad del peso que vas a usar y después 3 con tres cuartos. No te tienen que cansar: son para practicar el movimiento.'}
+  rotacion:{yt:['wQdfeB80fqo', 36], t:'Rotación externa con banda', d:'2 × 15', demo:'Rotación externa con banda', como:'Agarrá una banda con las dos manos, codos pegados al cuerpo y doblados a 90°. Abrí las manos hacia afuera sin despegar los codos y volvé lento. Activa los músculos chicos que protegen el hombro.'},
+  facepull:{yt:['w06tVYSLH20', 32], t:'Face pull liviano', d:'2 × 15', demo:'Face pull', como:'Polea o banda a la altura de la cara. Tirá la soga hacia la frente abriendo los codos hacia arriba. Peso muy liviano: es para activar, no para cansarte.'},
+  pared:{yt:['fckbV4n6tM8', 36], t:'Rodilla a la pared', d:'10 por lado', como:'Parate mirando una pared con la punta del pie a unos 10 cm. Llevá la rodilla a tocar la pared sin despegar el talón del piso y volvé. Si tocás fácil, alejá el pie. Suelta el tobillo para bajar mejor en la sentadilla.'},
+  puente:{yt:['NUFvi-gPojg', 47], t:'Puente de glúteo', d:'2 × 12', demo:'Puente de glúteo', como:'Acostado boca arriba, rodillas dobladas y pies apoyados. Subí la cadera apretando la cola hasta quedar en línea con el torso y bajá lento. Despierta los glúteos.'},
+  lateral:{yt:['Q0S2h2NzgAc', 54], t:'Caminata lateral con banda', d:'2 × 10 pasos por lado', demo:'Caminata lateral con banda', como:'Banda alrededor de las rodillas, rodillas un poco dobladas. Dá pasos cortos de costado sin juntar los pies. Activa el glúteo que estabiliza la rodilla.'},
+  sentadilla:{yt:['G8mX-VJrUi8', 55], t:'Sentadilla sin peso', d:'2 × 10', demo:'Sentadilla sin peso', como:'Pies al ancho de los hombros. Bajá como sentándote en una silla, rodillas hacia afuera y pecho arriba. Lento, buscando bajar cada vez un poco más.'},
+  aprox:{yt:['5yh8Unb1WRU', 82], t:'Series de aproximación', d:'1–2 series', como:'Con el primer ejercicio del día: hacé 8 repeticiones con la mitad del peso que vas a usar y después 3 con tres cuartos. No te tienen que cansar: son para practicar el movimiento.'}
 };
 // Estiramientos para después de entrenar, según lo que trabajaste (seg: segundos para el temporizador)
 const E = {
-  pecho:{t:'Pecho en el marco de una puerta', d:'30 s por lado', seg:30, como:'Apoyá el antebrazo en el marco de una puerta, con el codo a la altura del hombro, y dá un paso adelante hasta sentir que se estira el pecho. Respirá lento.'},
-  dorsal:{t:'Dorsal con las manos en un banco', d:'30 s', seg:30, como:'Apoyá las manos en un banco o una barra baja, brazos estirados, y llevá la cadera hacia atrás dejando caer el pecho. Se estira la espalda ancha.'},
-  hombro:{t:'Hombro cruzado', d:'30 s por lado', seg:30, como:'Cruzá un brazo estirado por delante del pecho y apretalo suave con el otro antebrazo. Se estira la parte de atrás del hombro.'},
-  triceps:{t:'Tríceps detrás de la cabeza', d:'30 s por lado', seg:30, como:'Llevá una mano a la espalda por detrás de la cabeza y con la otra empujá suave el codo hacia abajo.'},
-  biceps:{t:'Bíceps contra la pared', d:'30 s por lado', seg:30, como:'Apoyá la palma en la pared con el brazo estirado hacia atrás y girá el cuerpo despacio hacia el otro lado.'},
-  cuad:{t:'Cuádriceps de pie', d:'30 s por lado', seg:30, como:'Agarrate el empeine y llevá el talón hacia la cola, con las rodillas juntas y la cola apretada. Si te cuesta el equilibrio, apoyate en la pared.'},
-  isquio:{t:'Parte de atrás del muslo', d:'30 s por lado', seg:30, como:'Apoyá el talón en un banco bajo con la pierna estirada e inclinate hacia adelante con la espalda recta, hasta sentir el estiramiento.'},
-  gluteo:{t:'Glúteo en forma de 4', d:'30 s por lado', seg:30, como:'Acostado boca arriba, apoyá un tobillo sobre la rodilla contraria y tirá del muslo de abajo hacia el pecho.'},
-  psoas:{t:'Flexor de cadera', d:'30 s por lado', seg:30, como:'Con una rodilla en el piso y la otra pierna adelante, apretá la cola y llevá la cadera hacia adelante. Se estira la parte de adelante de la cadera.'},
-  gemelo:{t:'Pantorrilla en la pared', d:'30 s por lado', seg:30, como:'Manos en la pared, una pierna atrás bien estirada y el talón apoyado en el piso. Inclinate hacia la pared.'}
+  pecho:{yt:['TufwPKlp31w', 22], t:'Pecho en el marco de una puerta', d:'30 s por lado', seg:30, como:'Apoyá el antebrazo en el marco de una puerta, con el codo a la altura del hombro, y dá un paso adelante hasta sentir que se estira el pecho. Respirá lento.'},
+  dorsal:{yt:['8VCcMDQytdk', 44], t:'Dorsal con las manos en un banco', d:'30 s', seg:30, como:'Apoyá las manos en un banco o una barra baja, brazos estirados, y llevá la cadera hacia atrás dejando caer el pecho. Se estira la espalda ancha.'},
+  hombro:{yt:['2NDt6N7Zs0U', 29], t:'Hombro cruzado', d:'30 s por lado', seg:30, como:'Cruzá un brazo estirado por delante del pecho y apretalo suave con el otro antebrazo. Se estira la parte de atrás del hombro.'},
+  triceps:{yt:['oMwZKNy4vA8', 18], t:'Tríceps detrás de la cabeza', d:'30 s por lado', seg:30, como:'Llevá una mano a la espalda por detrás de la cabeza y con la otra empujá suave el codo hacia abajo.'},
+  biceps:{yt:['Vij_H_fw4_k', 24], t:'Bíceps contra la pared', d:'30 s por lado', seg:30, como:'Apoyá la palma en la pared con el brazo estirado hacia atrás y girá el cuerpo despacio hacia el otro lado.'},
+  cuad:{yt:['WVcBIydHReY', 15], t:'Cuádriceps de pie', d:'30 s por lado', seg:30, como:'Agarrate el empeine y llevá el talón hacia la cola, con las rodillas juntas y la cola apretada. Si te cuesta el equilibrio, apoyate en la pared.'},
+  isquio:{yt:['Q8xZfid9JKc', 34], t:'Parte de atrás del muslo', d:'30 s por lado', seg:30, como:'Apoyá el talón en un banco bajo con la pierna estirada e inclinate hacia adelante con la espalda recta, hasta sentir el estiramiento.'},
+  gluteo:{yt:['0ZuzYTZ2hV4', 43], t:'Glúteo en forma de 4', d:'30 s por lado', seg:30, como:'Acostado boca arriba, apoyá un tobillo sobre la rodilla contraria y tirá del muslo de abajo hacia el pecho.'},
+  psoas:{yt:['8xZlzcMAtVQ', 23], t:'Flexor de cadera', d:'30 s por lado', seg:30, como:'Con una rodilla en el piso y la otra pierna adelante, apretá la cola y llevá la cadera hacia adelante. Se estira la parte de adelante de la cadera.'},
+  gemelo:{yt:['-EKVNc9DRzY', 19], t:'Pantorrilla en la pared', d:'30 s por lado', seg:30, como:'Manos en la pared, una pierna atrás bien estirada y el talón apoyado en el piso. Inclinate hacia la pared.'}
 };
 const ESTIR = {
   torso:[E.pecho, E.dorsal, E.hombro, E.triceps, E.biceps],
@@ -1390,6 +1394,8 @@ const PARTES = {
 const PART_VIEWS = {};
 ['frente','espalda'].forEach(v => FIG[v].parts.forEach(([m,p]) => { PART_VIEWS[p] = PART_VIEWS[p] || []; if(!PART_VIEWS[p].includes(v)) PART_VIEWS[p].push(v); }));
 const PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+// Miniatura de YouTube que al tocarla se reproduce ahí mismo
+const ytBtn = (v, seg, t) => `<button class="yt" data-yt="${v}" aria-label="Ver video: ${esc(t)}${seg ? ` (${seg} segundos)` : ''}"><img src="https://i.ytimg.com/vi/${v}/hqdefault.jpg" alt="" loading="lazy"><span class="yt-play" aria-hidden="true">${PLAY}</span>${seg ? `<span class="yt-dur">${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, '0')}</span>` : ''}</button>`;
 function vid(q, label = 'Ver video', cls = ''){
   return `<a class="vid ${cls}" href="https://www.youtube.com/results?search_query=${encodeURIComponent(q)}" target="_blank" rel="noopener">${PLAY}${label}</a>`;
 }
@@ -3259,6 +3265,7 @@ function pasosHTML(cal){
     <div class="cal-top"><span class="cal-n">${i + 1}</span><span class="cal-t"><b>${x.t}</b><small>${x.d}</small></span>
       <button class="ok cal-ok" data-cal="${cal}" data-i="${i}" aria-pressed="${ok}" aria-label="${x.t}: hecho">✓</button></div>
     <p class="cal-como">${x.como}</p>
+    ${x.yt ? `<div class="paso-vid">${ytBtn(x.yt[0], x.yt[1], x.t)}</div>` : ''}
     ${x.demo || x.min || x.seg ? `<div class="acts">${x.demo ? demoBtn(x.demo, 'sm', 'Ver cómo se hace') : ''}${x.min ? `<button class="plain sm-btn" data-cal-min="${x.min}" data-cal-t="${x.t}">Iniciar ${x.min} min</button>` : ''}${x.seg ? `<button class="plain sm-btn" data-cal-seg="${x.seg}" data-cal-t="${x.t}">Iniciar ${x.seg} s</button>` : ''}</div>` : ''}</li>`; }).join('')}</ol>`;
 }
 function marcarCal(cal, i){
@@ -4131,54 +4138,84 @@ function sheetD(mov, v){
     ${videoHTML(mov, v)}`;
 }
 /* Videos reales (YouTube, sin cookies). Clave 'movimiento:variante'; si la variante no tiene, se usa la de otra del mismo movimiento */
+// Videos cortos (menos de 1 minuto y medio) con la técnica de cada variante; s = duración en segundos
 const VIDEOS = {
-  'sentadilla:barra':{"v": "5KrVCTD6Rqw", "t": "SENTADILLA LIBRE DESDE 0 – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
-  'sentadilla:mancuerna':{"v": "bxNLqKwiheo", "t": "Así se hace: GLOBET SQUAT | Sergio Tejeda", "c": "Sergio Tejeda"},
-  'sentadilla:prensa':{"v": "KdT2g0iSdG0", "t": "🟢 Prensa de Piernas Inclinada 45 grados 🦵 | Técnica Correcta", "c": "Vitar Club"},
-  'bisagra:rumano':{"v": "8y12ZqdQisc", "t": "PESO MUERTO RUMANO – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
-  'bisagra:rumano-mancuerna':{"v": "H0vu-quzSBE", "t": "MEJORA tu PESO MUERTO RUMANO con MANCUERNAS | Sergio Tejeda", "c": "Sergio Tejeda"},
-  'bisagra:piso':{"v": "X3rceqaHzN8", "t": "PESO MUERTO CONVENCIONAL I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
-  'press:barra':{"v": "X8VBJscpqco", "t": "PRESS BANCA LIBRE CON BARRA OLÍMPICA – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
-  'press:mancuernas':{"v": "RBqBbx1GvYY", "t": "PRESS PLANO CON MANCUERNAS – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
-  'press:inclinado':{"v": "kLEAtIrsFDc", "t": "MEJORA tu Press INCLINADO con MANCUERNAS | Sergio Tejeda", "c": "Sergio Tejeda"},
-  'press:flexiones':{"v": "npGYKLioPT0", "t": "FLEXION NORMAL I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
-  'remo:barra':{"v": "j7h2ytbt5nc", "t": "REMO CON BARRA – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
-  'remo:mancuerna':{"v": "h1NrojgfW9Q", "t": "REMO CON MANCUERNA APOYADO EN BANCO UNILATERAL – TÉCNICA CORRECTA, ERRORES Y CONSEJOS", "c": "Sergio Tejeda"},
-  'remo:polea':{"v": "gcQIwAIOh70", "t": "Remo GIRONDA Con AGARRE NEUTRO ESTRECHO I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
-  'jalon:dominada':{"v": "YoQlO1lt_7I", "t": "DOMINADAS PRONAS – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
-  'jalon:jalon':{"v": "_BHmgCgPWFk", "t": "JALÓN AL PECHO AGARRE PRONO – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
-  'militar:barra':{"v": "HJaNjIyf6mg", "t": "PRESS MILITAR CON BARRA DE PIE – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
-  'militar:mancuernas':{"v": "1Nxx_o2TjQU", "t": "MEJORA tu PRESS MILITAR con MANCUERNAS | Sergio Tejeda", "c": "Sergio Tejeda"},
-  'laterales:mancuernas':{"v": "W0Q1lMQ6uWk", "t": "ELEVACIÓN LATERAL CON MANCUERNAS SENTADO – TÉCNICA CORRECTA Y BENEFICIOS", "c": "Sergio Tejeda"},
-  'curl:barra':{"v": "_AWYYU_EvZU", "t": "CURL DE PIE BARRA RECTA I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
-  'curl:mancuernas':{"v": "znTSJ_2zJN0", "t": "CURL MARTILLO CON MANCUERNA – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
-  'curl:muneca':{"v": "NoO4ol8Zw2I", "t": "How to do a wrist curl properly", "c": "Jim Stoppani, PhD"},
-  'triceps:polea':{"v": "7R9dHNNjGvQ", "t": "EXTENSIÓN DE TRÍCEPS EN POLEA CON BARRA – TÉCNICA CORRECTA, ERRORES Y BENEFICIOS", "c": "Sergio Tejeda"},
-  'triceps:mancuerna':{"v": "fQ-KB40W3d8", "t": "TRÍCEPS con MANCUERNA por encima de la cabeza | GFit Coach", "c": "Guillermo Fernández"},
-  'triceps:frances':{"v": "RdUPfRBdqDY", "t": "PRESS FRANCÉS CON BARRA Z – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
-  'fondos:paralelas':{"v": "DMRoiKU0-xQ", "t": "FONDOS para TRICEPS en PARALELAS I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
-  'hipthrust:barra':{"v": "jp06gpXXmOc", "t": "HIP THRUST CON BARRA – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
-  'hipthrust:puente':{"v": "kTPNBVl8Yrc", "t": "Activa tu GLUTEO así I Glute Bridge I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
-  'zancada:mancuernas':{"v": "9sGFVsToOfM", "t": "ZANCADAS CON PESO EN MOVIMIENTO I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
-  'zancada:bulgara':{"v": "pvuzpLMIRF4", "t": "SENTADILLA BÚLGARA – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
-  'extension:maquina':{"v": "ndnA6yvGoqQ", "t": "MÁQUINA EXTENSIÓN DE CUÁDRICEPS – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
-  'curlfem:acostado':{"v": "c1YSf6ubBxU", "t": "FEMORAL TUMBADO EN MÁQUINA  - EXPLICACIÓN - ¿CÓMO SE HACE?", "c": "Sergio Tejeda"},
-  'curlfem:sentado':{"v": "FTOmWH1AZjo", "t": "FEMORAL SENTADO EN MÁQUINA – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
-  'curlfem:nordico':{"v": "j3L39hJaJl8", "t": "Cómo Hacer un Curl Nórdico de Isquiotibiales", "c": "KneesOverToesGuy en Español"},
-  'pantorrillas:pie':{"v": "XvHhG4E4tDo", "t": "Gemelos de pie | TÉCNICA CORRECTA", "c": "Manuel Escalera"},
-  'pantorrillas:sentado':{"v": "fRsvxLFYEh4", "t": "MÁQUINA DE SÓLEO – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
-  'abdominales:plancha':{"v": "tq1ToE2xflY", "t": "Plancha Abdominal  I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
-  'abdominales:crunch':{"v": "NzJipZsmyVI", "t": "CRUNCH ABDOMINAL EN POLEA DE RODILLAS I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
-  'abdominales:colgado':{"v": "_QMu7MSAYQg", "t": "Elevación de Pierna para Abdomen Colgado I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
-  'abdominales:rueda':{"v": "5476p5bOh0M", "t": "Rueda Abdominal I El mejor ejercicio de Abdomen  I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
-  'abdominales:pallof':{"v": "kWqYSrRimUc", "t": "Pallof Press I El mejor ejercicio de Abdomen I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
-  'facepull:polea':{"v": "Z0OmGOuENTQ", "t": "APRENDE desde 0 a hacer FACEPULL | Sergio Tejeda", "c": "Sergio Tejeda"},
-  'encogimientos:mancuernas':{"v": "i2tMhxxFdlQ", "t": "ENCOGIMIENTO Con MANCUERNAS  para TRAPECIO I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
-  'abduccion:maquina':{"v": "Ypq3DHUzpZA", "t": "MÁQUINA ABDUCTOR – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
-  'abduccion:banda':{"v": "HgUZkJs1qeM", "t": "Pasos laterales con BANDA elástica 🔥 | Activa el glúteo medio", "c": "Vitar Club"},
-  'aductores:maquina':{"v": "vxGLfUujrP4", "t": "MÁQUINA ADDUCTOR – TÉCNICA CORRECTA, BENEFICIOS Y ERRORES COMUNES", "c": "Sergio Tejeda"},
-  'pajaros:mancuernas':{"v": "4FfiEwe3Z54", "t": "Pájaro con Mancuernas para Hombro Posterior I Explicación Completa I Sergio Tejeda", "c": "Sergio Tejeda"},
-  'rotacion:banda':{"v": "NVMGbS69CVo", "t": "Rotación EXTERNA de HOMBRO con banda 🔄 | Técnica correcta", "c": "Vitar Club"}
+  'sentadilla:barra':{"v": "dsCuiccYNGs", "t": "Cómo Hacer una Sentadilla con Barra Perfecta (1 MIN) ERRORES COMUNES", "c": "Julien LEPRETRE", "s": 74},
+  'sentadilla:mancuerna':{"v": "dB3TCDQFUtQ", "t": "🔵Cómo Hacer Sentadilla Goblet 🏋️‍♂️ | Goblet Squat Técnica Correcta", "c": "Vitar Club", "s": 68},
+  'sentadilla:prensa':{"v": "KdT2g0iSdG0", "t": "🟢 Prensa de Piernas Inclinada 45 grados 🦵 | Técnica Correcta", "c": "Vitar Club", "s": 49},
+  'sentadilla:hack':{"v": "02x3nqdPPvw", "t": "Sentadilla Hack, técnica, consejos y errores que debes evitar", "c": "MarceTuCoach", "s": 76},
+  'sentadilla:libre':{"v": "G8mX-VJrUi8", "t": "Sentadilla para aumentar glúteos y piernas | Muévete | Salud180", "c": "Salud 180", "s": 55},
+  'bisagra:rumano':{"v": "BJgFG614Ljs", "t": "PESO MUERTO RUMANO CON BARRA", "c": "Priscilla_bc", "s": 81},
+  'bisagra:rumano-mancuerna':{"v": "D2Ac4HyXsB8", "t": "Peso muerto rumano con mancuernas", "c": "Priscilla_bc", "s": 52},
+  'bisagra:piso':{"v": "0XL4cZR2Ink", "t": "Cómo hacer el PESO MUERTO con seguridad (EN 5 PASOS)", "c": "Julien LEPRETRE", "s": 55},
+  'bisagra:hiper':{"v": "atEI-PfmpBI", "t": "🟢 EXTENSIÓN del TRONCO (hiperextensiones): Técnica PERFECTA y CERO DOLOR", "c": "Vitar Club", "s": 67},
+  'press:barra':{"v": "d3Yhz42T_cw", "t": "Cómo hacer un PRESS DE BANCA PLANO con barra! - Técnica de Ejercicio para PECTORALES - GYM", "c": "CarmenGatesFitness", "s": 46},
+  'press:mancuernas':{"v": "c0XgwF-Hwgk", "t": "PRESS PLANO CON MANCUERNAS | TÉCNICA CORRECTA con Azpiazu", "c": "AZPIAZU: Fitness y Cambios Reales", "s": 53},
+  'press:inclinado':{"v": "qhKStczz27Q", "t": "✅ PRESS INCLINADO con mancuernas | Hazlo BIEN así |", "c": "Manuel Escalera", "s": 66},
+  'press:maquina':{"v": "d-gwsl5BlMQ", "t": "Press de Pecho en Máquina 💪 | Cómo Hacerlo con Técnica Correcta", "c": "Vitar Club", "s": 46},
+  'press:flexiones':{"v": "qYUhh91Cn28", "t": "💪 FLEXIONES de PECHO: Técnica Correcta y Errores Comunes (PECHO)", "c": "Vitar Club", "s": 82},
+  'remo:barra':{"v": "FsNfvAfLeTw", "t": "Remo con barra agarre prono", "c": "Abdias Sadrac", "s": 61},
+  'remo:mancuerna':{"v": "6sP06AxKAzU", "t": "REMO CON MANCUERNA", "c": "Priscilla_bc", "s": 64},
+  'remo:polea':{"v": "gfc5NDJrVOk", "t": "REMO SENTADO ¡POSICIÓN CORRECTA!", "c": "Entrenamiento Diferencial", "s": 73},
+  'remo:invertido':{"v": "dRJH9Gepwu0", "t": "REMO INVERTIDO | Técnica ejercicios", "c": "Aaron Martinez", "s": 35},
+  'jalon:dominada':{"v": "A2dh7ppIrC4", "t": "✅Cómo hacer de forma correcta 💪 DOMINADAS 💪 con buena TÉCNICA y POSTURA.", "c": "Easypull", "s": 84},
+  'jalon:jalon':{"v": "ld-6cqyRTQQ", "t": "Jalón al Pecho Polea Alta", "c": "Zonapablo", "s": 46},
+  'jalon:banda':{"v": "9gfG3rNdlJY", "t": "Dominadas asistidas banda elástica", "c": "Aitor Ojeda - The health dealer", "s": 29},
+  'militar:barra':{"v": "WREUHExSxDc", "t": "👉PRESS MILITAR con BARRA de PIE 💪 Técnica Correcta para HOMBROS Fuertes", "c": "Vitar Club", "s": 74},
+  'militar:mancuernas':{"v": "96xeqjYXkT4", "t": "159. Press de hombros con mancuernas sentado", "c": "Proet Ejercicio Terapéutico ", "s": 20},
+  'militar:maquina':{"v": "Dtow4JuFkJA", "t": "¿Cómo hacer PRESS de HOMBROS en Máquina? Tutorial Maquinas de GIMNASIO", "c": "Entrenador Personal - Malagaentrena", "s": 51},
+  'militar:pica':{"v": "WYAvdvkizvE", "t": "Flexiones De Pica // Pike Push Ups", "c": "Warm Up", "s": 11},
+  'laterales:mancuernas':{"v": "hgLpdwMtEEs", "t": "CÓMO HACER ELEVACIONES LATERALES | HAZLO ASÍ! en 1 minuto", "c": "Jesús López Trainer", "s": 69},
+  'laterales:polea':{"v": "zkP3tV_NwnY", "t": "ELEVACIONES LATERALES en POLEA BAJA | CÓMO HACERLAS BIEN y TÉCNICA ADECUADA", "c": "APTA Vital Sport", "s": 43},
+  'laterales:banda':{"v": "yfNg5sFndbw", "t": "Band Lateral Raise", "c": "Men's Health", "s": 47},
+  'laterales:maquina':{"v": "aKDYtQbCKWY", "t": "🟠Elevaciones Laterales en Máquina 🏋️‍♂️ | Hombro Lateral SIN Errores (Técnica Correcta)", "c": "Vitar Club", "s": 33},
+  'curl:barra':{"v": "a9hli15uWiA", "t": "Curl de biceps con barras - Entrenamiento Brazos / Biceps - Cómo entrenar Ejercicio #p4p", "c": "P4P WORKOUTS ", "s": 31},
+  'curl:mancuernas':{"v": "96O5mvyblQM", "t": "CURL DE BICEPS CON MANCUERNA SENTADO", "c": "Carlos Ruiz ", "s": 28},
+  'curl:polea':{"v": "BNxez0L-9LQ", "t": "CURL DE BICEPS EN POLEA BAJA", "c": "Carlos Ruiz ", "s": 26},
+  'curl:banda':{"v": "eBXEQ3v8fSY", "t": "CURL BICEPS con BANDAS ELÁSTICAS. Ejercicio básico de FUERZA para fortalecer tus brazos", "c": "Adrian Estrada", "s": 27},
+  'curl:scott':{"v": "Ks5KNBSmw6A", "t": "Cómo realizar el ejercicio de Curl de bíceps en banco scott con barra z", "c": "Fit Kamp", "s": 47},
+  'curl:muneca':{"v": "QVvNZR67-ns", "t": "Curl de muñeca con mancuerna", "c": "Ejercicios en Casa", "s": 37},
+  'triceps:polea':{"v": "uZg6VtRhwQY", "t": "Tríceps en Polea con Cuerdas / Tips Claves", "c": "Zonapablo", "s": 77},
+  'triceps:mancuerna':{"v": "iXY0jm665GQ", "t": "Cómo Hacer Extensión de Tríceps con Mancuernas (Tutorial Paso a Paso)", "c": "Your House Fitness", "s": 68},
+  'triceps:frances':{"v": "PTO862T8U7Y", "t": "PRESS FRANCES TECNICA CORRECTA", "c": "Entrenamiento Diferencial", "s": 87},
+  'triceps:banco':{"v": "bR9d6yRH3iA", "t": "Cómo Hacer Fondos En Banco / Bench Dips. RUTINA TRICEPS", "c": "DrVíctorLópez", "s": 56},
+  'fondos:paralelas':{"v": "OgjaUueRiII", "t": "🟡FONDOS en PARALELAS: Técnica Correcta paso a paso (pecho y tríceps)", "c": "Vitar Club", "s": 59},
+  'fondos:maquina':{"v": "8V25cDaBtJk", "t": "🟠Cómo Hacer Fondos de Tríceps en Máquina Asistida 👉 | Técnica Correcta", "c": "Vitar Club", "s": 57},
+  'hipthrust:barra':{"v": "8RcEpMQ93Y8", "t": "HIP THRUST con barra y con mancuerna - técnica correcta / Galvistrainer 🔥", "c": "Galvistrainer", "s": 73},
+  'hipthrust:mancuerna':{"v": "_DUsaQwJioc", "t": "HIP THRUST CON MANCUERNA", "c": "Mario Pérez Coaching", "s": 15},
+  'hipthrust:puente':{"v": "NUFvi-gPojg", "t": "Puente de Glúteos", "c": "Fisioterapia Osfivel", "s": 47},
+  'hipthrust:banda':{"v": "7OwCakAdfS8", "t": "827. Puente de glúteos con mini banda elástica", "c": "Proet Ejercicio Terapéutico ", "s": 14},
+  'zancada:mancuernas':{"v": "-iGRWD09Jn8", "t": "Zancada con Mancuernas para PIERNAS y GLÚTEOS", "c": "Zonapablo", "s": 72},
+  'zancada:bulgara':{"v": "uNuTZZ2ZFgQ", "t": "Sentadilla bulgara con mancuernas: Mejora tus glúteos y piernas", "c": "EresFitness", "s": 78},
+  'zancada:libre':{"v": "Xcfs_3DMKlc", "t": "(Cámara lenta) Cómo hacer una zancada correctamente - Besttraining", "c": "Bestcycling", "s": 46},
+  'extension:maquina':{"v": "KsebeW8gCxU", "t": "Extensiones de piernas en máquina 🏋️‍♂️ | Técnica correcta ✅", "c": "Vitar Club", "s": 51},
+  'extension:banda':{"v": "T3T4isfuN1g", "t": "851. Extensión de rodilla sentado con banda elástica", "c": "Proet Ejercicio Terapéutico ", "s": 13},
+  'extension:sissy':{"v": "N7nrJ3lbeUc", "t": "🎥 Sentadilla Sissy - Roots videotips  ✅", "c": "Roots Health Center", "s": 51},
+  'curlfem:acostado':{"v": "9xbBr5Ytl8c", "t": "Cómo Hacer Curl Femoral Tumbado en Máquina 💪 | Técnica Correcta", "c": "Vitar Club", "s": 43},
+  'curlfem:sentado':{"v": "CBCPBnMzsMI", "t": "Curl Femoral Sentado en Máquina 🏋️‍♂️ | Técnica Correcta", "c": "Vitar Club", "s": 46},
+  'curlfem:nordico':{"v": "2DIg7IfiLQA", "t": "Curl nórdico para isquiotibiales", "c": "Healthy Fitness | Entrenador Personal y Nutricionista Madrid", "s": 13},
+  'curlfem:banda':{"v": "8P7UPVhTdhI", "t": "CURLS FEMORAL ACOSTADO CON BANDA ELÁSTICA - BETTO DK COACH", "c": "LIFESTYLEGYM", "s": 20},
+  'pantorrillas:pie':{"v": "6tqRg_tsi3o", "t": "Elevacion de talones - Ejercicios para  Pantorrillas Gemelos / Tobillo", "c": "P4P WORKOUTS ", "s": 20},
+  'pantorrillas:sentado':{"v": "rfkYC-mbQus", "t": "Cómo Hacer Gemelos Sentado en Máquina 🦵 | Técnica Correcta (entrenamiento piernas)", "c": "Vitar Club", "s": 63},
+  'pantorrillas:escalon':{"v": "krsWp-SJQxU", "t": "Elevación pantorrillas unilateral con mancuerna o kb | Single-Leg Dumbbell/ Kb Calf Raise ", "c": "Trainer Alex León ", "s": 19},
+  'abdominales:plancha':{"v": "kpZg8IIM-to", "t": "Plancha Frontal - ABDOMEN - TÉCNICA CORRECTA", "c": "Manuel Escalera", "s": 18},
+  'abdominales:crunch':{"v": "xIgnEaMHdOE", "t": "Abdomen crunch de rodillas en polea alta", "c": "David Ezequiel IFBB PRO - BGGST", "s": 39},
+  'abdominales:colgado':{"v": "XCz2MRjhH4s", "t": "Elevaciones de piernas colgado🟡Abdomen en Barra", "c": "CULTURADEGYM", "s": 37},
+  'abdominales:rueda':{"v": "NjOYrPXoLfY", "t": "Análisis biomecánico en 1 MINUTO - Rueda abdominal 🥵 -", "c": "WeFitPlace", "s": 47},
+  'abdominales:pallof':{"v": "o_CxFP4FJhA", "t": "Press Pallof en polea", "c": "Instituto de Entrenamiento Personal", "s": 29},
+  'facepull:polea':{"v": "UaZPhyztYNU", "t": "FACE PULL Polea Alta. Ejercicio de Hombro Posterior", "c": "Zonapablo", "s": 72},
+  'facepull:banda':{"v": "w06tVYSLH20", "t": "FORTALECIMIENTO. Ejericicio Face Pull con goma elastica", "c": "Paco The Fisio", "s": 32},
+  'encogimientos:mancuernas':{"v": "2oiKODXPKqM", "t": "Cómo Hacer ENCOGIMIENTOS CON MANCUERNAS - Ejercicios Para Trapecios", "c": "Dorian Fit", "s": 20},
+  'encogimientos:barra':{"v": "pV-f8IBnJ6E", "t": "Encogimientos con Barra", "c": "Coach Luis Solís", "s": 47},
+  'abduccion:maquina':{"v": "7Oa_6915l3M", "t": "Cómo Hacer Abducciones de Glúteo en Máquina 💪 | Técnica Correcta", "c": "Vitar Club", "s": 49},
+  'abduccion:banda':{"v": "Q0S2h2NzgAc", "t": "Técnica correcta del monster walk", "c": "MH Entrenamiento - Mr. Glúteo", "s": 54},
+  'abduccion:polea':{"v": "xEgP9MRtNlg", "t": "🍑 Abducción de cadera de pie en polea baja: cómo trabajar el GLÚTEO medio", "c": "Vitar Club", "s": 63},
+  'aductores:maquina':{"v": "udHXS4AD2iI", "t": "💪 ADUCTORES EN MÁQUINA: técnica perfecta para la cara interna del muslo 🦵", "c": "Vitar Club", "s": 60},
+  'aductores:polea':{"v": "DAF8tFwzJCg", "t": "Aducción unilateral de cadera en polea (aductores) /TITÁN GYM/", "c": "TITAN GYM", "s": 12},
+  'aductores:sumo':{"v": "8TUELxJVZbU", "t": "CÓMO HACER UNA SENTADILLA SUMO (sumo squat) CORRECTAMENTE", "c": "ENERGYM LV Entrenamiento Funcional", "s": 80},
+  'pajaros:mancuernas':{"v": "24z3h_bZ7Zo", "t": "Pájaros con Mancuernas para HOMBRO POSTERIOR |", "c": "Manuel Escalera", "s": 34},
+  'pajaros:maquina':{"v": "aAiTxCqhqTU", "t": "👉🏻 Pájaros para HOMBROS en Máquina | Hazlo ASÍ", "c": "Manuel Escalera", "s": 32},
+  'rotacion:banda':{"v": "wQdfeB80fqo", "t": "FORTALECIMIENTO. Ejercicio de Rotacion Externa de hombro con banda elastica", "c": "Paco The Fisio", "s": 36}
 };
 function videoHTML(mov, v){
   const id = Object.keys(DEMO.DEMOS).find(k => DEMO.DEMOS[k] === mov), propio = VIDEOS[`${id}:${v.id}`];
@@ -4186,7 +4223,7 @@ function videoHTML(mov, v){
   const mas = vid(v.nombre + ' técnica', 'Más videos en YouTube');
   if(!vd) return `<h3>Video</h3>${mas}`;
   return `<h3>Video</h3>
-    <div class="yt-box"><button class="yt" data-yt="${vd.v}" aria-label="Reproducir video: ${esc(vd.t)}"><img src="https://i.ytimg.com/vi/${vd.v}/hqdefault.jpg" alt="" loading="lazy"><span class="yt-play" aria-hidden="true">${PLAY}</span></button></div>
+    <div class="yt-box">${ytBtn(vd.v, vd.s, vd.t)}</div>
     <p class="yt-src">${esc(vd.t)} · ${esc(vd.c)}${propio ? '' : '<br>Es de una variante parecida del mismo ejercicio.'}</p>${mas}`;
 }
 function sheetM(m, p){
