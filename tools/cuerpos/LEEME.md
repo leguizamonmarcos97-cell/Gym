@@ -8,3 +8,8 @@ Se hacen con el modelo humano de [MakeHuman](http://www.makehumancommunity.org) 
 2. `python3 gen.py hm` arma la malla de cada figura (peso, músculo, panza, brazos al costado) en `r/data/*.json`.
 3. `node shot.mjs r out <nombres>` las renderiza con three.js en Chromium (`render.html` como `r/index.html`).
 4. Se recortan todas con el mismo marco y se guardan a 320 px de ancho en WebP (el render es de 880 × 2000).
+
+## Cuerpo animado (3d/)
+
+`python3 rig.py h` exporta el cuerpo con el esqueleto de MakeHuman (`rigs/default.mhskel` y sus pesos), las zonas musculares y la forma atlética a `3d/cuerpo_h.json` + `3d/cuerpo_h.bin`.
+`3d/demo3d.js` lo anima con three.js; cada ejercicio se define en `3d/ejercicios3d.js` con la pose de inicio y la final (direcciones de los huesos), los músculos que trabajan y los errores comunes.
