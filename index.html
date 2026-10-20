@@ -632,6 +632,7 @@ body.con-descanso .foot{padding-bottom:84px}
 .d3-ayuda{margin:0 0 8px;font-size:12px;color:var(--muted)}
 .demo-que{margin:4px 2px 12px;font-size:15px;line-height:1.45}
 .yt-box{position:relative}
+.yt.corto{aspect-ratio:9/16;max-width:300px;margin:0 auto}
 .yt{display:block;width:100%;aspect-ratio:16/9;border:0;border-radius:14px;overflow:hidden;background:#000;padding:0;cursor:pointer;position:relative}
 .yt img{width:100%;height:100%;object-fit:cover;display:block;opacity:.9}
 .yt-play{position:absolute;inset:0;margin:auto;width:64px;height:44px;border-radius:12px;background:#E33;display:flex;align-items:center;justify-content:center}
@@ -4279,18 +4280,21 @@ function montar3D(clave){
 }
 /* Video de Instagram propio de cada ejercicio: se pega el link de la publicación y se muestra insertado (no se descarga nada) */
 const igCodigo = url => { const m = String(url || '').match(/instagram\.com\/(?:[\w.]+\/)?(p|reels?|tv)\/([\w-]+)/i); return m ? {tipo:m[1].toLowerCase() === 'p' ? 'p' : m[1].toLowerCase() === 'tv' ? 'tv' : 'reel', id:m[2]} : null; };
+const ytCodigo = url => { const m = String(url || '').match(/(?:youtube\.com\/(?:shorts\/|watch\?(?:.*&)?v=|embed\/)|youtu\.be\/)([\w-]{11})/i); return m ? m[1] : null; };
 function igHTML(clave){
-  const ig = igCodigo(store.get('atlas.ig', {})[clave]);
-  if(ig) return `<h3>Video de Instagram</h3>
+  const url = store.get('atlas.ig', {})[clave], ig = igCodigo(url), yt = ytCodigo(url);
+  if(yt) return `<h3>Mi video</h3><div class="yt-box">${ytBtn(yt, 0, 'Mi video del ejercicio').replace('class="yt"', 'class="yt corto"')}</div>
+    <p class="ig-acc"><button class="plain" data-ig-quitar="${clave}">Quitar video</button></p>`;
+  if(ig) return `<h3>Mi video</h3>
     <iframe class="ig" src="https://www.instagram.com/${ig.tipo}/${ig.id}/embed/" title="Video de Instagram del ejercicio" loading="lazy" allowfullscreen></iframe>
     <p class="ig-acc"><button class="plain" data-ig-quitar="${clave}">Quitar video</button></p>`;
-  return `<h3>Video de Instagram</h3>
-    <div class="ig-form"><input type="url" inputmode="url" id="ig-url" placeholder="Pegá el link (Instagram → ⋯ → Copiar enlace)" aria-label="Link del video de Instagram"><button class="plain" data-ig-guardar="${clave}">Guardar</button></div>
+  return `<h3>Mi video</h3>
+    <div class="ig-form"><input type="url" inputmode="url" id="ig-url" placeholder="Pegá un link de Instagram o YouTube" aria-label="Link del video de Instagram o YouTube"><button class="plain" data-ig-guardar="${clave}">Guardar</button></div>
     <p class="ig-msg" id="ig-msg" aria-live="polite"></p>`;
 }
 function igGuardar(clave){
   const inp = document.getElementById('ig-url'), msg = document.getElementById('ig-msg');
-  if(!igCodigo(inp && inp.value)){ if(msg) msg.textContent = 'Ese link no parece de una publicación o reel de Instagram.'; return; }
+  if(!inp || !igCodigo(inp.value) && !ytCodigo(inp.value)){ if(msg) msg.textContent = 'Ese link no parece de un video de Instagram o YouTube.'; return; }
   const m = store.get('atlas.ig', {}); m[clave] = inp.value.trim(); store.set('atlas.ig', m); renderSheet(true);
 }
 function sheetD(mov, v){
@@ -4404,12 +4408,28 @@ const VIDEOS = {
   'pajaros:maquina':{"v": "aAiTxCqhqTU", "t": "👉🏻 Pájaros para HOMBROS en Máquina | Hazlo ASÍ", "c": "Manuel Escalera", "s": 32},
   'rotacion:banda':{"v": "wQdfeB80fqo", "t": "FORTALECIMIENTO. Ejercicio de Rotacion Externa de hombro con banda elastica", "c": "Paco The Fisio", "s": 36}
 };
+/* Videos cortos animados en 3D (canal de YouTube "Demic"), elegidos por el tema de cada uno; se ven con el reproductor de YouTube */
+const DEMIC = {
+  'remo:barra':['ZAKLWHgLcWs', 'Variantes del remo con barra'], 'curl:mancuernas':['MWnm0-rY9Bc', 'Una variante de curl para que crezca el bíceps'],
+  'curl:barra':['1QkgaoJ7MVk', '9 ejercicios de bíceps'], 'curl:scott':['1QkgaoJ7MVk', '9 ejercicios de bíceps'], 'curl:polea':['1QkgaoJ7MVk', '9 ejercicios de bíceps'],
+  'abdominales:crunch':['03AKW4mwXF4', 'Abdominales: inferiores, superiores y oblicuos'], 'abdominales:colgado':['03AKW4mwXF4', 'Abdominales: inferiores, superiores y oblicuos'],
+  'press:mancuernas':['cS26wPCnyy0', 'Pecho con mancuernas'], 'press:inclinado':['kKtDe7UJ94c', 'Cómo cambia el ángulo del banco el músculo que trabaja'],
+  'press:barra':['H1vBWh11LP4', 'Press de banca bien hecho'], 'press:flexiones':['vD6iXag6p9g', 'Progresión de flexiones en casa'],
+  'remo:polea':['DyLEwzAlAE4', 'Remo en polea: cómo trabajar distintas partes de la espalda'], 'remo:mancuerna':['6dDPPy9FrTk', 'Los codos deciden qué parte de la espalda trabaja'],
+  'laterales:polea':['di2dhZXg2PU', 'Hombros con polea'], 'laterales:mancuernas':['YpQb-uUU9sM', 'El error de las elevaciones laterales'],
+  'militar:mancuernas':['irBJGYZ3bJQ', '4 correcciones del press de hombros'], 'militar:barra':['irBJGYZ3bJQ', '4 correcciones del press de hombros'],
+  'curl:muneca':['E-8ht-o_DzA', 'Antebrazos más fuertes'], 'hipthrust:barra':['qvAc2285GEI', 'Hip thrust: dónde poner los pies'],
+  'triceps:mancuerna':['jv1iv12EzZA', 'Tríceps con mancuernas'], 'triceps:frances':['jv1iv12EzZA', 'Tríceps con mancuernas'],
+  'bisagra:rumano':['6fIrXNJpBBw', 'Peso muerto rumano, sentadilla o sentadilla sumo'], 'bisagra:rumano-mancuerna':['6fIrXNJpBBw', 'Peso muerto rumano, sentadilla o sentadilla sumo'], 'aductores:sumo':['6fIrXNJpBBw', 'Peso muerto rumano, sentadilla o sentadilla sumo'],
+  'jalon:jalon':['UFMvgzNnN80', 'Variantes del jalón al pecho'], 'abduccion:banda':['U_6Au4tHxUc', 'Glúteo mayor, medio y menor']
+};
 function videoHTML(mov, v){
-  const id = Object.keys(DEMO.DEMOS).find(k => DEMO.DEMOS[k] === mov), propio = VIDEOS[`${id}:${v.id}`];
+  const id = Object.keys(DEMO.DEMOS).find(k => DEMO.DEMOS[k] === mov), propio = VIDEOS[`${id}:${v.id}`], dm = DEMIC[`${id}:${v.id}`];
+  const demic = dm ? `<h3>Video animado 3D</h3><div class="yt-box">${ytBtn(dm[0], 0, dm[1]).replace('class="yt"', 'class="yt corto"')}</div><p class="yt-src">${esc(dm[1])} · Demic (YouTube)</p>` : '';
   const vd = propio || VIDEOS[Object.keys(VIDEOS).find(k => k.startsWith(id + ':'))];
   const mas = vid(v.nombre + ' técnica', 'Más videos en YouTube');
-  if(!vd) return `<h3>Video</h3>${mas}`;
-  return `<h3>Video</h3>
+  if(!vd) return `${demic}<h3>Video</h3>${mas}`;
+  return `${demic}<h3>Video</h3>
     <div class="yt-box">${ytBtn(vd.v, vd.s, vd.t)}</div>
     <p class="yt-src">${esc(vd.t)} · ${esc(vd.c)}${propio ? '' : '<br>Es de una variante parecida del mismo ejercicio.'}</p>${mas}`;
 }
@@ -4499,7 +4519,7 @@ document.addEventListener('click', e => {
   if(yt){
     if(!navigator.onLine){ yt.insertAdjacentHTML('afterend', '<p class="yt-src">Para ver el video necesitás internet.</p>'); return; }
     if(ANIM.v && !ANIM.paused) togglePlay();   // pausa el dibujo mientras mirás el video
-    yt.outerHTML = `<iframe class="yt" src="https://www.youtube-nocookie.com/embed/${yt.dataset.yt}?autoplay=1&rel=0&playsinline=1" title="Video del ejercicio" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+    yt.outerHTML = `<iframe class="yt${yt.classList.contains('corto') ? ' corto' : ''}" src="https://www.youtube-nocookie.com/embed/${yt.dataset.yt}?autoplay=1&rel=0&playsinline=1" title="Video del ejercicio" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
     return;
   }
   const dop = e.target.closest('[data-dopt]');
