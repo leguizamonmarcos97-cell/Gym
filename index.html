@@ -4264,7 +4264,7 @@ function togglePlay(){
   syncPlay();
 }
 /* Demostración 3D (cuerpo humano animado con los músculos encendidos): 3d/demo3d.js, ejercicios en 3d/ejercicios3d.js */
-const DEMO3D = new Set(['curl:mancuernas', 'sentadilla:barra']);
+const DEMO3D = new Set(['curl:mancuernas', 'curl:barra', 'sentadilla:barra', 'press:barra', 'press:inclinado', 'remo:barra', 'laterales:mancuernas', 'abdominales:plancha', 'bisagra:rumano', 'militar:barra', 'jalon:jalon', 'jalon:dominada', 'zancada:mancuernas', 'zancada:bulgara', 'triceps:polea', 'sentadilla:prensa', 'remo:mancuerna', 'hipthrust:barra', 'facepull:polea', 'pantorrillas:pie', 'curlfem:acostado', 'remo:polea', 'triceps:mancuerna', 'extension:maquina', 'curlfem:sentado', 'aductores:maquina', 'pantorrillas:sentado', 'abdominales:pallof', 'fondos:paralelas', 'militar:mancuernas', 'curl:scott', 'triceps:frances', 'curlfem:nordico', 'pajaros:mancuernas', 'curl:muneca']);
 let D3_ACTUAL = null;
 const con3D = (id, v) => DEMO3D.has(`${id}:${v}`) && DOPT.d3 !== false && 'WebGLRenderingContext' in window;
 function cerrar3D(){ if(D3_ACTUAL){ D3_ACTUAL.then(d => d && d.destruir()).catch(() => {}); D3_ACTUAL = null; } }
