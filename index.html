@@ -4409,6 +4409,7 @@ const VIDEOS = {
   'rotacion:banda':{"v": "wQdfeB80fqo", "t": "FORTALECIMIENTO. Ejercicio de Rotacion Externa de hombro con banda elastica", "c": "Paco The Fisio", "s": 36}
 };
 /* Videos cortos animados en 3D (canal de YouTube "Demic"), elegidos por el tema de cada uno; se ven con el reproductor de YouTube */
+const MM = 'Muscle & Motion', AO = 'AOVALO';
 const DEMIC = {
   'sentadilla:barra':['syZq8UQNnps', 'Sentadilla con barra: forma correcta'],
   'sentadilla:mancuerna':['6fIrXNJpBBw', 'Rumano con mancuernas, sentadilla goblet y sentadilla sumo'],
@@ -4450,14 +4451,35 @@ const DEMIC = {
   'encogimientos:mancuernas':['bJZSuAB8sEY', 'Encogimientos con mancuernas'],
   'curl:barra':['1QkgaoJ7MVk', '9 ejercicios de bíceps', 'Muestra varios curls; uno es con barra Z.'],
   'curl:muneca':['y5nyOmAalhA', 'Antebrazos con mancuernas', 'Muestra varios ejercicios de antebrazo; uno es el curl de muñeca.'],
-  'hipthrust:barra':['qvAc2285GEI', 'Hip thrust: dónde poner los pies', 'Está hecho sin barra, con el peso del cuerpo; lo de los pies vale igual.'],
+  'hipthrust:barra':['2XG31B_I5mA', 'Variantes de hip thrust', 'Muestra varias variantes; una es con barra.', MM],
   'militar:maquina':['YPTlts9o0gA', 'Press de hombros en máquina Smith', 'Es en máquina Smith (barra guiada), no en máquina de press.'],
   'zancada:bulgara':['ZAI1O2VVB80', 'Sentadilla búlgara: glúteos o cuádriceps', 'Está hecha sin mancuernas.'],
-  'pantorrillas:pie':['qTSAUwl8cms', 'Pantorrillas: posición de los pies', 'Está hecho con mancuernas sobre un escalón, no en máquina.']
+  'pantorrillas:pie':['qTSAUwl8cms', 'Pantorrillas: posición de los pies', 'Está hecho con mancuernas sobre un escalón, no en máquina.'],
+  // Muscle & Motion (anatomía 3D) y AOVALO (animación 3D, video horizontal)
+  'press:maquina':['eG2jAPixOD4', 'Press de pecho en máquina: errores comunes', '', MM],
+  'sentadilla:hack':['CkpCQMinOao', 'Sentadilla hack', '', MM],
+  'abduccion:maquina':['G5glezLGbVg', 'Abducción en máquina: variantes', '', MM],
+  'laterales:polea':['x2uTedQYpVs', 'Elevación lateral: polea vs. mancuerna', '', MM],
+  'rotacion:banda':['mDqIf1cWQDc', 'Rotación externa de hombro: brazo pegado o a 90°', '', MM],
+  'fondos:paralelas':['76l0naafkgA', 'Fondos: para pecho o para tríceps', '', MM],
+  'extension:sissy':['DWQdv95xJxs', 'Sentadilla sissy', '', MM],
+  'curlfem:nordico':['u6RTag48f1M', 'Curl nórdico', '', MM],
+  'pajaros:maquina':['bKu9Ys175VY', 'Pájaros en máquina', '', MM, 1],
+  'abduccion:banda':['wXcsP8C-lvg', 'Caminata con banda', 'Es la caminata "monstruo" (hacia adelante y en diagonal); trabaja lo mismo.', MM],
+  'hipthrust:banda':['9SlK_GNWYMw', 'Hip thrust con banda', 'Es hip thrust en banco, con barra y banda en las rodillas.', MM],
+  'pantorrillas:escalon':['lJ_VgvuLlS4', 'Pantorrillas de pie en escalón', 'Puede ser con las dos piernas a la vez.', MM],
+  'abdominales:colgado':['-FoW5ZLGDLI', 'Elevación de piernas', 'Es con los brazos apoyados (silla), no colgado de una barra.', MM],
+  'sentadilla:libre':['tOoQnGppgg0', 'Sentadilla a una silla', 'Es la sentadilla sin peso, bajando hasta una silla.', MM],
+  'fondos:maquina':['LecbO_bdQTI', 'Fondos en máquina', '', AO, 1],
+  'pantorrillas:sentado':['CK07KhkXLHo', 'Pantorrillas sentado en máquina', '', AO, 1],
+  'curlfem:sentado':['PvkDCShhyL0', 'Curl femoral sentado', '', AO, 1],
+  'laterales:banda':['A9GOHRzuZCA', 'Elevación lateral con banda', '', AO, 1],
+  'facepull:banda':['DI7ip-50Qis', 'Face pull con banda', '', AO, 1],
+  'curl:banda':['aZgsYBnW1Mo', 'Curl con banda', 'Termina con un press de hombros; la parte del curl es igual.', AO, 1]
 };
 function videoHTML(mov, v){
   const id = Object.keys(DEMO.DEMOS).find(k => DEMO.DEMOS[k] === mov), propio = VIDEOS[`${id}:${v.id}`], dm = DEMIC[`${id}:${v.id}`];
-  const demic = dm ? `<h3>Video animado 3D</h3><div class="yt-box">${ytBtn(dm[0], 0, dm[1]).replace('class="yt"', 'class="yt corto"')}</div><p class="yt-src">${esc(dm[1])} · Demic (YouTube)${dm[2] ? `<br><b>Ojo:</b> ${esc(dm[2])}` : ''}</p>` : '';
+  const demic = dm ? `<h3>Video animado 3D</h3><div class="yt-box">${dm[4] ? ytBtn(dm[0], 0, dm[1]) : ytBtn(dm[0], 0, dm[1]).replace('class="yt"', 'class="yt corto"')}</div><p class="yt-src">${esc(dm[1])} · ${esc(dm[3] || 'Demic')} (YouTube)${dm[2] ? `<br><b>Ojo:</b> ${esc(dm[2])}` : ''}</p>` : '';
   const vd = propio || VIDEOS[Object.keys(VIDEOS).find(k => k.startsWith(id + ':'))];
   const mas = vid(v.nombre + ' técnica', 'Más videos en YouTube');
   if(!vd) return `${demic}<h3>Video</h3>${mas}`;
