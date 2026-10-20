@@ -141,13 +141,13 @@ function materialCuerpo(){
       totalEmissiveRadiance += calor * .45;
       // Contorno de luz (neón) del músculo
       totalEmissiveRadiance += colNeon * neon * .7 * sinS;
-      vec3 brillo = colNeon * neon * mix(2.2, 1.3, step(vAct, vMal)) * sinS + calor * .5;`)
+      vec3 brillo = colNeon * neon * mix(1.7, 1.1, step(vAct, vMal)) * sinS + calor * .5;`)
       .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
       float fres = pow(1. - clamp(dot(normalize(vViewPosition), normal), 0., 1.), 3.);
       reflectedLight.directDiffuse += vec3(.35, .55, 1.) * fres * .7 * (1. - shorts);`)
       // Pasada de brillo: solo lo que emite luz (músculo, neón) y un halo azul suave en el contorno del cuerpo
       .replace('#include <dithering_fragment>', `#include <dithering_fragment>
-      if(uSolo > .5) gl_FragColor = vec4(brillo + vec3(.25, .45, 1.) * fres * .2 * (1. - shorts), 1.);`);
+      if(uSolo > .5) gl_FragColor = vec4(brillo + vec3(.25, .45, 1.) * fres * .07 * (1. - shorts), 1.);`);
   };
   return {m, u};
 }
@@ -381,7 +381,12 @@ export async function crearDemo3D(el, id){
   const cam = cam0;
   const mira = new THREE.Vector3(E.cam.x || 0, E.cam.y, E.cam.z || 0);
   let az = E.cam.az, arrastre = null;
-  function ubicarCam(){ const d = E.cam.dist; cam.position.set(mira.x + Math.sin(az) * d, mira.y + d * Math.sin(E.cam.el || .08), mira.z + Math.cos(az) * d); cam.lookAt(mira); }
+  // camO: ajustes de cámara de afuera (para grabar videos: acercar, mirar un músculo)
+  let camO = {};
+  function ubicarCam(){
+    const d = camO.dist ?? E.cam.dist, el = camO.el ?? (E.cam.el || .08), m = camO.mira ? new THREE.Vector3(...camO.mira) : mira;
+    cam.position.set(m.x + Math.sin(az) * d, m.y + d * Math.sin(el), m.z + Math.cos(az) * d); cam.lookAt(m);
+  }
   cv.addEventListener('pointerdown', e => { arrastre = {x:e.clientX, az}; cv.setPointerCapture(e.pointerId); });
   cv.addEventListener('pointermove', e => { if(arrastre){ az = arrastre.az - (e.clientX - arrastre.x) * .012; ubicarCam(); } });
   cv.addEventListener('pointerup', () => { arrastre = null; });
@@ -443,6 +448,6 @@ export async function crearDemo3D(el, id){
   raf = requestAnimationFrame(cuadro);
   // Para pruebas: dibuja un cuadro fijo (t de 0 a 1) de un modo
   function fijar(t, i = modo){ if(i !== modo) elegir(i); cancelAnimationFrame(raf); raf = 0; visible = false; aplicar(modos[i].A, modos[i].B, t); u.uPulso.value = t; dibujar(); dibujarFlecha(); }
-  return {dbg:(t, i, ns) => { aplicar(modos[i].A, modos[i].B, t); return Object.fromEntries(ns.map(n => [n, punto(n).toArray().map(x => +x.toFixed(2))])); }, fijar, girar:a => { az = a; ubicarCam(); },
+  return {dbg:(t, i, ns) => { aplicar(modos[i].A, modos[i].B, t); return Object.fromEntries(ns.map(n => [n, punto(n).toArray().map(x => +x.toFixed(2))])); }, fijar, girar:a => { az = a; ubicarCam(); }, camara:o => { camO = o || {}; if(o && o.az != null) az = o.az; ubicarCam(); }, hueso:n => punto(n).toArray(), cam0:() => ({az:E.cam.az, el:E.cam.el || .08, dist:E.cam.dist, mira:mira.toArray()}), modos:() => modos.map(x => ({n:x.n, mal:!!x.mal, txt:x.txt || '', musc:x.musc || E.musc, malMusc:x.malMusc || {}})),
     destruir(){ cancelAnimationFrame(raf); io.disconnect(); ro.disconnect(); comp.dispose(); compB.dispose(); R.dispose(); g.dispose(); mat.dispose(); }};
 }
