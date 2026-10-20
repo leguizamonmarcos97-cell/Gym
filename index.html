@@ -225,16 +225,20 @@ svg.fig.off{display:none}
 .pf-datos label span,.cuerpo-form label span{display:flex;align-items:center;gap:6px;color:var(--muted)}
 .pf-datos input,.cuerpo-form input{width:76px;height:42px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:0 8px;font:600 16px var(--text);text-align:center}
 .figs{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 8px;scroll-snap-type:x proximity}
-.fig{position:relative;flex:0 0 82px;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px 6px;border:1px solid var(--line);border-radius:12px;background:var(--surface);cursor:pointer;text-align:center}
+.fig{position:relative;flex:0 0 92px;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px 6px;border:1px solid var(--line);border-radius:12px;background:var(--surface);cursor:pointer;text-align:center}
 .fig input{position:absolute;opacity:0;pointer-events:none}
-.fig .fig-svg{width:58px;height:116px}
-.fig .fg{fill:var(--muted);stroke:var(--muted);stroke-linecap:round;stroke-linejoin:round}
-.fig .fg .fg-b{fill:none}
-.fig .fg-l{fill:none;stroke:var(--surface);stroke-width:1.2;stroke-linecap:round;opacity:.8}
+.fig .fig-svg{width:78px;height:156px}
+.fig-svg .f-borde{fill:#6B4330;stroke:#6B4330;stroke-width:2;stroke-linejoin:round}
+.fig-svg .f-piel{fill:#D9A383}
+.fig-svg .fx{fill:none;stroke:#8E5A40;stroke-width:1;stroke-linecap:round}
+.fig-svg .fx-o{fill:#8E5A40;opacity:.7}
+.fig-svg .f-arm{fill:none;stroke:#8E5A40;stroke-width:.8;opacity:.6}
+.fig-svg .fs{fill:#2E3A44}
+.fig-svg .ft{fill:#3F5C7A}
+.fig-svg .fh{fill:#3A2A20}
 .fig b{font-size:12px;line-height:1.15}
 .fig small{font-size:11px;color:var(--muted)}
 .fig.sel{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue) inset}
-.fig.sel .fg{fill:var(--blue);stroke:var(--blue)}
 .fig:has(input:focus-visible){outline:2px solid var(--blue);outline-offset:2px}
 .fig-res{margin-top:6px;padding:12px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
 .fig-res p{margin:0 0 8px;font-size:15px;line-height:1.4}
@@ -2693,17 +2697,18 @@ const METAS = {
 const METAS_DE = {grasa:'peso', musculo:'musculo', fuerza:'fuerza', forma:'forma'};   // perfiles viejos sin meta
 const metaDe = P => P && (P.meta && METAS[P.meta] ? P.meta : METAS_DE[P.obj]);
 
-/* Figuras de cuerpo: de muy flaco a obesidad. Medidas = medio ancho en cada altura (de frente).
-   imc: índice típico de esa figura (para estimar el peso según la altura); gr: % de grasa aproximado (hombre); mus: músculo relativo */
+/* Figuras de cuerpo: de muy flaco a obesidad. Medio ancho de cada parte (de frente, en un dibujo de 120 × 240).
+   imc: índice típico de esa figura (para estimar el peso según la altura); gr: % de grasa aproximado (hombre); mus: músculo relativo;
+   def: cuánto se marcan los músculos (0 a 1); fat: cuánta panza (0 a 3,5) */
 const FIGS = {
-  muyflaco:{n:'Muy flaco', imc:17.5, gr:8, mus:.95, sh:17, c:12.5, w:10, h:12, t:5, a:3, cu:4},
-  flaco:{n:'Flaco', imc:19.5, gr:12, mus:.97, sh:18, c:14, w:11.5, h:13, t:6, a:3.6, cu:4.5},
-  normal:{n:'Normal', imc:22.5, gr:17, mus:1, sh:19.5, c:15.5, w:13.5, h:14.5, t:7, a:4.2, cu:5},
-  atletico:{n:'Atlético', imc:23.5, gr:11, mus:1.05, sh:22, c:17.5, w:13, h:14, t:7.6, a:5, cu:5.5, marcas:true},
-  musculoso:{n:'Musculoso', imc:26.5, gr:13, mus:1.14, sh:25, c:20, w:15, h:15, t:9, a:6.4, cu:6.5, marcas:true},
-  panza:{n:'Con panza', imc:26.5, gr:24, mus:1, sh:20, c:17.5, w:19, h:17, t:8.5, a:5, cu:6, panza:1},
-  sobrepeso:{n:'Sobrepeso', imc:30, gr:30, mus:1.02, sh:21.5, c:20, w:22.5, h:20, t:10, a:6, cu:7, panza:2},
-  obesidad:{n:'Obesidad', imc:35, gr:38, mus:1.04, sh:23, c:23, w:27, h:24, t:12.5, a:7.6, cu:8, panza:3}
+  muyflaco:{n:'Muy flaco', imc:17.5, gr:8, mus:.95, ne:4.3, sh:17, ch:12.5, wa:10, be:10, hi:11.5, th:6, kn:4.4, ca:4.8, an:2.6, ua:3.4, fa:3, def:.35, fat:0},
+  flaco:{n:'Flaco', imc:19.5, gr:12, mus:.97, ne:4.6, sh:18.5, ch:14, wa:11.5, be:11.5, hi:12.5, th:7, kn:4.8, ca:5.4, an:2.8, ua:4, fa:3.4, def:.4, fat:0},
+  normal:{n:'Normal', imc:22.5, gr:17, mus:1, ne:5, sh:20, ch:15.5, wa:13.6, be:14.2, hi:14, th:8.2, kn:5.2, ca:6, an:3, ua:4.7, fa:3.9, def:.15, fat:.6},
+  atletico:{n:'Atlético', imc:23.5, gr:11, mus:1.05, ne:5.6, sh:22.5, ch:17.5, wa:13, be:12.8, hi:13.8, th:8.8, kn:5.4, ca:6.5, an:3, ua:5.7, fa:4.4, def:.9, fat:0},
+  musculoso:{n:'Musculoso', imc:26.5, gr:13, mus:1.14, ne:6.8, sh:26, ch:20.5, wa:15, be:14.6, hi:15, th:10.6, kn:6, ca:7.5, an:3.3, ua:7.3, fa:5.3, def:1, fat:0},
+  panza:{n:'Con panza', imc:26.5, gr:24, mus:1, ne:6, sh:21, ch:17.6, wa:18.5, be:20.5, hi:17, th:9.8, kn:6, ca:6.8, an:3.2, ua:5.7, fa:4.4, def:0, fat:1.6},
+  sobrepeso:{n:'Sobrepeso', imc:30, gr:30, mus:1.02, ne:7, sh:22.5, ch:20, wa:21.5, be:24, hi:20, th:11.8, kn:7, ca:7.7, an:3.6, ua:6.9, fa:5.1, def:0, fat:2.5},
+  obesidad:{n:'Obesidad', imc:35, gr:38, mus:1.04, ne:8.4, sh:24.5, ch:23, wa:25.5, be:28.5, hi:24, th:14, kn:8.4, ca:9, an:4, ua:8.5, fa:6.1, def:0, fat:3.5}
 };
 // Curva suave que pasa por todos los puntos (Catmull-Rom cerrada)
 function curvaCerrada(pts){
@@ -2715,20 +2720,54 @@ function curvaCerrada(pts){
   }
   return d + 'Z';
 }
+let FIG_ID = 0;
 function figuraSVG(k, sexo){
-  const F = FIGS[k], m = sexo === 'm';
-  const sh = F.sh - (m ? 3.5 : 0), c = F.c - (m ? 1.5 : 0), w = F.w - (m ? 2 : 0), h = F.h + (m ? 3 : 0), t = F.t + (m ? 1 : 0), a = F.a - (m ? .8 : 0), n = F.cu - (m ? .8 : 0);
-  const lc = Math.max(h * .48, t + .7), inT = Math.max(.6, lc - t);
-  const der = [[n, 25], [n + 1, 31], [sh - 2.5, 34], [sh, 40], [c, 54], [w, 72], ...(F.panza ? [[w + F.panza * 1.2, 83]] : []), [h, 94], [lc + t, 106], [lc + t * .78, 130], [lc + t * .6, 148], [lc + 3.6, 180], [lc + 5.5, 193], [lc - 2.5, 194], [lc - 3, 180], [lc - t * .5, 148], [Math.max(.6, lc - t * .7), 130], [inT, 110], [.4, 102]];
-  const pts = der.map(([x, y]) => [50 + x, y]).concat(der.slice().reverse().map(([x, y]) => [50 - x, y]));
-  const ancho = Math.max(c, w, h), codo = ancho + a + .8, mano = Math.max(codo + 1.5, h + a + 1);
-  const brazo = sg => `<path d="M${50 + sg * (sh - 1.5)} 40 L${50 + sg * codo} 74 L${50 + sg * mano} 104" class="fg-b" stroke-width="${(2 * a).toFixed(1)}"/><circle cx="${50 + sg * mano}" cy="${104 + a * .6}" r="${(a * .9 + .5).toFixed(1)}"/>`;
-  const linea = d => `<path class="fg-l" d="${d}"/>`;
+  const m = sexo === 'm', F = Object.assign({}, FIGS[k]), id = ++FIG_ID;
+  if(m) Object.assign(F, {ne:F.ne * .85, sh:F.sh * .86, ch:F.ch * .93, wa:F.wa * .88, be:F.be * .9, hi:F.hi * 1.13, th:F.th * 1.08, ca:F.ca * .95, ua:F.ua * .84, fa:F.fa * .84, def:F.def * .6});
+  const {ne, sh, ch, wa, be, hi, th, kn, ca, an, ua, fa, def, fat} = F;
+  const X = x => 60 + x, espejo = pts => pts.map(([x, y]) => [X(x), y]).concat(pts.slice().reverse().map(([x, y]) => [X(-x), y]));
+  const lado = (pts, sg) => pts.map(([x, y]) => [X(sg * x), y]);
+  // Tronco (mitad derecha, de arriba abajo)
+  const tronco = espejo([[ne, 32], [ne + .6, 40], [sh - 6, 44], [sh - 1.5, 48], [ch, 62], [ch - .3, 72], [wa, 90], [be, 102], [hi, 113], [hi - 1, 120], [.01, 124]]);
+  // Pierna: centro de la pierna y contorno de muslo, rodilla, pantorrilla, tobillo y pie
+  const lc = Math.max(hi * .55 + 1.2, th + .4);
+  const pierna = [[hi - .5, 112], [lc + th, 132], [lc + th * .92, 148], [lc + kn + .8, 166], [lc + ca, 182], [lc + ca * .78, 198], [lc + an, 212], [lc + an + .6, 219], [lc + an + 3.2, 225], [lc - 1.6, 226.5], [lc - an - .4, 219], [lc - an, 212], [lc - ca * .62, 198], [lc - ca * .85, 182], [lc - kn, 167], [lc - th * .82, 148], [Math.max(.3, lc - th), 130], [.3, 112]];
+  // Brazo: el eje baja del hombro al codo y a la muñeca, por fuera de la cintura
+  const x0 = sh - ua * .35, x1 = Math.max(ch - .5, wa, be * .95) + ua * .8 + 1.2, x2 = Math.max(x1 + 1.5, hi + fa * .7 + 1.5);
+  const ax = y => y <= 96 ? x0 + (x1 - x0) * (y - 50) / 46 : x1 + (x2 - x1) * (y - 96) / 30;
+  const brazo = [[sh - 4, 44.5], [sh + ua * .3, 52], [ax(70) + ua, 70], [ax(88) + ua * .85, 88], [x1 + fa * .95, 98], [ax(106) + fa * 1.08, 106], [x2 + fa * .55, 126], [x2 + fa * .6, 133], [x2 + .5, 141.5], [x2 - fa * .55, 138], [x2 - fa * .55, 126], [ax(106) - fa * .9, 106], [x1 - fa * .85, 97], [ax(80) - ua * .85, 80], [ax(62) - ua * .7, 62]];
+  const cuerpo = [curvaCerrada(lado(pierna, 1)), curvaCerrada(lado(pierna, -1)), curvaCerrada(tronco)];
+  const brazos = [curvaCerrada(lado(brazo, 1)), curvaCerrada(lado(brazo, -1))];
+  const cuello = `M${X(-ne)} 26 L${X(ne)} 26 L${X(ne + .6)} 41 L${X(-ne - .6)} 41Z`;
+  const cabeza = `<ellipse cx="60" cy="19" rx="${(9 + fat * .5).toFixed(1)}" ry="${(11.5 + fat * .2).toFixed(1)}"/>`;
+  const todas = cuerpo.concat(brazos, [cuello]).map(d => `<path d="${d}"/>`).join('') + cabeza;
+  // Detalles: músculos marcados o panza, según la figura
+  const L = (d, o = 1) => `<path class="fx" d="${d}" style="opacity:${o.toFixed(2)}"/>`;
   let det = '';
-  if(F.marcas) det += linea(`M${50 - c * .75} 52 Q50 ${57 + (k === 'musculoso' ? 2 : 0)} ${50 + c * .75} 52`) + linea('M50 58 V82') + [64, 71, 78].map(y => linea(`M${50 - w * .45} ${y} H${50 + w * .45}`)).join('');
-  if(F.panza) det += linea(`M${50 - w * .8} ${82 + F.panza} Q50 ${90 + F.panza * 3} ${50 + w * .8} ${82 + F.panza}`);
-  const pelo = m ? `<path d="M41 12 Q42 0 50 1 Q58 0 59 12 Q61 24 57 30 L43 30 Q39 24 41 12Z"/>` : '';
-  return `<svg viewBox="0 0 100 200" class="fig-svg" aria-hidden="true"><g class="fg">${pelo}<ellipse cx="50" cy="14" rx="${(7.5 + (n - 5) * .35).toFixed(1)}" ry="10"/>${brazo(1)}${brazo(-1)}<path d="${curvaCerrada(pts)}"/></g>${det}</svg>`;
+  const dd = Math.max(.25, def);
+  if(!m) det += L(`M${X(-ch * .82)} 66 Q${X(-ch * .4)} ${73 + fat} ${X(-1.5)} ${69 + fat * .8}M${X(ch * .82)} 66 Q${X(ch * .4)} ${73 + fat} ${X(1.5)} ${69 + fat * .8}`, Math.max(.35, dd));
+  if(def > .5) det += L(`M60 74 V100`, def * .8) + [80, 87, 94].map(y => L(`M${X(-wa * .42)} ${y} Q60 ${y + 1} ${X(wa * .42)} ${y}`, def * .7)).join('') + L(`M${X(-wa * .75)} 98 L${X(-4)} 112M${X(wa * .75)} 98 L${X(4)} 112`, def * .6);
+  let brazoDet = '';
+  if(def > .3) brazoDet += [1, -1].map(sg => L(`M${X(sg * (sh - 1))} 50 Q${X(sg * (ax(60) + ua * .2))} 62 ${X(sg * (ax(66) + ua * .6))} 66`, def * .7)).join('');
+  if(def > .5) det += [1, -1].map(sg => L(`M${X(sg * (lc + th * .3))} 150 Q${X(sg * (lc + 1))} 160 ${X(sg * (lc - th * .2))} 162`, def * .6)).join('');
+  if(fat > .3){
+    det += `<ellipse class="fx-o" cx="60" cy="${96 + fat}" rx="${(.9 + fat * .15).toFixed(1)}" ry="${(1.3 + fat * .25).toFixed(1)}"/>`;
+    det += L(`M${X(-be * .82)} ${103 + fat * 1.5} Q60 ${110 + fat * 3} ${X(be * .82)} ${103 + fat * 1.5}`, Math.min(1, .3 + fat * .25));
+    if(fat > 1.2) det += L(`M${X(-wa * .98)} 90 Q${X(-wa * .85)} 95 ${X(-wa * .96)} 99M${X(wa * .98)} 90 Q${X(wa * .85)} 95 ${X(wa * .96)} 99`, .5);
+    if(fat > 2 && !m) det += L(`M${X(-ch * .9)} 70 Q${X(-ch * .45)} ${80 + fat} ${X(-2)} 74M${X(ch * .9)} 70 Q${X(ch * .45)} ${80 + fat} ${X(2)} 74`, .5);
+  }
+  if(def > .5 && fat === 0) det += L(`M${X(-sh + 4)} 47 Q60 52 ${X(sh - 4)} 47`, .3);
+  // Ropa: short (y top en mujer), recortados a la forma del cuerpo
+  const ropa = `<rect x="0" y="${108 - fat}" width="120" height="${40 + fat * .6}" class="fs"/>` + (m ? `<path class="ft" d="M0 ${58 - fat * .3} H120 V${76 + fat * 1.2} Q60 ${80 + fat * 1.5} 0 ${76 + fat * 1.2}Z"/>` : '');
+  const pelo = m ? `<path class="fh" d="M50 12 Q51 3 60 3 Q69 3 70 12 Q72 28 70 42 Q66 46 64 40 L64 22 L56 22 L56 40 Q54 46 50 42 Q48 28 50 12Z"/>` : `<path class="fh" d="M51 14 Q52 5 60 5 Q68 5 69 14 Q66 9 60 9 Q54 9 51 14Z"/>`;
+  return `<svg viewBox="0 0 120 240" class="fig-svg" aria-hidden="true"><defs>
+    <clipPath id="fc${id}">${cuerpo.map(d => `<path d="${d}"/>`).join('')}</clipPath><clipPath id="fa${id}">${brazos.map(d => `<path d="${d}"/>`).join('')}</clipPath>
+    <linearGradient id="fg${id}" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".32"/><stop offset=".22" stop-color="#000" stop-opacity=".06"/><stop offset=".5" stop-color="#fff" stop-opacity=".12"/><stop offset=".78" stop-color="#000" stop-opacity=".06"/><stop offset="1" stop-color="#000" stop-opacity=".34"/></linearGradient></defs>
+    <g class="f-borde">${todas}</g><g class="f-piel">${todas}</g>
+    <g clip-path="url(#fc${id})">${cuerpo.map(d => `<path d="${d}" fill="url(#fg${id})"/>`).join('')}${ropa}${det}</g>
+    <g class="f-piel">${brazos.map(d => `<path d="${d}"/>`).join('')}</g>
+    <g clip-path="url(#fa${id})">${brazos.map(d => `<path d="${d}" fill="url(#fg${id})"/>`).join('')}${brazoDet}</g>
+    ${brazos.map(d => `<path class="f-arm" d="${d}"/>`).join('')}${pelo}</svg>`;
 }
 // Figura que corresponde al peso y la altura (no distingue músculo de grasa: es solo una sugerencia)
 function figuraPorImc(peso, altura){
