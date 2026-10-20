@@ -1,6 +1,6 @@
 // Graba un video vertical (1080×1920) de un ejercicio con el motor 3D de la app, cuadro por cuadro, y lo arma con ffmpeg.
 // Uso: node tools/videos/grabar.mjs <ejercicio:variante> <salida.mp4> [fps]
-// Variables opcionales: TITULO (nombre del ejercicio), EQUIPO (texto del equipo), CUADROS (carpeta temporal), ALTO (720 o 1080).
+// Variables opcionales: TITULO (nombre del ejercicio), EQUIPO (texto del equipo), CUADROS (carpeta temporal), ALTO (1920 o 1280).
 // Necesita Playwright con Chromium y ffmpeg.
 import { createRequire } from 'module';
 import http from 'http'; import fs from 'fs'; import path from 'path'; import { execFileSync } from 'child_process';
@@ -9,7 +9,7 @@ let chromium; try{ ({chromium} = req('playwright')); } catch(e){ ({chromium} = r
 
 const RAIZ = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
 const [id, salida, fpsArg] = process.argv.slice(2);
-const FPS = Number(fpsArg) || 24, ALTO = Number(process.env.ALTO) || 1080;
+const FPS = Number(fpsArg) || 24, ALTO = Number(process.env.ALTO) || 1920;   // alto del video en píxeles (1920 = Full HD vertical, 1280 = 720p)
 const NOMBRES = {pecho:'Pecho', abdomen:'Abdomen', oblicuos:'Oblicuos', dorsales:'Dorsales', trapecio:'Trapecio', lumbar:'Lumbar', hombros:'Hombros', biceps:'Bíceps', triceps:'Tríceps', antebrazos:'Antebrazos', gluteos:'Glúteos', cuadriceps:'Cuádriceps', isquios:'Isquiotibiales', aductores:'Aductores', pantorrillas:'Pantorrillas'};
 // Hueso al que mira la cámara en el plano de cerca de cada músculo
 const FOCO = {pecho:'spine03', abdomen:'spine02', oblicuos:'spine02', dorsales:'spine03', trapecio:'neck01', lumbar:'spine01', hombros:'shoulder01.R', biceps:'upperarm02.R', triceps:'upperarm02.R', antebrazos:'lowerarm02.R', gluteos:'pelvis.R', cuadriceps:'upperleg02.R', isquios:'upperleg02.R', aductores:'upperleg02.L', pantorrillas:'lowerleg02.R'};
@@ -149,6 +149,6 @@ for(const [k, e] of esc.entries()){
   }
 }
 await b.close(); srv.close();
-execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(FPS), '-i', path.join(dir, 'c%05d.png'), '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', ALTO > 720 ? '21' : '24', '-preset', 'slow', '-movflags', '+faststart', salida]);
+execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(FPS), '-i', path.join(dir, 'c%05d.png'), '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', ALTO > 1280 ? '21' : '24', '-preset', 'slow', '-movflags', '+faststart', salida]);
 fs.rmSync(dir, {recursive:true, force:true});
 console.log('Listo:', salida, n, 'cuadros');
