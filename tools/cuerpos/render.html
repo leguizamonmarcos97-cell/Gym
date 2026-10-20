@@ -10,16 +10,27 @@ window.render = async (name, sexo) => {
   const d = await (await fetch('data/' + name + '.json')).json();
   const S = new THREE.Scene();
   const [skin, hair, brows, lashes, eye] = await Promise.all([tex('skin_' + sexo + '.png'), tex('hair_' + sexo + '.png'), tex('brows.png'), tex('lashes.png'), tex('eye.png')]);
-  const piel = new THREE.MeshStandardMaterial({map:skin, roughness:.62, metalness:0});
+  const piel = new THREE.MeshStandardMaterial({map:skin, color:0xf0cdb4, roughness:.55, metalness:0});
   piel.onBeforeCompile = sh => {
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec3 b; varying vec3 vB;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvB = b;');
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vB;\nuniform float uMujer;').replace('#include <map_fragment>', `#include <map_fragment>
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vB;\nuniform float uMujer;\nuniform float uDef;\nuniform float uHombre;\nfloat gs(float d, float w){ return exp(-d*d/(w*w)); }\nfloat seg(vec2 p, vec2 a, vec2 b){ vec2 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); return length(pa - ba * h); }').replace('#include <map_fragment>', `#include <map_fragment>
       float ax = abs(vB.x);
       float bajo = smoothstep(-3.05, -2.97, vB.y) * (1.0 - smoothstep(0.95, 1.03, vB.y)) * (1.0 - smoothstep(2.2, 2.3, ax));
       float arriba = uMujer * smoothstep(3.25, 3.33, vB.y) * (1.0 - smoothstep(5.0, 5.08, vB.y)) * (1.0 - smoothstep(1.85, 1.95, ax));
+      // Definición muscular (abdominales, pecho y oblicuos) dibujada según la posición en la malla base
+      float fr = smoothstep(0.6, 1.0, vB.z), y = vB.y;
+      float abz = fr * (1.0 - smoothstep(0.72, 0.95, ax)) * smoothstep(1.25, 1.55, y) * (1.0 - smoothstep(3.25, 3.45, y));
+      float osc = gs(ax, 0.07) * abz;
+      osc += (gs(y - 2.25 - 0.06 * ax, 0.075) + gs(y - 2.78 - 0.05 * ax, 0.075) + gs(y - 3.22 - 0.04 * ax, 0.07)) * abz * (1.0 - smoothstep(0.62, 0.8, ax));
+      float pc = uHombre * fr * smoothstep(0.12, 0.3, ax) * (1.0 - smoothstep(1.35, 1.6, ax));
+      osc += gs(y - (3.36 + 0.22 * pow(max(ax - 0.2, 0.0), 2.0)), 0.075) * pc;
+      osc += gs(seg(vec2(ax, y), vec2(1.02, 1.75), vec2(0.42, 0.55)), 0.07) * fr;
+      float luz = abz * (1.0 - smoothstep(0.62, 0.8, ax)) * smoothstep(0.08, 0.2, ax) * (gs(y - 2.0, .16) + gs(y - 2.52, .16) + gs(y - 3.0, .15));
+      diffuseColor.rgb *= 1.0 - uDef * (0.3 + 0.08 * (1.0 - uHombre)) * clamp(osc, 0.0, 1.0);
+      diffuseColor.rgb *= 1.0 + uDef * 0.16 * luz;
       diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.03, 0.045, 0.06), bajo);
       diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.05, 0.11, 0.2), arriba);`);
-    sh.uniforms.uMujer = {value: 0};
+    sh.uniforms.uMujer = {value: 0}; sh.uniforms.uDef = {value: d.def || 0}; sh.uniforms.uHombre = {value: sexo === 'h' ? 1 : 0};
   };
   const tela = new THREE.MeshStandardMaterial({color:0x2b3540, roughness:.85});
   const tela2 = new THREE.MeshStandardMaterial({map: sexo === 'm' ? await tex('top.png') : null, normalMap: sexo === 'm' ? await tex('top_n.png', false) : null, roughness:.8, side:THREE.DoubleSide, polygonOffset:true, polygonOffsetFactor:-2});
@@ -27,10 +38,12 @@ window.render = async (name, sexo) => {
   const alfa = t => new THREE.MeshStandardMaterial({map:t, transparent:true, alphaTest:.3, side:THREE.DoubleSide, roughness:.8});
   const add = (k, m) => { if(d[k] && d[k].idx.length) S.add(new THREE.Mesh(geo(d[k]), m)); };
   add('body', piel); add('shorts', tela); add('top', tela2); add('eyes', new THREE.MeshStandardMaterial({map:eye, roughness:.3})); add('brows', alfa(brows)); add('lashes', alfa(lashes)); add('hair', pelo);
-  S.add(new THREE.HemisphereLight(0xffffff, 0x8a7a70, 1.1));
-  const k = new THREE.DirectionalLight(0xffffff, 2.2); k.position.set(4, 8, 12); S.add(k);
-  const f = new THREE.DirectionalLight(0xffeedd, .9); f.position.set(-8, 3, 6); S.add(f);
-  const b = new THREE.DirectionalLight(0xffffff, 1.2); b.position.set(0, 6, -10); S.add(b);
+  // Luz de estudio: clave lateral alta que marca el relieve del músculo, relleno suave y contraluz
+  S.add(new THREE.HemisphereLight(0xffffff, 0x6d625a, .62));
+  const k = new THREE.DirectionalLight(0xfff1e4, 2.4); k.position.set(-7, 9, 8); S.add(k);
+  const f = new THREE.DirectionalLight(0xe8f0ff, .7); f.position.set(9, 2, 7); S.add(f);
+  const b1 = new THREE.DirectionalLight(0xffffff, 1.6); b1.position.set(6, 6, -9); S.add(b1);
+  const b2 = new THREE.DirectionalLight(0xffffff, 1.2); b2.position.set(-6, 4, -9); S.add(b2);
   const cam = new THREE.OrthographicCamera(-5.6, 5.6, 12.7, -12.7, .1, 100); cam.position.set(0, .2, 30); cam.lookAt(0, .2, 0);
   R.setClearColor(0x000000, 0); R.render(S, cam);
   return R.domElement.toDataURL('image/png');

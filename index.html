@@ -234,6 +234,14 @@ svg.fig.off{display:none}
 .fig:has(input:focus-visible){outline:2px solid var(--blue);outline-offset:2px}
 .fig-res{margin-top:6px;padding:12px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
 .fig-res p{margin:0 0 8px;font-size:15px;line-height:1.4}
+.fig-res .fr-t{font-size:16px}
+.fr-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:4px 0 10px}
+.fr-stats div{background:var(--bg);border-radius:10px;padding:8px}
+.fr-stats b{display:block;font:800 18px/1.1 var(--display)}
+.fr-stats span{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.fig-res .fr-sub{margin:0 0 4px;font-weight:700;font-size:14px}
+.fr-pasos{margin:0 0 10px;padding-left:20px;font-size:14px;line-height:1.45}
+.fr-pasos li{margin-bottom:4px}
 .fig-res .pf-ayuda{margin:6px 0 0}
 .fig-ok{color:var(--green);font-weight:600}
 .pf-meta-txt{margin:8px 0 0}
@@ -2701,7 +2709,15 @@ const FIGS = {
   sobrepeso:{n:'Sobrepeso', imc:30, gr:30, mus:1.02},
   obesidad:{n:'Obesidad', imc:35, gr:38, mus:1.04}
 };
-const figuraImg = (k, sexo) => `<img class="fig-img" src="img/cuerpos/${sexo === 'm' ? 'm' : 'h'}_${k}.webp" alt="" width="200" height="542" loading="lazy" decoding="async">`;
+// Cuerpos de meta: trabajados, distintos para hombre y mujer (mismos datos que FIGS)
+const FIGS_META = {
+  h:{enforma:{n:'En forma', imc:23, gr:15, mus:1.03}, marcado:{n:'Marcado', imc:22.5, gr:9, mus:1.04}, atleta:{n:'Atlético', imc:24.5, gr:11, mus:1.09},
+     fuerte:{n:'Fuerte', imc:26.5, gr:14, mus:1.14}, grande:{n:'Musculoso', imc:28.5, gr:13, mus:1.2}},
+  m:{enforma:{n:'En forma', imc:21.5, gr:15, mus:1.02}, tonificada:{n:'Tonificada', imc:21, gr:11, mus:1.04}, atleta:{n:'Atlética', imc:22.5, gr:12, mus:1.08},
+     gluteos:{n:'Glúteos y piernas', imc:23, gr:14, mus:1.07}, fuerte:{n:'Fuerte', imc:24, gr:13, mus:1.12}}
+};
+const metasDe = sexo => FIGS_META[sexo === 'm' ? 'm' : 'h'];
+const figMeta = (k, sexo) => metasDe(sexo)[k] || null;
 // Figura que corresponde al peso y la altura (no distingue músculo de grasa: es solo una sugerencia)
 function figuraPorImc(peso, altura){
   if(!peso || !altura) return null;
@@ -2710,38 +2726,44 @@ function figuraPorImc(peso, altura){
 }
 // Peso estimado al llegar a la figura meta, conservando la masa magra (con más o menos músculo según la figura)
 function planCuerpo(hoy, meta, peso, sexo){
-  if(!hoy || !meta || !peso) return null;
-  const gr = k => (FIGS[k].gr + (sexo === 'm' ? 8 : 0)) / 100, H = FIGS[hoy], M = FIGS[meta];
-  const magra = peso * (1 - gr(hoy)), magraM = magra * M.mus / H.mus, pesoM = magraM / (1 - gr(meta));
-  const grasa = peso * gr(hoy) - pesoM * gr(meta), musculo = magraM - magra;
+  const H = FIGS[hoy], M = figMeta(meta, sexo);
+  if(!H || !M || !peso) return null;
+  const gr = F => (F.gr + (sexo === 'm' ? 8 : 0)) / 100;
+  const magra = peso * (1 - gr(H)), magraM = magra * Math.max(1, M.mus / H.mus), pesoM = magraM / (1 - gr(M));
+  const grasa = peso * gr(H) - pesoM * gr(M), musculo = magraM - magra;
   const meses = Math.max(grasa > 0 ? grasa / 2 : 0, musculo > 0 ? musculo / .7 : 0, grasa < 0 ? -grasa / 1.5 : 0);
   return {peso:Math.round(pesoM), grasa:Math.round(grasa), musculo:Math.round(musculo * 10) / 10, meses:Math.max(1, Math.round(meses))};
 }
 function figsHTML(d){
-  const sug = figuraPorImc(d.peso, d.altura), alt = d.altura / 100;
-  const card = (nombre, k, sel, extra) => `<label class="fig${sel ? ' sel' : ''}"><input type="radio" name="${nombre}" value="${k}"${sel ? ' checked' : ''}>${figuraImg(k, d.sexo)}<b>${FIGS[k].n}</b>${extra ? `<small>${extra}</small>` : ''}</label>`;
-  const hoy = d.hoy || null, pl = k => planCuerpo(hoy, k, d.peso, d.sexo);
-  const res = pl(d.meta);
+  const sug = figuraPorImc(d.peso, d.altura), alt = d.altura / 100, sx = d.sexo === 'm' ? 'm' : 'h', MET = metasDe(sx);
+  const card = (nombre, k, img, nom, sel, extra) => `<label class="fig${sel ? ' sel' : ''}"><input type="radio" name="${nombre}" value="${k}"${sel ? ' checked' : ''}><img class="fig-img" src="img/cuerpos/${sx}_${img}.webp" alt="" width="200" height="542" loading="lazy" decoding="async"><b>${nom}</b>${extra ? `<small>${extra}</small>` : ''}</label>`;
+  const hoy = FIGS[d.hoy] ? d.hoy : null, meta = MET[d.meta] ? d.meta : null, pl = k => planCuerpo(hoy, k, d.peso, sx);
+  const res = pl(meta);
   let resumen = '';
-  if(res && d.meta !== hoy){
-    const partes = [];
-    if(res.grasa > 1) partes.push(`bajar unos <b>${res.grasa} kg de grasa</b>`);
-    if(res.grasa < -1) partes.push(`subir unos <b>${-res.grasa} kg</b> comiendo más`);
-    if(res.musculo > .9) partes.push(`ganar unos <b>${fmtNum(res.musculo)} kg de músculo</b>`);
-    const sugMeta = res.grasa > 2 ? (['panza', 'sobrepeso', 'obesidad'].includes(hoy) ? 'panza' : 'marcar') : res.musculo > 1 ? (d.meta === 'musculoso' ? 'grande' : 'musculo') : 'forma';
-    resumen = `<div class="fig-res"><p>De <b>${FIGS[hoy].n.toLowerCase()}</b> a <b>${FIGS[d.meta].n.toLowerCase()}</b>: ${partes.length ? partes.join(' y ') : 'ajustes chicos de grasa y músculo'}. Llegarías a unos <b>${res.peso} kg</b>, en <b>${res.meses} ${res.meses === 1 ? 'mes' : 'meses'}</b> aproximadamente si sos constante.</p>
+  if(res){
+    const r1 = Math.max(1, res.meses), r2 = Math.max(r1 + 1, Math.ceil(res.meses * 1.35)), dias = d.dias || 4;
+    const pasos = [];
+    if(res.grasa > 1) pasos.push(`<b>Bajar unos ${res.grasa} kg de grasa.</b> Comer un poco menos de lo que gastás (en Progreso te digo cuánto) y 15–20 minutos de cardio después de las pesas.`);
+    if(res.grasa < -1) pasos.push(`<b>Subir unos ${-res.grasa} kg.</b> Comer un poco más de lo que gastás, con proteína en cada comida.`);
+    if(res.musculo > .9) pasos.push(`<b>Sumar unos ${Math.round(res.musculo)} kg de músculo.</b> Pesas ${dias} días por semana, subiendo el peso de a poco: la app te dice cuánto en cada serie.`);
+    if(!pasos.length) pasos.push('<b>Mantener tu peso y ganar fuerza.</b> Pesas, buena técnica y constancia.');
+    const ritmo = res.grasa > 1 ? ['−0,5 kg', 'por semana'] : res.grasa < -1 || res.musculo > .9 ? ['+0,25 kg', 'por semana'] : ['=', 'mantener'];
+    const sugMeta = res.grasa > 2 ? (['panza', 'sobrepeso', 'obesidad'].includes(hoy) ? 'panza' : 'marcar') : meta === 'gluteos' ? 'gluteos' : ['fuerte', 'grande'].includes(meta) && sx === 'h' ? 'grande' : res.musculo > 1 ? 'musculo' : 'forma';
+    resumen = `<div class="fig-res"><p class="fr-t">De <b>${FIGS[hoy].n.toLowerCase()}</b> a <b>${MET[meta].n.toLowerCase()}</b></p>
+      <div class="fr-stats"><div><b>${res.peso - 1}–${res.peso + 1} kg</b><span>peso al llegar</span></div><div><b>${r1}–${r2} meses</b><span>siendo constante</span></div><div><b>${ritmo[0]}</b><span>${ritmo[1]}</span></div></div>
+      <p class="fr-sub">Cómo llegás:</p><ol class="fr-pasos">${pasos.map(x => `<li>${x}</li>`).join('')}</ol>
       ${d.objMeta !== sugMeta ? `<button type="button" class="plain" data-usar-meta="${sugMeta}">Usar el objetivo “${METAS[sugMeta].n}”</button>` : `<p class="fig-ok">✓ Tu objetivo coincide: ${METAS[sugMeta].n}.</p>`}
-      <p class="pf-ayuda">Es una estimación: cada cuerpo cambia distinto, y el músculo se gana más rápido los primeros meses.</p></div>`;
-  } else if(d.meta && d.meta === hoy) resumen = `<div class="fig-res"><p>Querés mantener tu cuerpo: el plan te ayuda a sostenerlo y a ganar fuerza.</p></div>`;
+      <p class="pf-ayuda">Aproximado: cada cuerpo responde distinto, y los primeros meses se progresa más rápido.</p></div>`;
+  }
   return `<fieldset class="pf"><legend>¿Cómo está tu cuerpo hoy?</legend>
       <p class="pf-ayuda">${sug ? `Por tu peso y altura, lo más probable es <b>${FIGS[sug].n.toLowerCase()}</b> (marcado con ★). Si tenés más músculo, elegí la que más se parezca.` : 'Elegí la que más se parezca. Si ponés tu peso y altura arriba, te sugiero una.'}</p>
-      <div class="figs">${Object.keys(FIGS).map(k => card('fhoy', k, k === hoy, `${k === sug ? '★ ' : ''}${alt ? `~${Math.round(FIGS[k].imc * alt * alt)} kg` : ''}`)).join('')}</div></fieldset>
+      <div class="figs">${Object.keys(FIGS).map(k => card('fhoy', k, k, FIGS[k].n, k === hoy, `${k === sug ? '★ ' : ''}${alt ? `~${Math.round(FIGS[k].imc * alt * alt)} kg` : ''}`)).join('')}</div></fieldset>
     <fieldset class="pf"><legend>¿Cómo querés quedar?</legend>
-      <p class="pf-ayuda">${hoy && d.peso ? 'Debajo de cada figura, el peso aproximado al que llegarías.' : 'Elegí cómo te gustaría verte.'}</p>
-      <div class="figs">${Object.keys(FIGS).filter(k => !['sobrepeso', 'obesidad'].includes(k)).map(k => { const r = pl(k); return card('fmeta', k, k === d.meta, r ? `~${r.peso} kg` : ''); }).join('')}</div>
+      <p class="pf-ayuda">${hoy && d.peso ? 'Elegí tu meta. Debajo, el peso aproximado al que llegarías.' : 'Elegí cómo te gustaría verte.'}</p>
+      <div class="figs">${Object.keys(MET).map(k => { const r = pl(k); return card('fmeta', k, 'meta_' + k, MET[k].n, k === meta, r ? `~${r.peso} kg` : ''); }).join('')}</div>
       ${resumen}</fieldset>`;
 }
-const datosFigs = form => { const f = new FormData(form); return {peso:numero(f.get('peso')), altura:numero(f.get('altura')), sexo:f.get('sexo'), hoy:f.get('fhoy'), meta:f.get('fmeta'), objMeta:f.get('meta')}; };
+const datosFigs = form => { const f = new FormData(form); return {peso:numero(f.get('peso')), altura:numero(f.get('altura')), sexo:f.get('sexo'), hoy:f.get('fhoy'), meta:f.get('fmeta'), objMeta:f.get('meta'), dias:numero(f.get('dias'))}; };
 const NIVELES = {nuevo:'Recién empiezo', medio:'6 meses a 2 años', avanzado:'Más de 2 años'};
 const LUGARES = {gym:'Gimnasio', casa:'Casa (mancuernas y banco)'};
 const MOLESTIAS = {rodilla:'rodilla', hombro:'hombro', lumbar:'espalda baja', codo:'codo'};
@@ -3545,7 +3567,7 @@ function renderEntrenador(){
   // Meta de la figura elegida en el perfil
   const pm = PERFIL && PERFIL.cuerpo && PERFIL.cuerpo.peso;
   if(pm && peso){ const falta = Math.round((peso - pm) * 10) / 10;
-    items.push(Math.abs(falta) < 1 ? `Llegaste al peso de tu meta (<b>${pm} kg</b>). Ahora a sostenerlo.` : `Tu meta: ${FIGS[PERFIL.cuerpo.meta].n.toLowerCase()}, unos <b>${pm} kg</b>. Te ${Math.abs(falta) === 1 ? 'falta' : 'faltan'} <b>${fmtNum(Math.abs(falta))} kg</b>${falta > 0 ? ' por bajar' : ' por subir'}.`); }
+    items.push(Math.abs(falta) < 1 ? `Llegaste al peso de tu meta (<b>${pm} kg</b>). Ahora a sostenerlo.` : `Tu meta: ${(figMeta(PERFIL.cuerpo.meta, PERFIL.sexo) || {n:'tu cuerpo meta'}).n.toLowerCase()}, unos <b>${pm} kg</b>. Te ${Math.abs(falta) === 1 ? 'falta' : 'faltan'} <b>${fmtNum(Math.abs(falta))} kg</b>${falta > 0 ? ' por bajar' : ' por subir'}.`); }
   const cs = cardioSemana();
   if(cs.min || (PERFIL && PERFIL.obj === 'grasa')) items.push(`Cardio esta semana: <b>${cs.min} de ${META_CARDIO} min</b>.`);
   const nu = nutricion();
@@ -3593,7 +3615,7 @@ function guardarPerfil(form){
   PERFIL = {meta, obj:METAS[meta].obj, nivel:f.get('nivel'), dias:Number(f.get('dias')), min:Number(f.get('min')), lugar:f.get('lugar'),
             molestias:f.getAll('molestias'), altura:numero(f.get('altura')), edad:numero(f.get('edad')), peso:numero(f.get('peso')),
             sexo:f.get('sexo') || null, actividad:f.get('actividad') || null,
-            cuerpo:fd.hoy || fd.meta ? {hoy:fd.hoy, meta:fd.meta, peso:plc && fd.meta !== fd.hoy ? plc.peso : null} : null};
+            cuerpo:fd.hoy || fd.meta ? {hoy:fd.hoy, meta:fd.meta, peso:plc ? plc.peso : null} : null};
   store.set('atlas.perfil', PERFIL);
   if(PERFIL.peso) anotarCuerpo({peso:PERFIL.peso});
   Object.keys(SWAP).forEach(k => delete SWAP[k]); store.set('atlas.swap', SWAP);
@@ -4558,7 +4580,7 @@ const refrescarFigs = form => { const y = scrollY; $('#pf-figs').innerHTML = fig
 $('#p-perfil').addEventListener('input', e => { if(['peso', 'altura'].includes(e.target.name)) refrescarFigs(e.target.form); });
 $('#p-perfil').addEventListener('change', e => {
   const n = e.target.name;
-  if(['sexo', 'fhoy', 'fmeta'].includes(n)) refrescarFigs(e.target.form);
+  if(['sexo', 'fhoy', 'fmeta', 'dias'].includes(n)) refrescarFigs(e.target.form);
   if(n === 'meta'){ $('#pf-meta-txt').textContent = METAS[e.target.value].txt; refrescarFigs(e.target.form); }
 });
 $('#p-perfil').addEventListener('click', e => {

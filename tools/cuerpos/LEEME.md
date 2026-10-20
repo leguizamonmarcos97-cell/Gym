@@ -1,6 +1,7 @@
 # Figuras de cuerpo (img/cuerpos)
 
-Imágenes 3D de los 8 tipos de cuerpo (hombre `h_*` y mujer `m_*`) que se usan en el perfil.
+Imágenes 3D de los 8 tipos de cuerpo de hoy (`h_*`, `m_*`) y de los 5 cuerpos de meta (`h_meta_*`, `m_meta_*`) que se usan en el perfil.
+La marca de los abdominales y el pecho se pinta en `render.html` según la posición en la malla base.
 Se hacen con el modelo humano de [MakeHuman](http://www.makehumancommunity.org) (malla base, targets, piel, pelo, ojos y top deportivo: licencia CC0).
 
 1. Bajar `makehuman` (carpeta `makehuman/data`) y los assets del sistema (`makehuman_system_assets_cc0.zip`).
