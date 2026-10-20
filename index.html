@@ -613,6 +613,10 @@ body.con-descanso .foot{padding-bottom:84px}
 .demo-err{margin:8px 0 0;padding:10px 12px;border-radius:10px;border-left:4px solid var(--red);background:var(--surface);font-size:14px;line-height:1.45}
 .demo-tempo{margin:8px 2px 0;font-size:14px;line-height:1.45}
 .d3-sel{margin:0 0 8px}
+.ig{display:block;width:100%;max-width:420px;height:640px;margin:0 auto;border:0;border-radius:12px;background:#fff}
+.ig-form{display:flex;gap:8px}.ig-form input{flex:1;min-width:0;height:42px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:0 10px;font:500 15px var(--text)}
+.ig-msg{margin:6px 0 0;font-size:13px;color:var(--bad,#e5484d)}.ig-msg:empty{display:none}
+.ig-acc{margin:6px 0 0;text-align:center}
 .d3-caja .d3{position:relative;aspect-ratio:3/4;max-height:64vh;margin:0 auto;border-radius:16px;overflow:hidden;background:radial-gradient(ellipse at 50% 35%,#252a33,#0b0d10 75%);touch-action:pan-y}
 .d3-caja canvas{width:100%;height:100%;display:block;cursor:grab}
 .d3-flechas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
@@ -4273,6 +4277,22 @@ function montar3D(clave){
   const el = document.getElementById('d3'); if(!el) return;
   D3_ACTUAL = import('./3d/demo3d.js').then(m => m.crearDemo3D(el, clave)).catch(() => { el.innerHTML = '<p class="demo-err">No se pudo cargar la animación 3D. Revisá tu internet.</p>'; return null; });
 }
+/* Video de Instagram propio de cada ejercicio: se pega el link de la publicación y se muestra insertado (no se descarga nada) */
+const igCodigo = url => { const m = String(url || '').match(/instagram\.com\/(?:[\w.]+\/)?(p|reels?|tv)\/([\w-]+)/i); return m ? {tipo:m[1].toLowerCase() === 'p' ? 'p' : m[1].toLowerCase() === 'tv' ? 'tv' : 'reel', id:m[2]} : null; };
+function igHTML(clave){
+  const ig = igCodigo(store.get('atlas.ig', {})[clave]);
+  if(ig) return `<h3>Video de Instagram</h3>
+    <iframe class="ig" src="https://www.instagram.com/${ig.tipo}/${ig.id}/embed/" title="Video de Instagram del ejercicio" loading="lazy" allowfullscreen></iframe>
+    <p class="ig-acc"><button class="plain" data-ig-quitar="${clave}">Quitar video</button></p>`;
+  return `<h3>Video de Instagram</h3>
+    <div class="ig-form"><input type="url" inputmode="url" id="ig-url" placeholder="Pegá el link (Instagram → ⋯ → Copiar enlace)" aria-label="Link del video de Instagram"><button class="plain" data-ig-guardar="${clave}">Guardar</button></div>
+    <p class="ig-msg" id="ig-msg" aria-live="polite"></p>`;
+}
+function igGuardar(clave){
+  const inp = document.getElementById('ig-url'), msg = document.getElementById('ig-msg');
+  if(!igCodigo(inp && inp.value)){ if(msg) msg.textContent = 'Ese link no parece de una publicación o reel de Instagram.'; return; }
+  const m = store.get('atlas.ig', {}); m[clave] = inp.value.trim(); store.set('atlas.ig', m); renderSheet(true);
+}
 function sheetD(mov, v){
   const id3 = Object.keys(DEMO.DEMOS).find(k => DEMO.DEMOS[k] === mov), en3D = con3D(id3, v.id);
   const z = zonaMov(mov), frente = DOPT.vista === 'frente' && !!v.frente;
@@ -4297,6 +4317,7 @@ function sheetD(mov, v){
     <p class="demo-legend">En color, los músculos que más trabajan.${DOPT.guias ? ' La silueta tenue marca dónde empieza y termina; la línea punteada, el recorrido.' : ''}</p>`}
     ${en3D ? `<p class="demo-legend">En naranja, los músculos que trabajan; en rojo, lo que se sobrecarga con el error. <button class="plain" data-ir-video>Ver video real</button></p>` : ''}
     ${v.hold ? '' : `<p class="demo-tempo"><b>Ritmo:</b> ${mov.ecc.toLowerCase()} en 2–3 segundos y ${mov.con.toLowerCase()} en 1. <b>Respiración:</b> exhalá al hacer fuerza, inhalá al volver.</p>`}
+    ${igHTML(`${id3}:${v.id}`)}
     <h3>Cómo hacerlo</h3>
     <ol class="warm">${v.cues.map(c => `<li>${c}</li>`).join('')}</ol>
     <h3>Músculos que trabaja</h3>
@@ -4483,6 +4504,10 @@ document.addEventListener('click', e => {
   }
   const dop = e.target.closest('[data-dopt]');
   if(dop){ DOPT[dop.dataset.dopt] = !DOPT[dop.dataset.dopt]; renderSheet(true); return; }
+  const igg = e.target.closest('[data-ig-guardar]');
+  if(igg){ igGuardar(igg.dataset.igGuardar); return; }
+  const igq = e.target.closest('[data-ig-quitar]');
+  if(igq){ const m = store.get('atlas.ig', {}); delete m[igq.dataset.igQuitar]; store.set('atlas.ig', m); renderSheet(true); return; }
   const d3b = e.target.closest('[data-d3]');
   if(d3b){ DOPT.d3 = d3b.dataset.d3 === '1'; renderSheet(true); return; }
   const dvi = e.target.closest('[data-dvista]');
@@ -4512,6 +4537,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => {
   if(e.key === 'Escape' && sheet.classList.contains('open')){ closeSheet(); return; }
+  if(e.key === 'Enter' && e.target.id === 'ig-url'){ e.preventDefault(); const b = document.querySelector('[data-ig-guardar]'); if(b) igGuardar(b.dataset.igGuardar); return; }
   const t = e.target.closest && e.target.closest('svg [data-m], svg [data-j]');
   if(t && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); t.dispatchEvent(new MouseEvent('click', {bubbles:true})); }
 });
