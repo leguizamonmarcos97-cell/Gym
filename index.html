@@ -4410,22 +4410,26 @@ const VIDEOS = {
 };
 /* Videos cortos animados en 3D (canal de YouTube "Demic"), elegidos por el tema de cada uno; se ven con el reproductor de YouTube */
 const DEMIC = {
-  'remo:barra':['ZAKLWHgLcWs', 'Variantes del remo con barra'], 'curl:mancuernas':['MWnm0-rY9Bc', 'Una variante de curl para que crezca el bíceps'],
-  'curl:barra':['1QkgaoJ7MVk', '9 ejercicios de bíceps'], 'curl:scott':['1QkgaoJ7MVk', '9 ejercicios de bíceps'], 'curl:polea':['1QkgaoJ7MVk', '9 ejercicios de bíceps'],
-  'abdominales:crunch':['03AKW4mwXF4', 'Abdominales: inferiores, superiores y oblicuos'], 'abdominales:colgado':['03AKW4mwXF4', 'Abdominales: inferiores, superiores y oblicuos'],
-  'press:mancuernas':['cS26wPCnyy0', 'Pecho con mancuernas'], 'press:inclinado':['kKtDe7UJ94c', 'Cómo cambia el ángulo del banco el músculo que trabaja'],
-  'press:barra':['H1vBWh11LP4', 'Press de banca bien hecho'], 'press:flexiones':['vD6iXag6p9g', 'Progresión de flexiones en casa'],
-  'remo:polea':['DyLEwzAlAE4', 'Remo en polea: cómo trabajar distintas partes de la espalda'], 'remo:mancuerna':['6dDPPy9FrTk', 'Los codos deciden qué parte de la espalda trabaja'],
-  'laterales:polea':['di2dhZXg2PU', 'Hombros con polea'], 'laterales:mancuernas':['YpQb-uUU9sM', 'El error de las elevaciones laterales'],
-  'militar:mancuernas':['irBJGYZ3bJQ', '4 correcciones del press de hombros'], 'militar:barra':['irBJGYZ3bJQ', '4 correcciones del press de hombros'],
-  'curl:muneca':['E-8ht-o_DzA', 'Antebrazos más fuertes'], 'hipthrust:barra':['qvAc2285GEI', 'Hip thrust: dónde poner los pies'],
-  'triceps:mancuerna':['jv1iv12EzZA', 'Tríceps con mancuernas'], 'triceps:frances':['jv1iv12EzZA', 'Tríceps con mancuernas'],
-  'bisagra:rumano':['6fIrXNJpBBw', 'Peso muerto rumano, sentadilla o sentadilla sumo'], 'bisagra:rumano-mancuerna':['6fIrXNJpBBw', 'Peso muerto rumano, sentadilla o sentadilla sumo'], 'aductores:sumo':['6fIrXNJpBBw', 'Peso muerto rumano, sentadilla o sentadilla sumo'],
-  'jalon:jalon':['UFMvgzNnN80', 'Variantes del jalón al pecho'], 'abduccion:banda':['U_6Au4tHxUc', 'Glúteo mayor, medio y menor']
+  'remo:barra':['ZAKLWHgLcWs', 'Remo con barra'],
+  'press:inclinado':['kKtDe7UJ94c', 'Press inclinado con mancuernas: cómo cambia el ángulo del banco'],
+  'press:mancuernas':['H1vBWh11LP4', 'Press con mancuernas en banco: posición de los codos'],
+  'laterales:mancuernas':['YpQb-uUU9sM', 'Elevaciones laterales: el error y la forma correcta'],
+  'militar:mancuernas':['irBJGYZ3bJQ', 'Press de hombros con mancuernas sentado'],
+  'remo:polea':['6dDPPy9FrTk', 'Remo sentado en polea: los codos deciden qué parte de la espalda trabaja'],
+  'jalon:jalon':['UFMvgzNnN80', 'Jalón al pecho: variantes de agarre'],
+  'bisagra:rumano-mancuerna':['6fIrXNJpBBw', 'Rumano con mancuernas, sentadilla goblet y sentadilla sumo'],
+  'sentadilla:mancuerna':['6fIrXNJpBBw', 'Rumano con mancuernas, sentadilla goblet y sentadilla sumo'],
+  'aductores:sumo':['6fIrXNJpBBw', 'Rumano con mancuernas, sentadilla goblet y sentadilla sumo'],
+  'curl:mancuernas':['MWnm0-rY9Bc', 'Curl con mancuerna: error y forma correcta', 'Es curl concentrado: sentado y de a un brazo.'],
+  'curl:barra':['1QkgaoJ7MVk', '9 ejercicios de bíceps', 'Muestra varios curls; uno es con barra Z.'],
+  'curl:muneca':['E-8ht-o_DzA', 'Antebrazos con mancuernas', 'Trabaja el antebrazo con mancuernas; puede no ser igual a tu curl de muñeca.'],
+  'triceps:mancuerna':['jv1iv12EzZA', 'Tríceps con mancuernas', 'Muestra varios ejercicios; uno es la extensión sobre la cabeza. No es animación 3D.'],
+  'press:flexiones':['vD6iXag6p9g', 'Progresión de flexiones', 'Son versiones más fáciles: en la pared y de rodillas. No es animación 3D.'],
+  'hipthrust:barra':['qvAc2285GEI', 'Hip thrust: dónde poner los pies', 'Está hecho sin barra, con el peso del cuerpo; lo de los pies vale igual.']
 };
 function videoHTML(mov, v){
   const id = Object.keys(DEMO.DEMOS).find(k => DEMO.DEMOS[k] === mov), propio = VIDEOS[`${id}:${v.id}`], dm = DEMIC[`${id}:${v.id}`];
-  const demic = dm ? `<h3>Video animado 3D</h3><div class="yt-box">${ytBtn(dm[0], 0, dm[1]).replace('class="yt"', 'class="yt corto"')}</div><p class="yt-src">${esc(dm[1])} · Demic (YouTube)</p>` : '';
+  const demic = dm ? `<h3>Video animado 3D</h3><div class="yt-box">${ytBtn(dm[0], 0, dm[1]).replace('class="yt"', 'class="yt corto"')}</div><p class="yt-src">${esc(dm[1])} · Demic (YouTube)${dm[2] ? `<br><b>Ojo:</b> ${esc(dm[2])}` : ''}</p>` : '';
   const vd = propio || VIDEOS[Object.keys(VIDEOS).find(k => k.startsWith(id + ':'))];
   const mas = vid(v.nombre + ' técnica', 'Más videos en YouTube');
   if(!vd) return `${demic}<h3>Video</h3>${mas}`;
