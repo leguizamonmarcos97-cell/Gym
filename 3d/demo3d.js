@@ -36,7 +36,7 @@ async function cargar(){
 function cabezaManiqui(meta, pos, si, sw, idx){
   const cab = new Set(), pila = [meta.bones.findIndex(b => b.n === 'head')];
   while(pila.length){ const i = pila.pop(); cab.add(i); meta.bones.forEach((b, j) => { if(b.p === i) pila.push(j); }); }
-  const cx = 0, cy = 8.27, cz = .6, rx = .8, ry = .98, rz = 1.08;
+  const cx = 0, cy = 8.32, cz = .5, rx = .78, ry = 1.02, rz = .94;
   for(let v = 0; v < pos.length / 3; v++){
     let w = 0; for(let k = 0; k < 4; k++) if(cab.has(si[v * 4 + k])) w += sw[v * 4 + k] / 255;
     if(w < .01) continue;
@@ -247,6 +247,11 @@ export async function crearDemo3D(el, id, opts = {}){
     <p class="d3-ayuda">Arrastrá para girar el cuerpo.</p>`;
   const caja = el.querySelector('.d3'), cv = el.querySelector('canvas'), svg = el.querySelector('.d3-flechas');
   const D = await cargar();
+  const ANIM = E.anim ? await fetch(new URL(`anim/${E.anim}.json`, import.meta.url)).then(r => r.json()).catch(() => null) : null;
+  let contraccion = 0;
+  // El movimiento grabado se muestra un poco más lento que la grabación, y "pico" es el momento de mayor esfuerzo
+  const durAnim = ANIM ? ANIM.dur * (E.animLento || 1.5) : 1;
+  const pico = ANIM ? ANIM.cuadros.reduce((m, c, i, a) => c.contraccion > a[m].contraccion ? i : m, 0) / (ANIM.cuadros.length - 1) : 1;
   el.querySelector('.d3-cargando').remove();
   const cam0 = new THREE.PerspectiveCamera(32, 3 / 4, .1, 200);
   const R = new THREE.WebGLRenderer({canvas:cv, antialias:true, alpha:true});
@@ -362,15 +367,29 @@ export async function crearDemo3D(el, id, opts = {}){
 
   // Mezcla dos poses (t de 0 a 1) y la aplica
   let centro = null, ejeBarra = null;
-  function aplicar(A, Bp, t){
+  // Movimiento grabado (captura de movimiento): t es el momento del ciclo (0 a 1)
+  function aplicarGrabado(t){
+    const N = ANIM.cuadros.length, fr = Math.min(N - 1, Math.max(0, t * (N - 1))), i0 = Math.floor(fr), i1 = Math.min(N - 1, i0 + 1), w = fr - i0;
+    const c0 = ANIM.cuadros[i0], c1 = ANIM.cuadros[i1];
+    raiz.quaternion.set(...c0.raiz).slerp(new THREE.Quaternion(...c1.raiz), w);
+    cuerpo.updateMatrixWorld(true);
+    // Postura base del muñeco (columna, cuello y cabeza derechos) y, encima, el movimiento grabado
+    const obj = Object.assign({}, E.sinBase ? {} : POSE_BASE.dirs);
+    Object.keys(c0.dir).forEach(n => { obj[n] = girarHacia(c0.dir[n], c1.dir[n], w); });
+    Object.keys(c0.giro).forEach(n => { const q = new THREE.Quaternion(...c0.giro[n]).slerp(new THREE.Quaternion(...c1.giro[n]), w); const b0 = POSE_BASE.dirs[n] ? new THREE.Vector3(...POSE_BASE.dirs[n]).normalize() : REST[n].clone(); obj[n] = b0.applyQuaternion(q).toArray(); });
+    Object.keys(obj).filter(n => B[n]).sort((a, b) => prof[a] - prof[b]).forEach(n => apuntar(n, obj[n]));
+    return c0.contraccion + (c1.contraccion - c0.contraccion) * w;
+  }
+  function aplicar(A, Bp, t, conAnim = false){
     huesos.forEach(b => b.quaternion.identity());
     raiz.position.copy(raiz0);
-    const rot = mezcla(A.rot, Bp.rot, t);
+    if(conAnim && ANIM){ contraccion = aplicarGrabado(t); A = Bp = {}; }
+    const rot = conAnim && ANIM ? null : mezcla(A.rot, Bp.rot, t);
     if(rot) raiz.quaternion.setFromEuler(new THREE.Euler(...rot.map(x => x * Math.PI / 180), 'YXZ'));
     const pos = mezcla(A.pos, Bp.pos, t);
     if(pos) raiz.position.set(...pos);
     cuerpo.updateMatrixWorld(true);
-    const base = E.sinBase ? {} : POSE_BASE.dirs;
+    const base = E.sinBase || (conAnim && ANIM) ? {} : POSE_BASE.dirs;
     const dirs = Object.assign({}, base, A.dirs), dirsB = Object.assign({}, base, Bp.dirs);
     const dirDe = n => { const c = dirActual(n); return girarHacia(dirs[n] || c, dirsB[n] || c, t); };
     Object.keys(Object.assign({}, dirs, dirsB)).sort((a, b) => prof[a] - prof[b]).forEach(n => apuntar(n, dirDe(n)));
@@ -569,7 +588,7 @@ export async function crearDemo3D(el, id, opts = {}){
   const ro = new ResizeObserver(medir); ro.observe(caja);
 
   // Modos: forma correcta y errores
-  const modos = [{n:'Bien', A:E.A, B:E.B, musc:E.musc, txt:E.txt}].concat((E.errores || []).map(x => Object.assign({mal:true}, x, {A:x.A || E.A, B:x.B || E.B})));
+  const modos = [{n:'Bien', A:E.A, B:E.B, musc:E.musc, txt:E.txt, anim:!!ANIM}].concat((E.errores || []).map(x => Object.assign({mal:true}, x, {A:x.A || E.A, B:x.B || E.B})));
   let modo = 0, t0 = performance.now(), trazo = [];
   const bt = el.querySelector('.d3-modos');
   bt.innerHTML = modos.map((x, i) => `<button type="button" data-d3m="${i}" aria-pressed="${i === 0}" class="${x.mal ? 'mal' : 'bien'}">${x.mal ? '✗' : '✓'} ${x.n}</button>`).join('');
@@ -583,7 +602,7 @@ export async function crearDemo3D(el, id, opts = {}){
     const sello = el.querySelector('.d3-sello'); sello.textContent = M.mal ? '✗' : '✓'; sello.className = 'd3-sello ' + (M.mal ? 'mal' : 'bien');
     el.querySelector('.d3-txt').textContent = M.txt || '';
     // Recorrido del punto que se marca con la flecha (de la posición inicial a la final)
-    trazo = []; for(let s = 0; s <= 14; s++){ aplicar(M.A, M.B, s / 14); trazo.push(punto(M.flecha || E.flecha || 'wrist.R').clone()); }
+    trazo = []; for(let s = 0; s <= 14; s++){ aplicar(M.A, M.B, M.anim ? s / 14 * pico : s / 14, M.anim); trazo.push(punto(M.flecha || E.flecha || 'wrist.R').clone()); }
   }
   // Línea de alineación sobre el brazo o la pierna que se mueve (verde = bien, roja = error)
   function lineaMiembro(ww, hh, M){
@@ -615,14 +634,14 @@ export async function crearDemo3D(el, id, opts = {}){
     raf = 0; if(!visible || !document.body.contains(el)) return;
     const M = modos[modo], s = ((ahora - t0) / 1000) % ciclo;
     const t = s < tSube ? suave(s / tSube) : s < tSube + tArriba ? 1 : s < tSube + tArriba + tBaja ? 1 - suave((s - tSube - tArriba) / tBaja) : 0;
-    aplicar(M.A, M.B, t);
-    u.uPulso.value = E.isometrico ? .5 + .5 * Math.sin(ahora / 400) : t;
+    aplicar(M.A, M.B, M.anim ? ((ahora - t0) / 1000 % durAnim) / durAnim : t, M.anim);
+    u.uPulso.value = M.anim ? contraccion : E.isometrico ? .5 + .5 * Math.sin(ahora / 400) : t;
     dibujar(); dibujarFlecha();
     raf = requestAnimationFrame(cuadro);
   }
   raf = requestAnimationFrame(cuadro);
   // Para pruebas: dibuja un cuadro fijo (t de 0 a 1) de un modo
-  function fijar(t, i = modo){ if(i !== modo) elegir(i); cancelAnimationFrame(raf); raf = 0; visible = false; aplicar(modos[i].A, modos[i].B, t); u.uPulso.value = t; dibujar(); dibujarFlecha(); }
-  return {dbg:(t, i, ns) => { aplicar(modos[i].A, modos[i].B, t); return Object.fromEntries(ns.map(n => [n, punto(n).toArray().map(x => +x.toFixed(2))])); }, fijar, girar:a => { az = a; ubicarCam(); }, camara:o => { camO = o || {}; if(o && o.az != null) az = o.az; ubicarCam(); }, hueso:n => punto(n).toArray(), cam0:() => ({az:E.cam.az, el:E.cam.el || .08, dist:E.cam.dist, mira:mira.toArray()}), modos:() => modos.map(x => ({n:x.n, mal:!!x.mal, txt:x.txt || '', musc:x.musc || E.musc, malMusc:x.malMusc || {}})),
+  function fijar(t, i = modo){ if(i !== modo) elegir(i); cancelAnimationFrame(raf); raf = 0; visible = false; aplicar(modos[i].A, modos[i].B, t, modos[i].anim); u.uPulso.value = modos[i].anim ? contraccion : t; dibujar(); dibujarFlecha(); }
+  return {anim:() => ANIM ? {dur:durAnim, pico} : null, contr:() => contraccion, dbg:(t, i, ns) => { aplicar(modos[i].A, modos[i].B, t, modos[i].anim); return Object.fromEntries(ns.map(n => [n, punto(n).toArray().map(x => +x.toFixed(2))])); }, fijar, girar:a => { az = a; ubicarCam(); }, camara:o => { camO = o || {}; if(o && o.az != null) az = o.az; ubicarCam(); }, hueso:n => punto(n).toArray(), cam0:() => ({az:E.cam.az, el:E.cam.el || .08, dist:E.cam.dist, mira:mira.toArray()}), modos:() => modos.map(x => ({n:x.n, mal:!!x.mal, txt:x.txt || '', musc:x.musc || E.musc, malMusc:x.malMusc || {}})),
     destruir(){ cancelAnimationFrame(raf); io.disconnect(); ro.disconnect(); comp.dispose(); compB.dispose(); R.dispose(); g.dispose(); mat.dispose(); }};
 }

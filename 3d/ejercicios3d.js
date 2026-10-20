@@ -429,7 +429,7 @@ Object.assign(EJ3D, {
     A:{dirs:conj(SENT_A, BRAZOS_PECHO), agarre:.9}, B:{dirs:conj(SENT_B, espalda(.4, -.05), BRAZOS_PECHO), agarre:.9},
     errores:[{n:'Rodillas adentro', flecha:'lowerleg01.L', flechaDesp:0, musc:{cuadriceps:.7, gluteos:.4}, txt:'Las rodillas no se tienen que ir hacia adentro. Empujalas hacia afuera, en la línea de los pies.',
       B:{dirs:conj(sim({'upperleg01':[-.05, -.22, .97], 'lowerleg01':[.22, -.88, -.42]}), espalda(.4, -.05), BRAZOS_PECHO), agarre:.9}}]}),
-  'sentadilla:libre':cambiar('sentadilla:barra', {obj:'', barra:null,
+  'sentadilla:libre':cambiar('sentadilla:barra', {obj:'', barra:null, anim:'sentadilla_libre',
     txt:'Brazos al frente para equilibrarte. Bajá como sentándote en una silla, pecho arriba y talones apoyados.',
     A:{dirs:conj(SENT_A, sim({'upperarm01':[.15, -.1, 1], 'lowerarm01':[.1, -.05, 1]}))}, B:{dirs:conj(SENT_B, espalda(.55, -.05), sim({'upperarm01':[.15, -.1, 1], 'lowerarm01':[.1, -.05, 1]}))},
     errores:[{n:'Talones arriba', musc:{cuadriceps:.7}, malMusc:{pantorrillas:.6}, txt:'Si se levantan los talones, el peso va a la punta del pie y a la rodilla. Mantené el pie entero apoyado y llevá la cola atrás.',

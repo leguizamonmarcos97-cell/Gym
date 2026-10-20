@@ -70,7 +70,8 @@ const pg = await b.newPage({viewport:{width:540, height:960}, deviceScaleFactor:
 pg.on('pageerror', e => console.log('Error:', e.message));
 await pg.goto(`http://localhost:${srv.address().port}/v.html`); await pg.waitForFunction(() => window.ready, null, {timeout:180000});
 
-const info = await pg.evaluate(() => ({cam:D.cam0(), modos:D.modos()}));
+const info = await pg.evaluate(() => ({cam:D.cam0(), modos:D.modos(), anim:D.anim()}));
+const AN = info.anim;   // movimiento grabado (captura de movimiento) para la forma correcta, si el ejercicio lo tiene
 const {EJ3D} = await import(path.join(RAIZ, '3d/ejercicios3d.js'));
 const E = EJ3D[id], tempo = E.tempo || [1, .35, 1.8, .45], ciclo = tempo.reduce((a, x) => a + x, 0);
 const suave = t => t * t * (3 - 2 * t), mezcla = (a, b, t) => a + (b - a) * t;
@@ -89,10 +90,11 @@ const frases = t => (t || '').split(/(?<=\.)\s+/).map(x => x.trim()).filter(Bool
 // Guion
 const esc = [];
 esc.push({tipo:'intro', dur:3, modo:0});
-esc.push({tipo:'bien', dur:ciclo, modo:0, rep:'REP 1 / 2', cam:{az:c0.az, dist:1}});
-esc.push({tipo:'bien', dur:ciclo, modo:0, rep:'REP 2 / 2', cam:{az:c0.az + 1.05, dist:.95}});
+const cicloBien = AN ? AN.dur : ciclo;
+esc.push({tipo:'bien', dur:cicloBien, modo:0, rep:'REP 1 / 2', cam:{az:c0.az, dist:1}});
+esc.push({tipo:'bien', dur:cicloBien, modo:0, rep:'REP 2 / 2', cam:{az:c0.az + 1.05, dist:.95}});
 info.modos.slice(1, 3).forEach((m, i) => esc.push({tipo:'mal', dur:ciclo / .6, lento:.6, modo:i + 1, cam:{az:c0.az - .55 + i * 1.3, dist:.82}}));
-esc.push({tipo:'bien', dur:ciclo, modo:0, rep:'ASÍ SÍ', cam:{az:c0.az - .5, dist:1.05}});
+esc.push({tipo:'bien', dur:cicloBien, modo:0, rep:'ASÍ SÍ', cam:{az:c0.az - .5, dist:1.05}});
 esc.push({tipo:'cierre', dur:3.2, modo:0});
 
 const dir = fs.mkdtempSync(path.join(process.env.CUADROS || '/tmp', 'cuadros-'));
@@ -109,13 +111,13 @@ for(const [k, e] of esc.entries()){
     const u = f / Math.max(1, cuadros - 1), s = f / FPS;
     let t, cam;
     if(e.tipo === 'intro'){
-      t = .6 + .4 * Math.sin(s * 2.2);
+      t = AN ? AN.pico * (.85 + .15 * Math.sin(s * 2.2)) : .6 + .4 * Math.sin(s * 2.2);
       cam = {az:c0.az - .4 + .55 * suave(u), el:c0.el + .18 - .06 * u, dist:c0.dist * (.62 - .06 * u), mira:miras.foco};
     } else if(e.tipo === 'cierre'){
-      t = .5 + .5 * Math.sin(s * 1.6);
+      t = AN ? AN.pico * (.5 + .5 * Math.sin(s * 1.6)) : .5 + .5 * Math.sin(s * 1.6);
       cam = {az:c0.az - .5 - .25 * u, el:c0.el + .05, dist:c0.dist * 1.1, mira:c0.mira};
     } else {
-      t = fase(s * (e.lento || 1));
+      t = AN && e.modo === 0 ? (s % AN.dur) / AN.dur : fase(s * (e.lento || 1));
       const meta = {az:e.cam.az, el:c0.el + (e.tipo === 'mal' ? .06 : 0), dist:c0.dist * e.cam.dist, mira:c0.mira};
       const a = suave(Math.min(1, s / .9));   // la cámara llega al nuevo ángulo en menos de un segundo
       cam = {az:mezcla(desde.az, meta.az, a) + .08 * Math.sin(s * .7), el:mezcla(desde.el, meta.el, a), dist:mezcla(desde.dist, meta.dist, a), mira:desde.mira.map((x, i) => mezcla(x, meta.mira[i], a))};
@@ -126,6 +128,7 @@ for(const [k, e] of esc.entries()){
     const negroFin = k === esc.length - 1 ? Math.max(0, 1 - fin / .5) : 0;
     await pg.evaluate(({t, m, cam, e, M, s, u, barras, tip, titulo, equipo, principal, negro, pulso, cierre}) => {
       D.camara(cam); D.fijar(t, m);
+      if(m === 0 && D.anim()) pulso = D.contr();
       const $ = id => document.getElementById(id);
       const intro = e.tipo === 'intro', fin = e.tipo === 'cierre';
       $('intro').style.opacity = intro ? Math.max(0, Math.min(1, (1.9 - s) / .5)) : 0;
