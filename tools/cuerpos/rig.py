@@ -7,8 +7,8 @@ sexo=sys.argv[1] if len(sys.argv)>1 else 'h'
 # Físico marcado (como en las animaciones de anatomía): mucho músculo y poca grasa
 LR=lambda p,v: {f'armslegs/l-{p}-muscle-incr':v, f'armslegs/r-{p}-muscle-incr':v}
 MUS=float(sys.argv[2]) if len(sys.argv)>2 else 1.0
-V=morph(1 if sexo=='h' else 0, 1.12, .36, dict({'stomach/stomach-tone-incr':1.0*MUS, 'torso/torso-vshape-incr':1.0*MUS, 'torso/torso-muscle-pectoral-incr':1.0*MUS, 'torso/torso-muscle-dorsi-incr':.9*MUS,
-  'armslegs/l-upperarm-shoulder-muscle-incr':1.0*MUS, 'armslegs/r-upperarm-shoulder-muscle-incr':1.0*MUS}, **LR('upperarm', 1.0*MUS), **LR('lowerarm', .8*MUS), **LR('upperleg', .9*MUS), **LR('lowerleg', .8*MUS)))
+V=morph(1 if sexo=='h' else 0, 1.25, .3, dict({'stomach/stomach-tone-incr':1.0*MUS, 'torso/torso-vshape-incr':1.3*MUS, 'torso/torso-muscle-pectoral-incr':1.3*MUS, 'torso/torso-muscle-dorsi-incr':1.2*MUS,
+  'armslegs/l-upperarm-shoulder-muscle-incr':1.4*MUS, 'armslegs/r-upperarm-shoulder-muscle-incr':1.4*MUS}, **LR('upperarm', 1.3*MUS), **LR('lowerarm', 1.0*MUS), **LR('upperleg', 1.2*MUS), **LR('lowerleg', 1.1*MUS)))
 used=sorted(set(a for f in F for a,b in f)); ix={v:i for i,v in enumerate(used)}
 P=V[used]; B0=V0[used]
 tris=[]
@@ -87,7 +87,7 @@ FD[z('trapecio')]=np.c_[sx*.85, np.full(len(used),.5), np.zeros(len(used))][z('t
 FD[z('gluteos')]=np.c_[sx*.75, np.full(len(used),-.66), np.zeros(len(used))][z('gluteos')]
 for n,e in (('hombros',brazo),('biceps',brazo),('triceps',brazo),('antebrazos',ante),('cuadriceps',muslo),('isquios',muslo),('aductores',muslo),('pantorrillas',pierna)): FD[z(n)]=e[z(n)]
 # Esculpido: cada músculo se infla hacia afuera (más en el centro, nada en el borde), así quedan vientres musculares y surcos entre ellos
-INFLA={'pecho':.16,'abdomen':.06,'oblicuos':.07,'dorsales':.12,'trapecio':.12,'hombros':.17,'biceps':.15,'triceps':.13,'antebrazos':.07,'gluteos':.12,'cuadriceps':.16,'isquios':.1,'aductores':.07,'pantorrillas':.13,'lumbar':.06}
+INFLA={'pecho':.24,'abdomen':.09,'oblicuos':.1,'dorsales':.2,'trapecio':.18,'hombros':.26,'biceps':.22,'triceps':.2,'antebrazos':.1,'gluteos':.16,'cuadriceps':.24,'isquios':.15,'aductores':.1,'pantorrillas':.2,'lumbar':.1}
 _vec=[set() for _ in range(len(used))]
 for a_,b_,c_ in tris.astype(int): _vec[a_].update((b_,c_)); _vec[b_].update((a_,c_)); _vec[c_].update((a_,b_))
 import heapq
@@ -106,12 +106,15 @@ Np0=np.zeros_like(P); tp0=P[tris.astype(int)]; fp0=np.cross(tp0[:,1]-tp0[:,0],tp
 for k in range(3): np.add.at(Np0,tris[:,k].astype(int),fp0)
 Np0/=np.linalg.norm(Np0,axis=1,keepdims=True)+1e-9
 amt=np.array([INFLA.get(ZON[m],0) for m in M])
-perfil=np.clip(dist/.55,0,1); perfil=perfil*perfil*(3-2*perfil)
-P=P+Np0*(amt*perfil*MUS)[:,None]
+perfil=np.sin(np.clip(dist/.5,0,1)*np.pi/2)   # vientre redondeado
+desp=Np0*(amt*perfil*MUS)[:,None]
+_vv=[np.array(sorted(x)) for x in _vec]
+for _ in range(3): desp=np.array([(desp[v]*2+desp[_vv[v]].mean(0))/3 for v in range(len(used))])   # sin bultos sueltos
+P=P+desp
 # Abdominales en cuadritos: surcos horizontales y la línea del medio (en la pose base)
 abz=(M==ZON.index('abdomen'))
 surco=np.exp(-(ax/.06)**2)+sum(np.exp(-((y-yy)/.07)**2) for yy in (2.25,2.78,3.22))*(ax<.7)
-P=P-Np0*(.07*np.clip(surco,0,1)*abz*MUS)[:,None]
+P=P-Np0*(.11*np.clip(surco,0,1)*abz*MUS)[:,None]
 # Cavidad: cuánto se hunde cada punto respecto de sus vecinos (surcos entre músculos), a escala de músculo
 vec=[set() for _ in range(len(used))]
 for a,b,c in tris.astype(int): vec[a].update((b,c)); vec[b].update((a,c)); vec[c].update((a,b))
