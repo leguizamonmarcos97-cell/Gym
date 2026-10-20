@@ -228,6 +228,14 @@ function gimnasio(S, y0, rad = 36){
   discos.position.set(rad * .4, y0, -rad * .5); discos.rotation.y = -.6; S.add(discos);
   [rack, discos].forEach(g => g.traverse(m => { if(m.isMesh){ m.castShadow = true; m.receiveShadow = true; } }));
 }
+// Interpola dos direcciones girando a velocidad pareja (no en línea recta)
+const _qa = new THREE.Quaternion(), _qi = new THREE.Quaternion();
+function girarHacia(a, b, t){
+  const va = new THREE.Vector3(...a).normalize(), vb = new THREE.Vector3(...b).normalize();
+  if(va.dot(vb) < -.999) return lerp3(a, b, t);
+  _qa.setFromUnitVectors(va, vb); _qi.identity().slerp(_qa, t);
+  return va.applyQuaternion(_qi).toArray();
+}
 const lerp3 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 const suave = t => t * t * (3 - 2 * t);
 
@@ -364,7 +372,7 @@ export async function crearDemo3D(el, id, opts = {}){
     cuerpo.updateMatrixWorld(true);
     const base = E.sinBase ? {} : POSE_BASE.dirs;
     const dirs = Object.assign({}, base, A.dirs), dirsB = Object.assign({}, base, Bp.dirs);
-    const dirDe = n => { const c = dirActual(n); return lerp3(dirs[n] || c, dirsB[n] || c, t); };
+    const dirDe = n => { const c = dirActual(n); return girarHacia(dirs[n] || c, dirsB[n] || c, t); };
     Object.keys(Object.assign({}, dirs, dirsB)).sort((a, b) => prof[a] - prof[b]).forEach(n => apuntar(n, dirDe(n)));
     const gi = Object.assign({}, A.giros), giB = Object.assign({}, Bp.giros);
     const giro = n => (gi[n] || 0) + ((giB[n] || 0) - (gi[n] || 0)) * t;
@@ -399,17 +407,20 @@ export async function crearDemo3D(el, id, opts = {}){
       ['wrist.L', 'wrist.R', 'foot.L', 'foot.R'].forEach(n => { if(dirs[n] || dirsB[n]) apuntar(n, dirDe(n)); });
       Object.keys(Object.assign({}, gi, giB)).filter(n => /^(lowerarm|wrist|foot)/.test(n)).forEach(n => girar(n, giro(n)));
     }
+    agarrar(A, Bp, t);
+    pisar();
     const ag = mezcla(A.agarre, Bp.agarre, t) || 0;
-    if(ag) ['L', 'R'].forEach(l => { for(let f = 2; f <= 5; f++) for(let s = 1; s <= 3; s++) doblar(`finger${f}-${s}.${l}`, [0, 0, l === 'L' ? -1 : 1], ag * (s === 1 ? .9 : 1.2));
+    if(ag) ['L', 'R'].filter(l => !agarradas.has(l)).forEach(l => { for(let f = 2; f <= 5; f++) for(let s = 1; s <= 3; s++) doblar(`finger${f}-${s}.${l}`, [0, 0, l === 'L' ? -1 : 1], ag * (s === 1 ? .9 : 1.2));
       doblar(`finger1-2.${l}`, [0, 1, 0], (l === 'L' ? 1 : -1) * ag * .5); doblar(`finger1-3.${l}`, [0, 0, l === 'L' ? -1 : 1], ag * .6); });
     cuerpo.updateMatrixWorld(true);
-    // Elementos en las manos
-    if(tipoObj === 'mancuernas') ['L', 'R'].forEach((l, i) => { const h = mano(l); objs[i].position.copy(h.p); objs[i].quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), h.eje); });
+    // Elementos en las manos (las mancuernas ya quedaron en la palma al agarrar)
+    if(tipoObj === 'mancuernas') ['L', 'R'].forEach((l, i) => { objs[i].position.copy(enMano[l].c); objs[i].quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), enMano[l].eje); });
     if(tipoObj === 'mancuerna' && E.lado === 'ambas'){ const a = mano('L'), b = mano('R'); objs[0].position.copy(a.p.add(b.p).multiplyScalar(.5)); objs[0].quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0)); }
-    else if(tipoObj === 'mancuerna'){ const h = mano(E.lado || 'R'); objs[0].position.copy(h.p); objs[0].quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), h.eje); }
+    else if(tipoObj === 'mancuerna'){ const h = enMano[E.lado || 'R']; objs[0].position.copy(h.c); objs[0].quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), h.eje); }
     if(['barra', 'barraZ', 'barraCorta', 'barraPolea', 'barraJalon', 'manija', 'soga'].includes(tipoObj)){
-      if(E.lado){ const h = mano(E.lado); centro = h.p; ejeBarra = h.eje; }
-      else if(!centro || !E.barra && !(A.manos && A.manos.L && A.manos.R)){ const a = mano('L'), b = mano('R'); centro = a.p.clone().add(b.p).multiplyScalar(.5); ejeBarra = a.p.clone().sub(b.p).normalize(); }
+      if(E.lado && enMano[E.lado]){ const h = enMano[E.lado]; centro = h.c; ejeBarra = h.eje; }
+      else if(E.lado){ const h = mano(E.lado); centro = h.p; ejeBarra = h.eje; }
+      else if(!centro){ const a = mano('L'), b = mano('R'); centro = a.p.clone().add(b.p).multiplyScalar(.5); ejeBarra = a.p.clone().sub(b.p).normalize(); }
       objs[0].position.copy(centro); objs[0].quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), ejeBarra);
     }
     // Partes de máquina que siguen al cuerpo (rodillos en los tobillos, plataforma en los pies…) y cables de polea
@@ -424,6 +435,122 @@ export async function crearDemo3D(el, id, opts = {}){
     });
   }
   const punto = n => pos3(n);
+
+  // ---------- Agarre: la palma se apoya en el mango y los dedos lo rodean ----------
+  const LARGO_H = Object.fromEntries(meta.bones.map(b => [b.n, Math.hypot(b.t[0] - b.h[0], b.t[1] - b.h[1], b.t[2] - b.h[2])]));
+  const R_MANGO = {mancuernas:.13, mancuerna:.13, manija:.12, soga:.11};
+  const qW = n => B[n].getWorldQuaternion(new THREE.Quaternion());
+  // Marco de la mano: K = línea de nudillos (meñique→índice), F = hacia los dedos, N = hacia el lado de la palma
+  let ladoPalma = {L:1, R:1};
+  function marco(l){
+    const w = pos3('wrist.' + l), a = pos3('finger2-1.' + l), b = pos3('finger5-1.' + l), m = pos3('finger3-1.' + l);
+    const K = a.clone().sub(b).normalize(), F = m.clone().sub(w).normalize();
+    const N = F.clone().cross(K).normalize().multiplyScalar(ladoPalma[l]);
+    return {K, F, N, nud:a.clone().add(b).multiplyScalar(.5), w};
+  }
+  // Punta de un hueso (el comienzo del siguiente, o su largo en su dirección actual)
+  const punta = n => pos3(n).addScaledVector(REST[n].clone().applyQuaternion(qW(n)), LARGO_H[n]);
+  // Rota un hueso alrededor de un eje del mundo que pasa por su base
+  function rotarMundo(n, eje, ang){
+    const b = B[n], qp = b.parent.getWorldQuaternion(new THREE.Quaternion());
+    const qn = new THREE.Quaternion().setFromAxisAngle(eje, ang).multiply(qW(n));
+    b.quaternion.copy(qp.invert().multiply(qn)); b.updateMatrixWorld(true);
+  }
+  const distEje = (p, C, A) => { const d = p.clone().sub(C); return d.sub(A.clone().multiplyScalar(d.dot(A))).length(); };
+  // Cada falange gira hasta que su punta toca el mango (cilindro de radio r alrededor de la recta C + s·A)
+  function envolver(l, C, A, r){
+    const toque = r + .085;
+    for(let f = 1; f <= 5; f++) for(const s of f === 1 ? [2, 3] : [1, 2, 3]){
+      const n = `finger${f}-${s}.${l}`; if(!B[n]) continue;
+      const d0 = distEje(punta(n), C, A); if(d0 <= toque) continue;
+      // sentido de giro: el que acerca la punta al mango
+      rotarMundo(n, A, .05); const dmas = distEje(punta(n), C, A); rotarMundo(n, A, -.1); const dmenos = distEje(punta(n), C, A); rotarMundo(n, A, .05);
+      const sg = dmas < dmenos ? 1 : -1, max = f === 1 ? .9 : 1.65;
+      let mejor = 0, dm = d0, prev = 0;
+      for(let k = 1; k <= 24; k++){
+        const ang = max * k / 24; rotarMundo(n, A, sg * (ang - prev)); prev = ang;
+        const d = distEje(punta(n), C, A);
+        if(d < dm){ dm = d; mejor = ang; }
+        if(d <= toque){ mejor = ang; break; }
+      }
+      rotarMundo(n, A, sg * (mejor - prev));
+    }
+  }
+  // Gira la mano para que los nudillos queden paralelos al mango y la palma mirando hacia él, y la acerca
+  function apoyarEn(l, C, A, r, polo){
+    for(let it = 0; it < 3; it++){
+      let {K, N, nud} = marco(l);
+      const A2 = K.dot(A) >= 0 ? A.clone() : A.clone().negate();
+      const Q = C.clone().addScaledVector(A, nud.clone().sub(C).dot(A));
+      let Nd = Q.clone().sub(nud); Nd.sub(A2.clone().multiplyScalar(Nd.dot(A2)));
+      if(Nd.lengthSq() < 1e-6) Nd = N.clone(); Nd.normalize();
+      if(Nd.dot(N) < -.2 && it === 0){ /* el mango está del lado del dorso: igual se gira la palma hacia él */ }
+      const m1 = new THREE.Matrix4().makeBasis(K, N, K.clone().cross(N)), m2 = new THREE.Matrix4().makeBasis(A2, Nd, A2.clone().cross(Nd));
+      const q = new THREE.Quaternion().setFromRotationMatrix(m2.multiply(m1.transpose()));
+      const b = B['wrist.' + l], qp = b.parent.getWorldQuaternion(new THREE.Quaternion());
+      b.quaternion.copy(qp.invert().multiply(q.multiply(qW('wrist.' + l)))); b.updateMatrixWorld(true);
+      ({nud} = marco(l));
+      const objetivo = Q.clone().addScaledVector(Nd, -(r + .19)), mover = objetivo.sub(nud);
+      if(mover.length() < .02) break;
+      const sh = pos3('upperarm01.' + l), el = pos3('lowerarm01.' + l), wr = pos3('wrist.' + l);
+      const u = wr.clone().sub(sh).normalize(), pol = polo || el.clone().sub(sh).sub(u.clone().multiplyScalar(el.clone().sub(sh).dot(u))).normalize();
+      dosTramos('upperarm01.' + l, 'lowerarm01.' + l, wr.add(mover), pol);
+    }
+  }
+  // Calibración: de qué lado queda la palma (hacia donde se cierran los dedos)
+  cuerpo.updateMatrixWorld(true);
+  ['L', 'R'].forEach(l => {
+    const n = 'finger3-2.' + l, p0 = punta(n), N = marco(l).N;
+    doblar(n, [0, 0, l === 'L' ? -1 : 1], .6); const d = punta(n).sub(p0); B[n].quaternion.identity(); B[n].updateMatrixWorld(true);
+    ladoPalma[l] = d.dot(N) >= 0 ? 1 : -1;
+  });
+  const agarradas = new Set(), enMano = {};
+  function agarrar(A, Bp, t){
+    agarradas.clear(); delete enMano.L; delete enMano.R;
+    cuerpo.updateMatrixWorld(true);
+    const libres = ['mancuernas', 'mancuerna', 'manija', 'soga'].includes(tipoObj) && !(tipoObj === 'mancuerna' && E.lado === 'ambas') && !((tipoObj === 'manija' || tipoObj === 'soga') && !E.lado);
+    if(libres){
+      // Mango libre: se ubica en la palma, paralelo a los nudillos, y los dedos lo rodean
+      const r = R_MANGO[tipoObj], lados = tipoObj === 'mancuernas' ? ['L', 'R'] : [E.lado || 'R'];
+      lados.forEach(l => {
+        const {K, N, F, nud} = marco(l), c = nud.clone().addScaledVector(N, r + .19).addScaledVector(F, -.06);
+        envolver(l, c, K, r); agarradas.add(l); enMano[l] = {c, eje:K};
+      });
+      return;
+    }
+    // Barra con las dos manos: las manos se apoyan en la barra y los dedos la rodean
+    const deBarra = ['barra', 'barraZ', 'barraCorta', 'barraPolea', 'barraJalon', 'soga', 'manija'].includes(tipoObj);
+    if(deBarra && !centro){
+      // Sin puntos fijos: la barra pasa por las dos palmas
+      const r = .1, pm = ['L', 'R'].map(l => { const {N, F, nud} = marco(l); return nud.clone().addScaledVector(N, r + .19).addScaledVector(F, -.04); });
+      centro = pm[0].clone().add(pm[1]).multiplyScalar(.5); ejeBarra = pm[0].clone().sub(pm[1]).normalize();
+      ['L', 'R'].forEach(l => { envolver(l, centro, ejeBarra, r); agarradas.add(l); });
+      return;
+    }
+    if(deBarra && centro && ejeBarra){
+      const r = tipoObj === 'soga' ? .11 : .1;
+      ['L', 'R'].forEach(l => { apoyarEn(l, centro, ejeBarra.clone().normalize(), r); envolver(l, centro, ejeBarra.clone().normalize(), r); agarradas.add(l); });
+    }
+  }
+  // ---------- Pies: apoyados en el piso (sin flotar ni hundirse) ----------
+  const SIN_PISO = !!E.sinPiso;
+  const restP = Object.fromEntries(['L', 'R'].map(l => { const k = cab['foot.' + l]; return [l, {talon:new THREE.Vector3(0, minY + .06 - k.y, -.38), bola:cab['toe1-1.' + l].clone().sub(k).add(new THREE.Vector3(0, minY + .1 - cab['toe1-1.' + l].y, 0))}]; }));
+  function pisar(){
+    if(SIN_PISO) return;
+    cuerpo.updateMatrixWorld(true);
+    ['L', 'R'].forEach(l => {
+      const k = pos3('foot.' + l), q = qW('foot.' + l);
+      const talon = k.clone().add(restP[l].talon.clone().applyQuaternion(q)), bola = k.clone().add(restP[l].bola.clone().applyQuaternion(q));
+      const bajo = Math.min(talon.y, bola.y) - minY;
+      if(bajo > .8 || bajo < -.8 || Math.abs(bajo) < .015) return;   // lejos del piso a propósito (plataforma, colgado) o ya apoyado
+      const sh = pos3('upperleg01.' + l), kn = pos3('lowerleg01.' + l), u = k.clone().sub(sh).normalize();
+      const pol = kn.clone().sub(sh).sub(u.clone().multiplyScalar(kn.clone().sub(sh).dot(u))).normalize();
+      const qf = qW('foot.' + l);
+      dosTramos('upperleg01.' + l, 'lowerleg01.' + l, k.clone().add(new THREE.Vector3(0, -bajo, 0)), pol.lengthSq() > .1 ? pol : new THREE.Vector3(0, 0, 1));
+      // el pie mantiene la orientación que tenía
+      const b = B['foot.' + l], qp = b.parent.getWorldQuaternion(new THREE.Quaternion()); b.quaternion.copy(qp.invert().multiply(qf)); b.updateMatrixWorld(true);
+    });
+  }
 
   // Cámara: se gira arrastrando
   const cam = cam0;
