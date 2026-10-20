@@ -86,6 +86,32 @@ FD[z('dorsales')]=np.c_[sx*.6, np.full(len(used),.8), np.zeros(len(used))][z('do
 FD[z('trapecio')]=np.c_[sx*.85, np.full(len(used),.5), np.zeros(len(used))][z('trapecio')]
 FD[z('gluteos')]=np.c_[sx*.75, np.full(len(used),-.66), np.zeros(len(used))][z('gluteos')]
 for n,e in (('hombros',brazo),('biceps',brazo),('triceps',brazo),('antebrazos',ante),('cuadriceps',muslo),('isquios',muslo),('aductores',muslo),('pantorrillas',pierna)): FD[z(n)]=e[z(n)]
+# Esculpido: cada músculo se infla hacia afuera (más en el centro, nada en el borde), así quedan vientres musculares y surcos entre ellos
+INFLA={'pecho':.16,'abdomen':.06,'oblicuos':.07,'dorsales':.12,'trapecio':.12,'hombros':.17,'biceps':.15,'triceps':.13,'antebrazos':.07,'gluteos':.12,'cuadriceps':.16,'isquios':.1,'aductores':.07,'pantorrillas':.13,'lumbar':.06}
+_vec=[set() for _ in range(len(used))]
+for a_,b_,c_ in tris.astype(int): _vec[a_].update((b_,c_)); _vec[b_].update((a_,c_)); _vec[c_].update((a_,b_))
+import heapq
+dist=np.full(len(used),9.0); hp=[]
+for v in range(len(used)):
+    if any(M[w]!=M[v] for w in _vec[v]): dist[v]=0; hp.append((0.0,v))
+heapq.heapify(hp)
+while hp:
+    d,v=heapq.heappop(hp)
+    if d>dist[v]: continue
+    for w in _vec[v]:
+        if M[w]!=M[v]: continue
+        nd=d+np.linalg.norm(B0[v]-B0[w])
+        if nd<dist[w] and nd<1.2: dist[w]=nd; heapq.heappush(hp,(nd,w))
+Np0=np.zeros_like(P); tp0=P[tris.astype(int)]; fp0=np.cross(tp0[:,1]-tp0[:,0],tp0[:,2]-tp0[:,0])
+for k in range(3): np.add.at(Np0,tris[:,k].astype(int),fp0)
+Np0/=np.linalg.norm(Np0,axis=1,keepdims=True)+1e-9
+amt=np.array([INFLA.get(ZON[m],0) for m in M])
+perfil=np.clip(dist/.55,0,1); perfil=perfil*perfil*(3-2*perfil)
+P=P+Np0*(amt*perfil*MUS)[:,None]
+# Abdominales en cuadritos: surcos horizontales y la línea del medio (en la pose base)
+abz=(M==ZON.index('abdomen'))
+surco=np.exp(-(ax/.06)**2)+sum(np.exp(-((y-yy)/.07)**2) for yy in (2.25,2.78,3.22))*(ax<.7)
+P=P-Np0*(.07*np.clip(surco,0,1)*abz*MUS)[:,None]
 # Cavidad: cuánto se hunde cada punto respecto de sus vecinos (surcos entre músculos), a escala de músculo
 vec=[set() for _ in range(len(used))]
 for a,b,c in tris.astype(int): vec[a].update((b,c)); vec[b].update((a,c)); vec[c].update((a,b))
