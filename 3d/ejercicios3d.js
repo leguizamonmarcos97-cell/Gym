@@ -20,6 +20,8 @@ const PIES_SENTADO = (z = 4.3, a = 1.5) => ({L:[a, TOBILLO, z], R:[-a, TOBILLO, 
 const ASIENTO = (z = 0, y = -3.7) => [{t:'caja', s:[3.4, .7, 3.4], p:[0, y, z], m:'pad'}, {t:'caja', s:[1, y - PISO - .35, 1], p:[0, (y + PISO) / 2, z], m:'metal'}];
 export const POSE_BASE = {dirs:sim({'upperarm01':[.13, -1, .02], 'lowerarm01':[.09, -1, .08]})};
 const SUPINAR = {'lowerarm01.L':-1.2, 'lowerarm01.R':1.2};
+// Barra sobre la espalda: palmas hacia adelante y dedos por encima de la barra
+const GIRO_BARRA = {'lowerarm01.L':1.6, 'lowerarm01.R':-1.6}; const MANOS_BARRA = sim({wrist:[0, .95, -.3]});
 
 // Acostado boca arriba en banco plano (cadera en z = 1,5; cabeza hacia -z)
 const ACOSTADO = {rot:SUPINO, pos:[0, -2.9, 1.5], pies:{L:[2.2, TOBILLO, 5.6], R:[-2.2, TOBILLO, 5.6]}, poloPies:[0, 1, .3], dirs:sim({foot:[0, -.3, 1]})};
@@ -49,18 +51,18 @@ export const EJ3D = {
       B:{dirs:conj(sim({'upperarm01':[.12, -.82, .55], 'lowerarm01':[.03, .7, .7]}), espalda(-.3)), giros:SUPINAR, agarre:.9}}]
   },
   'sentadilla:barra':{
-    obj:'barra', barra:{hueso:'spine01', off:[0, 1.05, -.55], ancho:2.7, polo:[0, -1, -.6]}, cam:{az:.95, y:-.5, dist:36, el:.08}, tempo:[1.3, .3, 2, .5], flecha:'root', flechaDesp:-60,
+    obj:'barra', barra:{hueso:'spine01', off:[0, 1.45, -.75], ancho:2.9, polo:[0, -1, -.6]}, cam:{az:.95, y:-.5, dist:36, el:.08}, tempo:[1.3, .3, 2, .5], flecha:'root', flechaDesp:-60,
     musc:{cuadriceps:1, gluteos:1, aductores:.6, isquios:.35, lumbar:.3},
     txt:'Pecho arriba, espalda firme y rodillas en la línea de los pies. Bajá hasta que el muslo quede paralelo al piso.',
-    A:{dirs:sim({'upperleg01':[.12, -1, .02], 'lowerleg01':[.06, -1, -.02]}), agarre:.9},
-    B:{dirs:conj(sim({'upperleg01':[.28, -.22, .93], 'lowerleg01':[.1, -.9, -.42]}), espalda(.62, -.05)), agarre:.9},
+    A:{dirs:conj(sim({'upperleg01':[.12, -1, .02], 'lowerleg01':[.06, -1, -.02]}), MANOS_BARRA), giros:GIRO_BARRA, agarre:1},
+    B:{dirs:conj(sim({'upperleg01':[.28, -.22, .93], 'lowerleg01':[.1, -.9, -.42]}), espalda(.62, -.05), MANOS_BARRA), giros:GIRO_BARRA, agarre:1},
     errores:[
       {n:'Rodillas adentro', flecha:'lowerleg01.L', flechaDesp:0, musc:{cuadriceps:.7, gluteos:.4},
        txt:'Las rodillas se van hacia adentro: carga la rodilla de costado. Empujalas hacia afuera, en la línea de las puntas de los pies.',
-       B:{dirs:conj(sim({'upperleg01':[-.05, -.22, .97], 'lowerleg01':[.22, -.88, -.42]}), espalda(.62, -.05)), agarre:.9}},
+       B:{dirs:conj(sim({'upperleg01':[-.05, -.22, .97], 'lowerleg01':[.22, -.88, -.42]}), espalda(.62, -.05), MANOS_BARRA), giros:GIRO_BARRA, agarre:1}},
       {n:'Espalda redondeada', musc:{cuadriceps:.6, gluteos:.5}, malMusc:{lumbar:1},
        txt:'Si la espalda se redondea, la columna lumbar carga el peso. Mantené el pecho arriba y bajá solo hasta donde puedas con la espalda firme.',
-       B:{dirs:conj(sim({'upperleg01':[.28, -.22, .93], 'lowerleg01':[.1, -.9, -.42]}), {spine05:[0, .8, .6], spine04:[0, .6, .8], spine03:[0, .45, .89], spine02:[0, .38, .92], spine01:[0, .32, .95], neck01:[0, .5, .87]}), agarre:.9}}
+       B:{dirs:conj(sim({'upperleg01':[.28, -.22, .93], 'lowerleg01':[.1, -.9, -.42]}), {spine05:[0, .8, .6], spine04:[0, .6, .8], spine03:[0, .45, .89], spine02:[0, .38, .92], spine01:[0, .32, .95], neck01:[0, .5, .87]}, MANOS_BARRA), giros:GIRO_BARRA, agarre:1}}
     ]
   },
   'press:barra':{
@@ -416,3 +418,208 @@ export const EJ3D = {
       B:{pos:[0, -2.7, -1.2], pies:PIES_SENTADO(3.8, 1.2), poloPies:[0, .3, 1], dirs:conj(espalda(.45), sim({'upperarm01':[.15, -.85, .5], 'lowerarm01':[-.05, .35, .94], wrist:[0, .55, .83]})), giros:SUPINAR, agarre:.9}}]
   }
 };
+
+// Otras variantes de los mismos movimientos (algunas reutilizan una de arriba con otro elemento o aparato)
+const X = EJ3D, cambiar = (k, extra) => Object.assign({}, X[k], extra);
+const BRAZOS_PECHO = sim({'upperarm01':[.32, -.82, .45], 'lowerarm01':[-.42, .45, .8]});
+const SENT_A = sim({'upperleg01':[.12, -1, .02], 'lowerleg01':[.06, -1, -.02]}), SENT_B = sim({'upperleg01':[.28, -.22, .93], 'lowerleg01':[.1, -.9, -.42]});
+Object.assign(EJ3D, {
+  'sentadilla:mancuerna':cambiar('sentadilla:barra', {obj:'mancuerna', lado:'ambas', barra:null, cam:{az:.95, y:-.5, dist:36, el:.08},
+    txt:'Mancuerna pegada al pecho, codos hacia abajo. Bajá entre las rodillas con el pecho arriba hasta que los muslos queden paralelos.',
+    A:{dirs:conj(SENT_A, BRAZOS_PECHO), agarre:.9}, B:{dirs:conj(SENT_B, espalda(.4, -.05), BRAZOS_PECHO), agarre:.9},
+    errores:[{n:'Rodillas adentro', flecha:'lowerleg01.L', flechaDesp:0, musc:{cuadriceps:.7, gluteos:.4}, txt:'Las rodillas no se tienen que ir hacia adentro. Empujalas hacia afuera, en la línea de los pies.',
+      B:{dirs:conj(sim({'upperleg01':[-.05, -.22, .97], 'lowerleg01':[.22, -.88, -.42]}), espalda(.4, -.05), BRAZOS_PECHO), agarre:.9}}]}),
+  'sentadilla:libre':cambiar('sentadilla:barra', {obj:'', barra:null,
+    txt:'Brazos al frente para equilibrarte. Bajá como sentándote en una silla, pecho arriba y talones apoyados.',
+    A:{dirs:conj(SENT_A, sim({'upperarm01':[.15, -.1, 1], 'lowerarm01':[.1, -.05, 1]}))}, B:{dirs:conj(SENT_B, espalda(.55, -.05), sim({'upperarm01':[.15, -.1, 1], 'lowerarm01':[.1, -.05, 1]}))},
+    errores:[{n:'Talones arriba', musc:{cuadriceps:.7}, malMusc:{pantorrillas:.6}, txt:'Si se levantan los talones, el peso va a la punta del pie y a la rodilla. Mantené el pie entero apoyado y llevá la cola atrás.',
+      B:{dirs:conj(sim({'upperleg01':[.25, -.35, .9], 'lowerleg01':[.08, -.75, -.65], foot:[0, -.75, .65]}), espalda(.35, -.05), sim({'upperarm01':[.15, -.1, 1], 'lowerarm01':[.1, -.05, 1]}))}}]}),
+  'sentadilla:hack':cambiar('sentadilla:barra', {obj:'', barra:null, props:[{t:'caja', s:[3.6, 10, .6], p:[0, 0, -2.4], rot:[-18, 0, 0], m:'pad'}, {t:'caja', s:[5, .4, 3.4], p:[0, PISO + .2, 1.6], rot:[-10, 0, 0], m:'metal'}],
+    txt:'Espalda apoyada en el respaldo y pies un poco adelante. Bajá hasta que los muslos queden paralelos y empujá con todo el pie.',
+    A:{dirs:conj(SENT_A, espalda(-.2), sim({'upperarm01':[.55, -.55, .6], 'lowerarm01':[-.25, .85, .3]}))}, B:{dirs:conj(SENT_B, espalda(.05), sim({'upperarm01':[.55, -.55, .6], 'lowerarm01':[-.25, .85, .3]}))}, errores:[]}),
+  'bisagra:rumano-mancuerna':cambiar('bisagra:rumano', {obj:'mancuernas'}),
+  'bisagra:piso':cambiar('bisagra:rumano', {
+    txt:'Barra pegada a las canillas, espalda recta y pecho arriba. Empujá el piso con las piernas y terminá parado apretando la cola.',
+    musc:{gluteos:1, isquios:.8, cuadriceps:.6, lumbar:.6, trapecio:.4},
+    A:{dirs:conj(inclinado(.48, .88), sim({'upperleg01':[.14, -.55, .82], 'lowerleg01':[.06, -.95, -.3], 'upperarm01':[.15, -1, .05], 'lowerarm01':[.06, -1, 0]})), agarre:.9}}),
+  'bisagra:hiper':{
+    obj:'', props:[{t:'caja', s:[3.2, .8, 2.4], p:[0, -1.4, 1.4], rot:[30, 0, 0], m:'pad'}, {t:'cil', r:.38, l:3.4, p:[0, -6.1, -3.6], rot:[0, 0, 90], m:'pad'}, {t:'caja', s:[1, 7, 1], p:[0, -5, -.6], rot:[40, 0, 0], m:'metal'}],
+    cam:{az:1.45, y:-2, z:1, dist:38, el:.1}, tempo:[1, .4, 1.8, .4], flecha:'neck01', flechaDesp:0,
+    musc:{lumbar:1, gluteos:.7, isquios:.5},
+    txt:'Cadera apoyada en el borde y talones trabados. Bajá el torso con la espalda recta y subí hasta quedar en línea con las piernas, sin pasarte.',
+    A:{rot:[150, 0, 0], pos:[0, -1.2, .6], pies:{L:[1.2, -5.9, -3.9], R:[-1.2, -5.9, -3.9]}, poloPies:[0, 1, 0], dirs:sim({'upperarm01':[.4, -.4, .8], 'lowerarm01':[-.6, .3, -.5]})},
+    B:{rot:[52, 0, 0], pos:[0, -1.2, .4], pies:{L:[1.2, -5.9, -3.9], R:[-1.2, -5.9, -3.9]}, poloPies:[0, 1, 0], dirs:sim({'upperarm01':[.4, -.4, .8], 'lowerarm01':[-.6, .3, -.5]})},
+    errores:[{n:'Pasarse arriba', malMusc:{lumbar:1}, musc:{gluteos:.4}, txt:'Subir de más arquea la zona lumbar. Frená cuando el cuerpo queda en línea recta.',
+      B:{rot:[30, 0, 0], pos:[0, -1.2, .3], pies:{L:[1.2, -5.9, -3.9], R:[-1.2, -5.9, -3.9]}, poloPies:[0, 1, 0], dirs:conj(sim({'upperarm01':[.4, -.4, .8], 'lowerarm01':[-.6, .3, -.5]}), {spine02:[0, .55, -.83], spine01:[0, .7, -.7]})}}]},
+  'press:mancuernas':cambiar('press:barra', {obj:'mancuernas', props:BANCO_PLANO,
+    txt:'Escápulas juntas y apoyadas. Bajá las mancuernas al costado del pecho, codos a unos 45° del cuerpo, y subí juntándolas arriba.',
+    A:conj(ACOSTADO, {manos:{L:[3.1, -.6, -1.8], R:[-3.1, -.6, -1.8]}, polo:[.6, -1, .3], giros:{'lowerarm01.L':-1, 'lowerarm01.R':1}, agarre:.9}),
+    B:conj(ACOSTADO, {manos:{L:[1.3, 3.4, -3.1], R:[-1.3, 3.4, -3.1]}, polo:[.6, -1, .3], giros:{'lowerarm01.L':-1, 'lowerarm01.R':1}, agarre:.9})}),
+  'press:maquina':{
+    obj:'', props:[...ASIENTO(-.6, -3.8), {t:'caja', s:[3.4, 7.5, .6], p:[0, 0, -2.4], rot:[-6, 0, 0], m:'pad'}], cam:{az:1.2, y:0, dist:38, el:.1}, tempo:[1, .3, 1.9, .4], flecha:'wrist.L', flechaDesp:24,
+    musc:{pecho:1, triceps:.6, hombros:.4},
+    txt:'Espalda apoyada y manijas a la altura del pecho. Empujá hasta estirar sin trabar los codos y volvé lento.',
+    A:{pos:[0, -2.7, -1.2], pies:PIES_SENTADO(3.8), poloPies:[0, .3, 1], manos:dos([0, 3.4, 1.5], 2.6), polo:[.7, -1, -.2], agarre:.9},
+    B:{pos:[0, -2.7, -1.2], pies:PIES_SENTADO(3.8), poloPies:[0, .3, 1], manos:dos([0, 3.6, 6.4], 2.2), polo:[.7, -1, -.2], agarre:.9},
+    errores:[{n:'Despegar la espalda', malMusc:{hombros:1}, musc:{pecho:.5}, txt:'Si separás la espalda del respaldo y adelantás los hombros, el hombro hace el trabajo. Espalda apoyada y escápulas juntas.',
+      B:{pos:[0, -2.5, -.4], pies:PIES_SENTADO(3.8), poloPies:[0, .3, 1], dirs:espalda(.35), manos:dos([0, 3.4, 7.2], 2.2), polo:[.7, -1, -.2], agarre:.9}}]},
+  'press:flexiones':{
+    obj:'', cam:{az:1.3, y:-5.5, z:-1.5, dist:36, el:.18}, tempo:[.9, .3, 1.7, .4], flecha:'neck01', flechaDesp:0,
+    musc:{pecho:1, triceps:.6, hombros:.4, abdomen:.3},
+    txt:'Manos un poco más anchas que los hombros y el cuerpo recto. Bajá hasta que el pecho casi toque el piso, con los codos a unos 45°.',
+    A:{rot:[76, 0, 0], pos:[0, -6.4, -.9], pies:{L:[1.1, -7.6, -9.2], R:[-1.1, -7.6, -9.2]}, poloPies:[0, -1, 0], manos:dos([0, -7.8, 3.9], 2.6), polo:[.6, .2, -1], dirs:sim({foot:[0, -1, -.1]}), giros:{'lowerarm01.L':-1.4, 'lowerarm01.R':1.4}},
+    B:{rot:[64, 0, 0], pos:[0, -3.9, -1.3], pies:{L:[1.1, -7.6, -9.2], R:[-1.1, -7.6, -9.2]}, poloPies:[0, -1, 0], manos:dos([0, -7.8, 3.9], 2.6), polo:[.6, .2, -1], dirs:sim({foot:[0, -1, -.1]}), giros:{'lowerarm01.L':-1.4, 'lowerarm01.R':1.4}},
+    errores:[{n:'Cadera caída', malMusc:{lumbar:1}, musc:{pecho:.5}, flecha:'root', txt:'Si la cadera cae, la espalda baja se arquea. Apretá abdomen y cola para que el cuerpo suba y baje en bloque.',
+      B:{rot:[74, 0, 0], pos:[0, -5, -1.1], pies:{L:[1.1, -7.6, -9.2], R:[-1.1, -7.6, -9.2]}, poloPies:[0, -1, 0], manos:dos([0, -7.8, 3.9], 2.6), polo:[.6, .2, -1], dirs:conj(sim({foot:[0, -1, -.1]}), {spine03:[0, -.3, 1], spine01:[0, .2, 1]})}}]},
+  'remo:invertido':{
+    obj:'', props:[{t:'cil', r:.14, l:10, p:[0, -2.2, -2.2], rot:[0, 0, 90]}, {t:'cil', r:.18, l:6, p:[4.6, -5.2, -2.2]}, {t:'cil', r:.18, l:6, p:[-4.6, -5.2, -2.2]}],
+    cam:{az:1.35, y:-4, z:1, dist:38, el:.1}, tempo:[.9, .35, 1.7, .4], flecha:'neck01', flechaDesp:0,
+    musc:{dorsales:1, trapecio:.7, biceps:.5, hombros:.3},
+    txt:'Debajo de una barra, cuerpo recto y talones en el piso. Tirá llevando el pecho a la barra y juntando las escápulas.',
+    A:{rot:[-78, 0, 0], pos:[0, -5.8, 2.8], pies:{L:[1.1, -7.6, 8.6], R:[-1.1, -7.6, 8.6]}, poloPies:[0, 1, 0], manos:dos([0, -2.2, -2.2], 2.8), polo:[.5, -.6, .5], dirs:sim({foot:[0, .2, 1]}), agarre:.9},
+    B:{rot:[-70, 0, 0], pos:[0, -4, 2.4], pies:{L:[1.1, -7.6, 8.6], R:[-1.1, -7.6, 8.6]}, poloPies:[0, 1, 0], manos:dos([0, -2.2, -2.2], 2.8), polo:[.5, -.6, .5], dirs:sim({foot:[0, .2, 1]}), agarre:.9},
+    errores:[{n:'Cadera caída', malMusc:{lumbar:.8}, musc:{dorsales:.5}, flecha:'root', txt:'Si la cadera se cae, el cuerpo se dobla y la espalda trabaja menos. Apretá cola y abdomen y mantené una línea recta.',
+      B:{rot:[-50, 0, 0], pos:[0, -5.6, 2], pies:{L:[1.1, -7.6, 8.6], R:[-1.1, -7.6, 8.6]}, poloPies:[0, 1, 0], manos:dos([0, -2.2, -2.2], 2.8), polo:[.5, -.6, .5], dirs:sim({foot:[0, .2, 1], upperleg01:[.05, -.6, .8]}), agarre:.9}}]},
+  'jalon:banda':cambiar('jalon:dominada', {props:[...X['jalon:dominada'].props, {t:'cable', banda:true, de:[0, 10.4, .6], a:'pies'}],
+    txt:'Banda colgada de la barra y apoyada en los pies o rodillas: te ayuda en la parte más difícil. Subí hasta el mentón y bajá controlado.'}),
+  'militar:maquina':cambiar('militar:mancuernas', {obj:'',
+    txt:'Espalda apoyada y manijas a la altura de los hombros. Empujá hacia arriba sin trabar los codos y bajá lento.',
+    A:{pos:[0, -2.7, -1.2], pies:PIES_SENTADO(3.8), poloPies:[0, .3, 1], manos:{L:[2.2, 3.4, .6], R:[-2.2, 3.4, .6]}, polo:[.8, -1, .2], agarre:.9},
+    B:{pos:[0, -2.7, -1.2], pies:PIES_SENTADO(3.8), poloPies:[0, .3, 1], manos:{L:[1.9, 8.2, .2], R:[-1.9, 8.2, .2]}, polo:[.8, -1, .2], agarre:.9}}),
+  'militar:pica':{
+    obj:'', cam:{az:1.35, y:-4, z:-1, dist:36, el:.12}, tempo:[.9, .3, 1.8, .4], flecha:'neck01', flechaDesp:0,
+    musc:{hombros:1, triceps:.6, trapecio:.4},
+    txt:'Cuerpo en V invertida con la cadera alta. Bajá la cabeza hacia el piso entre las manos y empujá hasta estirar los brazos.',
+    A:{rot:[140, 0, 0], pos:[0, -.6, -1.4], pies:{L:[1.1, -7.6, -6.6], R:[-1.1, -7.6, -6.6]}, poloPies:[0, 0, 1], manos:dos([0, -7.8, 2.6], 2.4), polo:[0, 0, 1], dirs:sim({foot:[0, -.9, .2]})},
+    B:{rot:[124, 0, 0], pos:[0, .6, -2.3], pies:{L:[1.1, -7.6, -6.6], R:[-1.1, -7.6, -6.6]}, poloPies:[0, 0, 1], manos:dos([0, -7.8, 2.6], 2.4), polo:[0, 0, 1], dirs:sim({foot:[0, -.9, .2]})},
+    errores:[]},
+  'laterales:polea':cambiar('laterales:mancuernas', {obj:'manija', lado:'R', props:[columna(4, 0, 6), {t:'cable', de:[3.6, -7.2, 0], a:'R'}], cam:{az:.3, y:2.5, dist:40, el:.05}, flecha:'finger3-1.R',
+    txt:'De costado a la polea baja, cable por delante del cuerpo. Subí el brazo hasta la altura del hombro y bajá lento.',
+    A:{dirs:{'upperarm01.R':[-.18, -1, .15], 'lowerarm01.R':[-.15, -1, .2], 'upperarm01.L':[.45, -.8, -.2], 'lowerarm01.L':[-.6, -.2, .25]}, agarre:.9},
+    B:{dirs:{'upperarm01.R':[-.97, -.05, .18], 'lowerarm01.R':[-.96, .02, .25], 'upperarm01.L':[.45, -.8, -.2], 'lowerarm01.L':[-.6, -.2, .25]}, agarre:.9}, errores:[]}),
+  'laterales:banda':cambiar('laterales:mancuernas', {obj:'', props:[{t:'cable', banda:true, de:'foot.L', a:'L'}, {t:'cable', banda:true, de:'foot.R', a:'R'}]}),
+  'laterales:maquina':cambiar('laterales:mancuernas', {obj:'', props:[...ASIENTO(-.6, -3.8), {t:'caja', s:[.6, 2, .9], m:'pad', sigue:['lowerarm01.L'], off:[.5, 0, 0]}, {t:'caja', s:[.6, 2, .9], m:'pad', sigue:['lowerarm01.R'], off:[-.5, 0, 0]}],
+    txt:'Sentado con los codos contra las almohadillas. Subí los brazos hacia los costados hasta la altura del hombro.',
+    A:{pos:[0, -2.7, -1.2], pies:PIES_SENTADO(3.8), poloPies:[0, .3, 1], dirs:sim({'upperarm01':[.25, -1, .1], 'lowerarm01':[.1, -.1, 1]}), agarre:.9},
+    B:{pos:[0, -2.7, -1.2], pies:PIES_SENTADO(3.8), poloPies:[0, .3, 1], dirs:sim({'upperarm01':[.97, -.1, .1], 'lowerarm01':[.4, 0, .9]}), agarre:.9}, errores:[]}),
+  'curl:polea':cambiar('curl:barra', {obj:'barraPolea', props:[columna(0, 5.2, 4), {t:'cable', de:[0, -6.8, 4.6], a:'manos'}]}),
+  'curl:banda':cambiar('curl:barra', {obj:'', props:[{t:'cable', banda:true, de:'foot.L', a:'L'}, {t:'cable', banda:true, de:'foot.R', a:'R'}]}),
+  'triceps:banco':{
+    obj:'', props:banco(0, -4.4, -2.6, 6, 3), cam:{az:1.25, y:-3, z:1.5, dist:36, el:.1}, tempo:[.9, .3, 1.8, .4], flecha:'root', flechaDesp:-40,
+    musc:{triceps:1, pecho:.4, hombros:.4},
+    txt:'Manos en el borde del banco detrás tuyo y piernas al frente. Bajá doblando los codos hacia atrás hasta 90° y subí estirando.',
+    A:{pos:[0, -2.5, -1], pies:{L:[1.2, TOBILLO, 6.4], R:[-1.2, TOBILLO, 6.4]}, poloPies:[0, 1, 0], manos:dos([0, -3.7, -2.5], 1.8), polo:[0, .2, -1], dirs:sim({foot:[0, .1, 1]}), giros:{'lowerarm01.L':1.4, 'lowerarm01.R':-1.4}},
+    B:{pos:[0, -4.7, -1.2], pies:{L:[1.2, TOBILLO, 6.4], R:[-1.2, TOBILLO, 6.4]}, poloPies:[0, 1, 0], manos:dos([0, -3.7, -2.5], 1.8), polo:[0, .2, -1], dirs:sim({foot:[0, .1, 1]}), giros:{'lowerarm01.L':1.4, 'lowerarm01.R':-1.4}},
+    errores:[{n:'Bajar de más', malMusc:{hombros:1}, musc:{triceps:.5}, txt:'Bajar mucho estira el hombro hacia adelante y lo lesiona. Frená con los codos a 90°.',
+      B:{pos:[0, -6.1, -1.3], pies:{L:[1.2, TOBILLO, 6.4], R:[-1.2, TOBILLO, 6.4]}, poloPies:[0, 1, 0], manos:dos([0, -3.7, -2.5], 1.8), polo:[0, .2, -1], dirs:sim({foot:[0, .1, 1]})}}]},
+  'hipthrust:mancuerna':cambiar('hipthrust:barra', {obj:'mancuerna', lado:'ambas'}),
+  'hipthrust:puente':{
+    obj:'', cam:{az:1.35, y:-5.5, z:.5, dist:32, el:.15}, tempo:[.9, .6, 1.6, .4], flecha:'root', flechaDesp:-40,
+    musc:{gluteos:1, isquios:.5},
+    txt:'Acostado boca arriba con las rodillas dobladas. Subí la cadera apretando la cola hasta quedar en línea de hombros a rodillas.',
+    A:{rot:[-90, 0, 0], pos:[0, -7.2, 1.5], pies:{L:[1.6, TOBILLO, 5.2], R:[-1.6, TOBILLO, 5.2]}, poloPies:[0, 1, .2], dirs:conj(sim({foot:[0, -.3, 1], 'upperarm01':[.3, -.1, 1], 'lowerarm01':[.2, -.05, 1]}))},
+    B:{rot:[-112, 0, 0], pos:[0, -5.4, 1.4], pies:{L:[1.6, TOBILLO, 5.2], R:[-1.6, TOBILLO, 5.2]}, poloPies:[0, 1, .2], dirs:conj(sim({foot:[0, -.3, 1], 'upperarm01':[.3, -.1, 1], 'lowerarm01':[.2, -.05, 1]}))},
+    errores:[{n:'Arquear la espalda', malMusc:{lumbar:1}, musc:{gluteos:.5}, txt:'Subir arqueando la zona lumbar no trabaja la cola. Terminá con las costillas abajo y la pelvis metida.',
+      B:{rot:[-122, 0, 0], pos:[0, -5, 1.3], pies:{L:[1.6, TOBILLO, 5.2], R:[-1.6, TOBILLO, 5.2]}, poloPies:[0, 1, .2], dirs:conj(sim({foot:[0, -.3, 1], 'upperarm01':[.3, -.1, 1], 'lowerarm01':[.2, -.05, 1]}), {spine03:[0, -.1, -1], spine02:[0, -.2, -1]})}}]},
+  'zancada:libre':cambiar('zancada:mancuernas', {obj:'',
+    A:conj(X['zancada:mancuernas'].A, {dirs:conj(sim({foot:[0, -.3, 1], 'upperarm01':[.45, -.8, -.2], 'lowerarm01':[-.6, -.2, .2]}))}),
+    B:conj(X['zancada:mancuernas'].B, {dirs:conj(sim({foot:[0, -.3, 1], 'upperarm01':[.45, -.8, -.2], 'lowerarm01':[-.6, -.2, .2]}))})}),
+  'extension:banda':cambiar('extension:maquina', {props:[...ASIENTO(-.4, -3.8), {t:'cable', banda:true, de:[0, -7.6, -1], a:'foot.L'}, {t:'cable', banda:true, de:[0, -7.6, -1], a:'foot.R'}]}),
+  'extension:sissy':{
+    obj:'', props:[{t:'cil', r:.15, l:9, p:[3.2, -3.7, 1.5]}], cam:{az:1.35, y:-1.5, dist:38, el:.06}, tempo:[1, .3, 2, .4], flecha:'lowerleg01.L', flechaDesp:0,
+    musc:{cuadriceps:1, abdomen:.3},
+    txt:'En puntas de pie y agarrado de un apoyo. Llevá las rodillas hacia adelante y el cuerpo hacia atrás en línea recta, y volvé.',
+    A:{pos:[0, 1.6, -.5], pies:{L:[1.3, -6.9, .3], R:[-1.3, -6.9, .3]}, poloPies:[0, 0, 1], dirs:sim({foot:[0, -.85, .5], 'upperarm01':[.4, -.8, .4], 'lowerarm01':[.2, -.2, .9]})},
+    B:{rot:[-38, 0, 0], pos:[0, -2.2, -2.2], pies:{L:[1.3, -6.9, .3], R:[-1.3, -6.9, .3]}, poloPies:[0, 0, 1], dirs:sim({foot:[0, -.85, .5], 'upperarm01':[.6, -.8, .4], 'lowerarm01':[.3, -.2, .9]})},
+    errores:[]},
+  'curlfem:banda':cambiar('curlfem:acostado', {props:[{t:'cable', banda:true, de:[0, -7.9, -11], a:'foot.L'}, {t:'cable', banda:true, de:[0, -7.9, -11], a:'foot.R'}], cam:{az:-1.35, y:-6, z:-2.5, dist:40, el:.16},
+    A:conj(X['curlfem:acostado'].A, {pos:[0, -7.2, -1.4]}), B:conj(X['curlfem:acostado'].B, {pos:[0, -7.2, -1.4]}), errores:[]}),
+  'pantorrillas:escalon':cambiar('pantorrillas:pie', {
+    txt:'Sobre un escalón con un solo pie y agarrado de algo para el equilibrio. Subí lo más alto que puedas y bajá lento hasta estirar.',
+    A:{pos:[0, 1.5, -.58], dirs:{'foot.L':[0, .2, 1], 'upperleg01.R':[-.1, -1, .05], 'lowerleg01.R':[0, -.5, -.85]}},
+    B:{pos:[0, 3, -.58], dirs:{'foot.L':[0, -.9, .45], 'upperleg01.R':[-.1, -1, .05], 'lowerleg01.R':[0, -.5, -.85]}}, errores:[]}),
+  'abdominales:crunch':{
+    obj:'soga', props:[columna(0, 5.4), {t:'cable', de:[0, 6, 4.8], a:'manos'}], cam:{az:1.35, y:-3, z:1, dist:36, el:.08}, tempo:[.9, .5, 1.8, .4], flecha:'neck01', flechaDesp:0,
+    musc:{abdomen:1, oblicuos:.5},
+    txt:'De rodillas y con la soga a los costados de la cabeza. Enrollá la columna llevando los codos hacia los muslos; la cadera no se mueve.',
+    A:{pos:[0, -3.3, -.6], pies:{L:[1.2, -7.5, -4.4], R:[-1.2, -7.5, -4.4]}, poloPies:[0, -1, .3], dirs:conj(espalda(.2), sim({'upperarm01':[.25, .2, .95], 'lowerarm01':[-.6, .7, -.2], foot:[0, -.3, -1]})), agarre:.9},
+    B:{pos:[0, -3.3, -.6], pies:{L:[1.2, -7.5, -4.4], R:[-1.2, -7.5, -4.4]}, poloPies:[0, -1, .3], dirs:conj({spine05:[0, .9, .4], spine04:[0, .6, .8], spine03:[0, .2, .98], spine02:[0, -.2, .98], spine01:[0, -.45, .9], neck01:[0, -.6, .8]}, sim({'upperarm01':[.25, -.5, .8], 'lowerarm01':[-.6, .5, -.4], foot:[0, -.3, -1]})), agarre:.9},
+    errores:[{n:'Tirar con la cadera', malMusc:{lumbar:.6}, musc:{abdomen:.4}, txt:'Si la cadera va hacia atrás, el movimiento lo hacen los brazos y el peso del cuerpo. Dejá la cadera quieta y enrollá la columna.',
+      B:{pos:[0, -4.6, -2], pies:{L:[1.2, -7.5, -4.4], R:[-1.2, -7.5, -4.4]}, poloPies:[0, -1, .3], dirs:conj(inclinado(.25, .97), sim({'upperarm01':[.25, -.5, .8], 'lowerarm01':[-.6, .5, -.4], foot:[0, -.3, -1]})), agarre:.9}}]},
+  'abdominales:colgado':cambiar('jalon:dominada', {
+    musc:{abdomen:1, oblicuos:.5, antebrazos:.4}, flecha:'foot.L', flechaDesp:0,
+    txt:'Colgado de la barra sin balancearte. Subí las piernas hasta la altura de la cadera, enrollando un poco la pelvis, y bajá lento.',
+    A:{pos:[0, -.4, -.4], manos:dos([0, 10.4, .6], 3.1), polo:[1, -.5, 0], agarre:.9, dirs:sim({'upperleg01':[.04, -1, .08], 'lowerleg01':[0, -1, .05]})},
+    B:{pos:[0, -.4, -.7], manos:dos([0, 10.4, .6], 3.1), polo:[1, -.5, 0], agarre:.9, dirs:sim({'upperleg01':[.06, -.05, 1], 'lowerleg01':[.02, -.4, .92]})},
+    errores:[{n:'Balancearte', malMusc:{lumbar:.8}, musc:{abdomen:.4}, txt:'Balancear el cuerpo para subir las piernas usa el impulso. Frená el balanceo y subí lento.',
+      A:{pos:[0, -.4, 1.4], manos:dos([0, 10.4, .6], 3.1), polo:[1, -.5, 0], agarre:.9, dirs:conj(espalda(-.3), sim({'upperleg01':[.04, -.9, -.4], 'lowerleg01':[0, -1, -.2]}))}}]}),
+  'abdominales:rueda':{
+    obj:'', props:[{t:'cil', r:.75, l:.7, rot:[0, 0, 90], m:'banco', sigue:['wrist.L', 'wrist.R'], off:[0, -.5, .2]}, {t:'caja', s:[4, .4, 3], p:[0, PISO + .2, -1.6], m:'pad'}],
+    cam:{az:1.35, y:-5, z:1.5, dist:38, el:.12}, tempo:[1.2, .3, 1.6, .4], flecha:'neck01', flechaDesp:0,
+    musc:{abdomen:1, oblicuos:.5, dorsales:.4, hombros:.3},
+    txt:'De rodillas con la rueda bajo los hombros. Rodá hacia adelante con el abdomen apretado, sin que se hunda la espalda, y volvé.',
+    A:{rot:[35, 0, 0], pos:[0, -3.6, .3], pies:{L:[1.2, -7.5, -4.4], R:[-1.2, -7.5, -4.4]}, poloPies:[0, -1, .3], manos:dos([0, -7.3, 3.4], .4), polo:[0, 0, -1], dirs:sim({foot:[0, -.3, -1]}), agarre:.9},
+    B:{rot:[72, 0, 0], pos:[0, -5.6, 1.2], pies:{L:[1.2, -7.5, -4.4], R:[-1.2, -7.5, -4.4]}, poloPies:[0, -1, .3], manos:dos([0, -7.3, 8.4], .4), polo:[0, 0, -1], dirs:sim({foot:[0, -.3, -1]}), agarre:.9},
+    errores:[{n:'Espalda hundida', malMusc:{lumbar:1}, musc:{abdomen:.4}, flecha:'root', txt:'Si la espalda se hunde al ir hacia adelante, la zona lumbar carga todo. Llegá solo hasta donde puedas con el abdomen firme.',
+      B:{rot:[84, 0, 0], pos:[0, -6.7, 1.6], pies:{L:[1.2, -7.5, -4.4], R:[-1.2, -7.5, -4.4]}, poloPies:[0, -1, .3], manos:dos([0, -7.3, 9.4], .4), polo:[0, 0, -1], dirs:conj(sim({foot:[0, -.3, -1]}), {spine03:[0, -.3, 1], spine01:[0, .2, 1]}), agarre:.9}}]},
+  'facepull:banda':cambiar('facepull:polea', {obj:'', props:[{t:'cil', r:.2, l:16, p:[0, 0, 7]}, {t:'cable', banda:true, de:[0, 6.8, 6.8], a:'L'}, {t:'cable', banda:true, de:[0, 6.8, 6.8], a:'R'}]}),
+  'encogimientos:mancuernas':{
+    obj:'mancuernas', cam:{az:2.5, y:3, dist:32, el:.12}, tempo:[.8, .6, 1.4, .4], flecha:'upperarm01.L', flechaDesp:0,
+    musc:{trapecio:1, antebrazos:.3},
+    txt:'Brazos estirados al costado. Subí los hombros hacia las orejas, aguantá un segundo y bajá lento. Sin girar los hombros.',
+    A:{dirs:sim({'upperarm01':[.15, -1, .05], 'lowerarm01':[.08, -1, .08]}), agarre:.9},
+    B:{dirs:conj(sim({'upperarm01':[.15, -1, .05], 'lowerarm01':[.08, -1, .08], clavicle:[.82, .55, 0], shoulder01:[.85, .5, 0]})), agarre:.9},
+    errores:[{n:'Girar los hombros', malMusc:{hombros:.8}, musc:{trapecio:.5}, txt:'Hacer círculos con los hombros no suma y carga la articulación. Subí y bajá derecho.',
+      B:{dirs:conj(sim({'upperarm01':[.15, -1, -.2], 'lowerarm01':[.08, -1, -.1], clavicle:[.8, .4, -.4], shoulder01:[.85, .3, -.4]})), agarre:.9}}]},
+  'encogimientos:barra':null,
+  'abduccion:maquina':cambiar('aductores:maquina', {musc:{gluteos:1}, txt:'Espalda apoyada. Abrí las piernas empujando con la parte de afuera de la cadera y cerrá lento.',
+    A:X['aductores:maquina'].B, B:X['aductores:maquina'].A, errores:[]}),
+  'abduccion:banda':{
+    obj:'', props:[{t:'cable', banda:true, de:'lowerleg01.L', a:'lowerleg01.R'}], cam:{az:.3, y:-2, dist:38, el:.06}, tempo:[.8, .2, .8, .2], flecha:'foot.L', flechaDesp:0,
+    musc:{gluteos:1},
+    txt:'Banda por encima de las rodillas y semiflexionado. Dá pasos cortos hacia el costado sin juntar los pies del todo.',
+    A:{pos:[0, -.2, -.7], pies:{L:[1.4, TOBILLO, .2], R:[-1.4, TOBILLO, .2]}, poloPies:[.3, 0, 1], dirs:conj(espalda(.25), sim({foot:[0, -.3, 1]}))},
+    B:{pos:[.9, -.2, -.7], pies:{L:[3.6, TOBILLO, .2], R:[-1.4, TOBILLO, .2]}, poloPies:[.3, 0, 1], dirs:conj(espalda(.25), sim({foot:[0, -.3, 1]}))},
+    errores:[{n:'Rodillas adentro', musc:{gluteos:.4}, txt:'Si las rodillas se juntan, el glúteo no trabaja. Empujá la banda hacia afuera todo el tiempo.',
+      A:{pos:[0, -.2, -.7], pies:{L:[1.4, TOBILLO, .2], R:[-1.4, TOBILLO, .2]}, poloPies:[-.5, 0, 1], dirs:conj(espalda(.25), sim({foot:[0, -.3, 1]}))},
+      B:{pos:[.9, -.2, -.7], pies:{L:[3.6, TOBILLO, .2], R:[-1.4, TOBILLO, .2]}, poloPies:[-.5, 0, 1], dirs:conj(espalda(.25), sim({foot:[0, -.3, 1]}))}}]},
+  'abduccion:polea':{
+    obj:'', props:[columna(-5.2, .2, 6), {t:'cable', de:[-4.8, -7.6, .2], a:'foot.L'}], cam:{az:.25, y:-1, dist:40, el:.05}, tempo:[.8, .4, 1.6, .4], flecha:'foot.L', flechaDesp:0,
+    musc:{gluteos:1},
+    txt:'De costado a la polea con el tobillo enganchado del lado de afuera. Abrí la pierna hacia el costado sin inclinar el torso.',
+    A:{dirs:conj({'upperleg01.L':[-.05, -1, 0], 'lowerleg01.L':[-.03, -1, 0]}, sim({'upperarm01':[.2, -1, .05]}))},
+    B:{dirs:conj({'upperleg01.L':[.6, -.8, 0], 'lowerleg01.L':[.6, -.8, 0]}, sim({'upperarm01':[.2, -1, .05]}))}, errores:[]},
+  'aductores:polea':{
+    obj:'', props:[columna(6, .2, 6), {t:'cable', de:[5.6, -7.6, .2], a:'foot.L'}], cam:{az:.25, y:-1, dist:40, el:.05}, tempo:[.8, .4, 1.6, .4], flecha:'foot.L', flechaDesp:0,
+    musc:{aductores:1},
+    txt:'De costado a la polea con el tobillo de adentro enganchado. Cruzá la pierna por delante de la otra y volvé lento.',
+    A:{dirs:{'upperleg01.L':[.45, -.9, 0], 'lowerleg01.L':[.45, -.9, 0]}},
+    B:{dirs:{'upperleg01.L':[-.25, -.95, .15], 'lowerleg01.L':[-.25, -.95, .15]}}, errores:[]},
+  'aductores:sumo':cambiar('sentadilla:barra', {obj:'mancuerna', lado:'ambas', barra:null, cam:{az:.5, y:-1, dist:38, el:.08},
+    musc:{aductores:1, gluteos:.9, cuadriceps:.7},
+    txt:'Pies bien abiertos y puntas hacia afuera. Bajá con la mancuerna colgando entre las piernas y el pecho arriba.',
+    A:{pos:[0, .6, -.6], pies:{L:[3.1, TOBILLO, .6], R:[-3.1, TOBILLO, .6]}, poloPies:[.8, 0, .6], dirs:sim({foot:[.6, -.3, .75], 'upperarm01':[.06, -1, .1], 'lowerarm01':[-.08, -1, .05]}), agarre:.9},
+    B:{pos:[0, -2.6, -.8], pies:{L:[3.1, TOBILLO, .6], R:[-3.1, TOBILLO, .6]}, poloPies:[.8, 0, .6], dirs:conj(espalda(.15), sim({foot:[.6, -.3, .75], 'upperarm01':[.06, -1, .1], 'lowerarm01':[-.08, -1, .05]})), agarre:.9}, errores:[]}),
+  'pajaros:maquina':{
+    obj:'', props:[...ASIENTO(-.4, -3.8), {t:'caja', s:[3, 5, .6], p:[0, 1.6, 2.2], m:'pad'}], cam:{az:.7, y:1.5, dist:38, el:.25}, tempo:[.9, .4, 1.8, .4], flecha:'finger3-1.L', flechaDesp:0,
+    musc:{hombros:1, trapecio:.6},
+    txt:'Pecho contra el respaldo y brazos al frente. Abrí los brazos hacia atrás a la altura de los hombros, juntando las escápulas.',
+    A:{pos:[0, -2.7, -.6], pies:PIES_SENTADO(3.4), poloPies:[0, .3, 1], dirs:sim({'upperarm01':[.18, .05, 1], 'lowerarm01':[.15, .05, 1]}), agarre:.9},
+    B:{pos:[0, -2.7, -.6], pies:PIES_SENTADO(3.4), poloPies:[0, .3, 1], dirs:sim({'upperarm01':[1, .05, -.15], 'lowerarm01':[.98, .05, -.05]}), agarre:.9}, errores:[]}
+});
+EJ3D['encogimientos:barra'] = cambiar('encogimientos:mancuernas', {obj:'barra'});
+EJ3D['fondos:maquina'] = cambiar('press:maquina', {
+    musc:{triceps:1, pecho:.6, hombros:.3},
+    txt:'Sentado y con la espalda apoyada. Empujá las manijas hacia abajo hasta estirar los brazos y subí lento hasta 90°.',
+    A:{pos:[0, -2.7, -1.2], pies:PIES_SENTADO(3.8), poloPies:[0, .3, 1], manos:dos([0, 2.6, -.4], 2.6), polo:[0, .3, -1], agarre:.9},
+    B:{pos:[0, -2.7, -1.2], pies:PIES_SENTADO(3.8), poloPies:[0, .3, 1], manos:dos([0, -1.6, .2], 2.6), polo:[0, .3, -1], agarre:.9}, errores:[]});
+EJ3D['hipthrust:banda'] = cambiar('hipthrust:puente', {props:[{t:'cable', banda:true, de:'lowerleg01.L', a:'lowerleg01.R'}],
+  txt:'Banda por encima de las rodillas. Subí la cadera apretando la cola y empujando las rodillas hacia afuera contra la banda.'});
+EJ3D['rotacion:banda'] = {
+  obj:'', props:[{t:'cable', banda:true, de:'L', a:'R'}], cam:{az:.35, y:3, dist:30, el:.15}, tempo:[.9, .4, 1.6, .4], flecha:'finger3-1.L', flechaDesp:0,
+  musc:{hombros:1},
+  txt:'Codos pegados al cuerpo y doblados a 90°. Abrí las manos hacia afuera estirando la banda, sin despegar los codos, y volvé lento.',
+  A:{dirs:sim({'upperarm01':[.12, -1, .02], 'lowerarm01':[.15, -.05, 1]}), giros:{'lowerarm01.L':-1.2, 'lowerarm01.R':1.2}, agarre:.8},
+  B:{dirs:sim({'upperarm01':[.12, -1, .02], 'lowerarm01':[.85, -.05, .5]}), giros:{'lowerarm01.L':-1.2, 'lowerarm01.R':1.2}, agarre:.8},
+  errores:[{n:'Despegar los codos', malMusc:{trapecio:.6}, musc:{hombros:.5}, txt:'Si los codos se separan del cuerpo, el movimiento lo hace el hombro entero. Dejalos pegados, como sosteniendo una toalla.',
+    B:{dirs:sim({'upperarm01':[.6, -.8, .02], 'lowerarm01':[.9, .2, .35]}), giros:{'lowerarm01.L':-1.2, 'lowerarm01.R':1.2}, agarre:.8}}]};

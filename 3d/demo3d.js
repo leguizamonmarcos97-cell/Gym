@@ -73,7 +73,7 @@ function prop(p){
   let o;
   if(p.t === 'caja') o = new THREE.Mesh(new THREE.BoxGeometry(...p.s), mat);
   else if(p.t === 'cil'){ o = new THREE.Mesh(new THREE.CylinderGeometry(p.r, p.r, p.l, 20), mat); }
-  else if(p.t === 'cable') o = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, 1, 6), new THREE.MeshStandardMaterial(MAT_ESC.cable));
+  else if(p.t === 'cable') o = new THREE.Mesh(new THREE.CylinderGeometry(p.banda ? .1 : .04, p.banda ? .1 : .04, 1, 8), new THREE.MeshStandardMaterial(p.banda ? {color:0x2f9e6e, roughness:.7} : MAT_ESC.cable));
   else o = new THREE.Group();
   if(p.p) o.position.set(...p.p);
   if(p.rot) o.rotation.set(...p.rot.map(x => x * Math.PI / 180));
@@ -232,7 +232,9 @@ export async function crearDemo3D(el, id){
     escena.forEach(({p, o}) => {
       if(p.sigue){ const pts = p.sigue.map(pos3); o.position.copy(pts.reduce((a, x) => a.add(x), new THREE.Vector3()).multiplyScalar(1 / pts.length).add(new THREE.Vector3(...(p.off || [0, 0, 0])))); }
       if(p.t === 'cable'){
-        const de = new THREE.Vector3(...p.de), a = p.a === 'manos' ? (centro ? centro.clone() : mano('R').p) : p.a === 'pies' ? pos3('foot.L').add(pos3('foot.R')).multiplyScalar(.5) : mano(p.a).p;
+        // Extremos: punto fijo, 'manos', 'pies', una mano ('L'/'R') o un hueso (p. ej. 'foot.L')
+        const punta = x => Array.isArray(x) ? new THREE.Vector3(...x) : x === 'manos' ? (centro ? centro.clone() : mano('R').p) : x === 'pies' ? pos3('foot.L').add(pos3('foot.R')).multiplyScalar(.5) : x.includes('.') ? pos3(x) : mano(x).p;
+        const de = punta(p.de), a = punta(p.a);
         const d = a.clone().sub(de), L = d.length(); o.position.copy(de).addScaledVector(d, .5); o.scale.set(1, L, 1); o.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
       }
     });
