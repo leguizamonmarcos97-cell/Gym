@@ -16,31 +16,75 @@ async function cargar(){
   const idx = new Uint16Array(buf, o, nt * 3); o += nt * 6;
   const si = new Uint8Array(buf, o, n * 4); o += n * 4;
   const sw = new Uint8Array(buf, o, n * 4); o += n * 4;
-  const zona = new Uint8Array(buf, o, n);
-  DATOS = {meta, pos, idx, si, sw, zona};
+  const zona = new Uint8Array(buf, o, n); o += n;
+  // Posición y normal en la malla base (para dibujar el relieve, el short y las fibras) y dirección de las fibras de cada zona
+  const bpos = Float32Array.from(new Int16Array(buf, o, n * 3), v => v / 3000); o += n * 6;
+  const nbase = Float32Array.from(new Int8Array(buf, o, n * 3), v => v / 127); o += n * 3;
+  const fibra = Float32Array.from(new Int8Array(buf, o, n * 3), v => v / 127);
+  DATOS = {meta, pos, idx, si, sw, zona, base:bpos, nbase, fibra};
   return DATOS;
 }
 
-// Material de "arcilla" gris con borde de luz; las zonas activas se encienden (naranja = trabaja, rojo = se sobrecarga por el error)
+// Material: cuerpo blanco brillante y marcado (relieve de abdominales, pecho y oblicuos), short negro,
+// y el músculo que trabaja en rojo con sus fibras y un borde de luz azul (en los errores, lo que se sobrecarga brilla más rojo)
+const RELIEVE = `
+float gs(float d, float w){ return exp(-d*d/(w*w)); }
+float seg(vec2 p, vec2 a, vec2 b){ vec2 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); return length(pa - ba * h); }
+float zonaAbs(vec3 b){ float ax = abs(b.x), y = b.y, fr = smoothstep(0.6, 1.0, b.z); return fr * (1.0 - smoothstep(0.72, 0.95, ax)) * smoothstep(1.25, 1.55, y) * (1.0 - smoothstep(3.25, 3.45, y)); }
+float surcos(vec3 b){
+  float ax = abs(b.x), y = b.y, fr = smoothstep(0.6, 1.0, b.z), abz = zonaAbs(b);
+  float o = gs(ax, 0.06) * abz;
+  o += (gs(y - 2.25 - 0.06 * ax, 0.065) + gs(y - 2.78 - 0.05 * ax, 0.065) + gs(y - 3.22 - 0.04 * ax, 0.06)) * abz * (1.0 - smoothstep(0.62, 0.8, ax));
+  float pc = fr * smoothstep(0.12, 0.3, ax) * (1.0 - smoothstep(1.35, 1.6, ax));
+  o += gs(y - (3.36 + 0.22 * pow(max(ax - 0.2, 0.0), 2.0)), 0.07) * pc;
+  o += gs(seg(vec2(ax, y), vec2(1.02, 1.75), vec2(0.42, 0.55)), 0.06) * fr * smoothstep(0.6, 0.9, y);
+  return o;
+}
+float relieve(vec3 b){ return zonaAbs(b) * 0.6 - surcos(b); }
+vec3 perturbar(vec3 p, vec3 n, vec2 dh, float fd){
+  vec3 sx = normalize(dFdx(p)), sy = normalize(dFdy(p)), r1 = cross(sy, n), r2 = cross(n, sx);
+  float det = dot(sx, r1) * fd; vec3 g = sign(det) * (dh.x * r1 + dh.y * r2);
+  return normalize(abs(det) * n - g);
+}`;
 function materialCuerpo(){
   const u = {uAct:{value:new Float32Array(ZONAS_MAX)}, uMal:{value:new Float32Array(ZONAS_MAX)}, uPulso:{value:0}};
-  const m = new THREE.MeshStandardMaterial({color:0x9aa1aa, roughness:.48, metalness:.05});
+  const m = new THREE.MeshPhysicalMaterial({color:0xcfd4db, roughness:.36, metalness:0, clearcoat:.5, clearcoatRoughness:.35});
   m.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, u);
     sh.vertexShader = sh.vertexShader.replace('#include <common>', `#include <common>
-      attribute float zona; uniform float uAct[${ZONAS_MAX}]; uniform float uMal[${ZONAS_MAX}]; varying float vAct; varying float vMal;`)
+      attribute float zona; attribute vec3 bpos; attribute vec3 bnor; attribute vec3 fibra;
+      uniform float uAct[${ZONAS_MAX}]; uniform float uMal[${ZONAS_MAX}]; varying float vAct; varying float vMal; varying vec3 vB; varying vec3 vNB; varying vec3 vFD;`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
-      int zi = int(zona + .5); vAct = uAct[zi]; vMal = uMal[zi];`);
+      int zi = int(zona + .5); vAct = uAct[zi]; vMal = uMal[zi]; vB = bpos; vNB = bnor; vFD = fibra;`);
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
-      varying float vAct; varying float vMal; uniform float uPulso;`)
+      varying float vAct; varying float vMal; varying vec3 vB; varying vec3 vNB; varying vec3 vFD; uniform float uPulso;
+      ${RELIEVE}`)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+      float act = max(vAct, vMal), lleno = smoothstep(.12, .28, act), borde = smoothstep(.0, .1, act) * (1. - smoothstep(.12, .3, act)), fuerza = .55 + .45 * smoothstep(.4, 1., act);
+      float shorts = smoothstep(-3.05, -2.97, vB.y) * (1. - smoothstep(.95, 1.03, vB.y)) * (1. - smoothstep(2.2, 2.3, abs(vB.x)));
+      vec3 fd = normalize(vFD + 1e-4);
+      vec3 perp = normalize(cross(fd, abs(fd.z) > .8 ? vec3(0., 1., 0.) : vec3(0., 0., 1.)));
+      vec3 perp2 = normalize(cross(fd, perp));
+      float fib = .5 + .5 * sin((dot(vB, perp) + .35 * dot(vB, perp2)) * 30.);
+      float tiras = smoothstep(.3, 1., fib);
+      vec3 musculo = mix(vec3(.5, .02, .05), vec3(.92, .2, .24), tiras);
+      vec3 malo = mix(vec3(.6, .0, .0), vec3(1., .22, .1), tiras);
+      vec3 colM = mix(musculo, malo, step(vAct, vMal)) * fuerza;
+      diffuseColor.rgb = mix(diffuseColor.rgb, mix(vec3(.1, .3, .95), vec3(.9, .15, .1), step(vAct, vMal)), borde * .9 * (1. - shorts));
+      diffuseColor.rgb = mix(diffuseColor.rgb, colM, lleno * (1. - shorts));
+      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(.025, .028, .032), shorts);`)
+      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+      { float h = .07 * relieve(vB) * (1. - shorts); vec2 dh = vec2(dFdx(h), dFdy(h)); normal = perturbar(-vViewPosition, normal, dh, faceDirection); }`)
+      .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+      roughnessFactor = mix(roughnessFactor, .85, shorts);`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
-      float pul = .55 + .45 * uPulso;
-      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1., .45, .14), vAct * .75);
-      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1., .16, .12), vMal * .8);
-      totalEmissiveRadiance += vec3(1., .36, .06) * vAct * pul * .55 + vec3(1., .08, .05) * vMal * pul * .6;`)
+      float pul = .5 + .5 * uPulso;
+      totalEmissiveRadiance += colM * lleno * (.12 + .3 * pul) * (1. - shorts);
+      totalEmissiveRadiance += vec3(1., .5, .12) * lleno * tiras * pul * pul * .22 * (1. - shorts);
+      totalEmissiveRadiance += mix(vec3(.25, .5, 1.), vec3(1., .2, .15), step(vAct, vMal)) * borde * .6;`)
       .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
       float fres = pow(1. - clamp(dot(normalize(vViewPosition), normal), 0., 1.), 3.);
-      reflectedLight.directDiffuse += vec3(.35, .55, 1.) * fres * .55;`);
+      reflectedLight.directDiffuse += vec3(.35, .55, 1.) * fres * .7 * (1. - shorts);`);
   };
   return {m, u};
 }
@@ -95,8 +139,9 @@ export async function crearDemo3D(el, id){
   const R = new THREE.WebGLRenderer({canvas:cv, antialias:true, alpha:true});
   R.outputColorSpace = THREE.SRGBColorSpace; R.toneMapping = THREE.ACESFilmicToneMapping; R.setPixelRatio(Math.min(2, devicePixelRatio || 1));
   const S = new THREE.Scene();
-  S.add(new THREE.HemisphereLight(0xdfe8ff, 0x1a1c20, .9));
-  const k = new THREE.DirectionalLight(0xffffff, 2.3); k.position.set(4, 10, 12); S.add(k);
+  S.add(new THREE.HemisphereLight(0xdfe8ff, 0x16181c, .5));
+  const k = new THREE.DirectionalLight(0xffffff, 2.2); k.position.set(4, 10, 12); S.add(k);
+  const k2 = new THREE.DirectionalLight(0xffffff, .8); k2.position.set(-6, 2, 9); S.add(k2);
   const r1 = new THREE.DirectionalLight(0x6f9bff, 1.6); r1.position.set(-9, 5, -8); S.add(r1);
   const r2 = new THREE.DirectionalLight(0xffb070, .9); r2.position.set(9, 3, -6); S.add(r2);
   const piso = new THREE.Mesh(new THREE.CircleGeometry(9, 48), new THREE.MeshStandardMaterial({color:0x1b1e23, roughness:.9}));
@@ -109,6 +154,7 @@ export async function crearDemo3D(el, id){
   g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(Uint16Array.from(D.si), 4));
   g.setAttribute('skinWeight', new THREE.BufferAttribute(Float32Array.from(D.sw, v => v / 255), 4));
   g.setAttribute('zona', new THREE.BufferAttribute(Float32Array.from(D.zona), 1));
+  g.setAttribute('bpos', new THREE.BufferAttribute(D.base, 3)); g.setAttribute('bnor', new THREE.BufferAttribute(D.nbase, 3)); g.setAttribute('fibra', new THREE.BufferAttribute(D.fibra, 3));
   g.computeVertexNormals();
   const huesos = meta.bones.map(b => { const x = new THREE.Bone(); x.name = b.n; return x; });
   meta.bones.forEach((b, i) => { const h = new THREE.Vector3(...b.h); if(b.p >= 0){ huesos[b.p].add(huesos[i]); h.sub(new THREE.Vector3(...meta.bones[b.p].h)); } huesos[i].position.copy(h); });
