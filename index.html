@@ -225,9 +225,17 @@ svg.fig.off{display:none}
 .pf-datos label span,.cuerpo-form label span{display:flex;align-items:center;gap:6px;color:var(--muted)}
 .pf-datos input,.cuerpo-form input{width:76px;height:42px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:0 8px;font:600 16px var(--text);text-align:center}
 .figs{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 8px;scroll-snap-type:x proximity}
-.fig{position:relative;flex:0 0 92px;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px 6px;border:1px solid var(--line);border-radius:12px;background:var(--surface);cursor:pointer;text-align:center}
+.fig{position:relative;flex:0 0 98px;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px 6px;border:1px solid var(--line);border-radius:12px;background:var(--surface);cursor:pointer;text-align:center}
 .fig input{position:absolute;opacity:0;pointer-events:none}
-.fig .fig-img{width:80px;height:217px;object-fit:contain;display:block}
+.fig .fig-img{width:84px;height:228px;object-fit:contain;display:block}
+.fig-cmp{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:4px;margin:0 0 12px;background:radial-gradient(ellipse at 50% 85%,var(--surface),var(--bg) 75%);border-radius:12px;padding:8px 4px}
+.fig-cmp figure{margin:0;text-align:center}
+.fig-cmp img{width:100%;max-width:170px;height:auto;display:block;margin:0 auto}
+.fig-cmp figcaption{margin-top:4px;line-height:1.2}
+.fig-cmp figcaption small{display:block;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.fig-cmp figcaption b{display:block;font:800 18px/1.1 var(--display)}
+.fig-cmp figcaption span{font-size:13px;color:var(--muted)}
+.fig-flecha{font-size:26px;color:var(--blue);font-weight:700}
 .fig b{font-size:12px;line-height:1.15}
 .fig small{font-size:11px;color:var(--muted)}
 .fig.sel{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue) inset}
@@ -2736,7 +2744,7 @@ function planCuerpo(hoy, meta, peso, sexo){
 }
 function figsHTML(d){
   const sug = figuraPorImc(d.peso, d.altura), alt = d.altura / 100, sx = d.sexo === 'm' ? 'm' : 'h', MET = metasDe(sx);
-  const card = (nombre, k, img, nom, sel, extra) => `<label class="fig${sel ? ' sel' : ''}"><input type="radio" name="${nombre}" value="${k}"${sel ? ' checked' : ''}><img class="fig-img" src="img/cuerpos/${sx}_${img}.webp" alt="" width="200" height="542" loading="lazy" decoding="async"><b>${nom}</b>${extra ? `<small>${extra}</small>` : ''}</label>`;
+  const card = (nombre, k, img, nom, sel, extra) => `<label class="fig${sel ? ' sel' : ''}"><input type="radio" name="${nombre}" value="${k}"${sel ? ' checked' : ''}><img class="fig-img" src="img/cuerpos/${sx}_${img}.webp" alt="" width="320" height="867" loading="lazy" decoding="async"><b>${nom}</b>${extra ? `<small>${extra}</small>` : ''}</label>`;
   const hoy = FIGS[d.hoy] ? d.hoy : null, meta = MET[d.meta] ? d.meta : null, pl = k => planCuerpo(hoy, k, d.peso, sx);
   const res = pl(meta);
   let resumen = '';
@@ -2749,7 +2757,8 @@ function figsHTML(d){
     if(!pasos.length) pasos.push('<b>Mantener tu peso y ganar fuerza.</b> Pesas, buena técnica y constancia.');
     const ritmo = res.grasa > 1 ? ['−0,5 kg', 'por semana'] : res.grasa < -1 || res.musculo > .9 ? ['+0,25 kg', 'por semana'] : ['=', 'mantener'];
     const sugMeta = res.grasa > 2 ? (['panza', 'sobrepeso', 'obesidad'].includes(hoy) ? 'panza' : 'marcar') : meta === 'gluteos' ? 'gluteos' : ['fuerte', 'grande'].includes(meta) && sx === 'h' ? 'grande' : res.musculo > 1 ? 'musculo' : 'forma';
-    resumen = `<div class="fig-res"><p class="fr-t">De <b>${FIGS[hoy].n.toLowerCase()}</b> a <b>${MET[meta].n.toLowerCase()}</b></p>
+    const big = (img, et, nom, kg) => `<figure><img src="img/cuerpos/${sx}_${img}.webp" alt="${et}: ${nom}" width="320" height="867" decoding="async"><figcaption><small>${et}</small><b>${nom}</b>${kg ? `<span>${kg}</span>` : ''}</figcaption></figure>`;
+    resumen = `<div class="fig-res"><div class="fig-cmp">${big(hoy, 'Hoy', FIGS[hoy].n, d.peso ? `${fmtNum(d.peso)} kg` : '')}<span class="fig-flecha" aria-hidden="true">→</span>${big('meta_' + meta, 'Tu meta', MET[meta].n, `~${res.peso} kg`)}</div>
       <div class="fr-stats"><div><b>${res.peso - 1}–${res.peso + 1} kg</b><span>peso al llegar</span></div><div><b>${r1}–${r2} meses</b><span>siendo constante</span></div><div><b>${ritmo[0]}</b><span>${ritmo[1]}</span></div></div>
       <p class="fr-sub">Cómo llegás:</p><ol class="fr-pasos">${pasos.map(x => `<li>${x}</li>`).join('')}</ol>
       ${d.objMeta !== sugMeta ? `<button type="button" class="plain" data-usar-meta="${sugMeta}">Usar el objetivo “${METAS[sugMeta].n}”</button>` : `<p class="fig-ok">✓ Tu objetivo coincide: ${METAS[sugMeta].n}.</p>`}

@@ -1,11 +1,29 @@
-<!doctype html><html><body style="margin:0;background:transparent"><canvas id="c" width="440" height="1000"></canvas>
+<!doctype html><html><body style="margin:0;background:transparent"><canvas id="c" width="880" height="2000"></canvas>
 <script type="module">
 import * as THREE from './three.module.js';
 const R = new THREE.WebGLRenderer({canvas:document.getElementById('c'), antialias:true, alpha:true, preserveDrawingBuffer:true});
-R.outputColorSpace = THREE.SRGBColorSpace; R.toneMapping = THREE.ACESFilmicToneMapping; R.toneMappingExposure = 1.05;
+R.outputColorSpace = THREE.SRGBColorSpace; R.shadowMap.enabled = false; R.shadowMap.type = THREE.PCFSoftShadowMap; R.toneMapping = THREE.ACESFilmicToneMapping; R.toneMappingExposure = 1.05;
 const L = new THREE.TextureLoader();
 const tex = (f, srgb = true) => new Promise(ok => L.load('tex/' + f, t => { if(srgb) t.colorSpace = THREE.SRGBColorSpace; t.flipY = true; t.anisotropy = 8; ok(t); }));
 function geo(d){ const g = new THREE.BufferGeometry(); if(d.b) g.setAttribute('b', new THREE.Float32BufferAttribute(d.b, 3)); g.setAttribute('position', new THREE.Float32BufferAttribute(d.pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(d.uv, 2)); g.setIndex(d.idx); g.computeVertexNormals(); return g; }
+// Relieve de abdominales, pecho y oblicuos según la posición en la malla base (vB)
+const ALTURA = `
+float zonaAbs(vec3 b){ float ax = abs(b.x), y = b.y, fr = smoothstep(0.6, 1.0, b.z); return fr * (1.0 - smoothstep(0.72, 0.95, ax)) * smoothstep(1.25, 1.55, y) * (1.0 - smoothstep(3.25, 3.45, y)); }
+float surcos(vec3 b){
+  float ax = abs(b.x), y = b.y, fr = smoothstep(0.6, 1.0, b.z), abz = zonaAbs(b);
+  float o = gs(ax, 0.06) * abz;
+  o += (gs(y - 2.25 - 0.06 * ax, 0.065) + gs(y - 2.78 - 0.05 * ax, 0.065) + gs(y - 3.22 - 0.04 * ax, 0.06)) * abz * (1.0 - smoothstep(0.62, 0.8, ax));
+  float pc = uHombre * fr * smoothstep(0.12, 0.3, ax) * (1.0 - smoothstep(1.35, 1.6, ax));
+  o += gs(y - (3.36 + 0.22 * pow(max(ax - 0.2, 0.0), 2.0)), 0.07) * pc;
+  o += gs(seg(vec2(ax, y), vec2(1.02, 1.75), vec2(0.42, 0.55)), 0.06) * fr * smoothstep(0.6, 0.9, y);
+  return o;
+}
+float relieve(vec3 b){ return zonaAbs(b) * 0.6 - surcos(b); }
+vec3 perturbar(vec3 p, vec3 n, vec2 dh, float fd){
+  vec3 sx = normalize(dFdx(p)), sy = normalize(dFdy(p)), r1 = cross(sy, n), r2 = cross(n, sx);
+  float det = dot(sx, r1) * fd; vec3 g = sign(det) * (dh.x * r1 + dh.y * r2);
+  return normalize(abs(det) * n - g);
+}`;
 window.render = async (name, sexo) => {
   const d = await (await fetch('data/' + name + '.json')).json();
   const S = new THREE.Scene();
@@ -13,34 +31,33 @@ window.render = async (name, sexo) => {
   const piel = new THREE.MeshStandardMaterial({map:skin, color:0xf0cdb4, roughness:.55, metalness:0});
   piel.onBeforeCompile = sh => {
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec3 b; varying vec3 vB;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvB = b;');
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vB;\nuniform float uMujer;\nuniform float uDef;\nuniform float uHombre;\nfloat gs(float d, float w){ return exp(-d*d/(w*w)); }\nfloat seg(vec2 p, vec2 a, vec2 b){ vec2 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); return length(pa - ba * h); }').replace('#include <map_fragment>', `#include <map_fragment>
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vB;\nuniform float uMujer;\nuniform float uDef;\nuniform float uHombre;\nfloat gs(float d, float w){ return exp(-d*d/(w*w)); }\nfloat seg(vec2 p, vec2 a, vec2 b){ vec2 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); return length(pa - ba * h); }\n' + ALTURA).replace('#include <map_fragment>', `#include <map_fragment>
       float ax = abs(vB.x);
       float bajo = smoothstep(-3.05, -2.97, vB.y) * (1.0 - smoothstep(0.95, 1.03, vB.y)) * (1.0 - smoothstep(2.2, 2.3, ax));
       float arriba = uMujer * smoothstep(3.25, 3.33, vB.y) * (1.0 - smoothstep(5.0, 5.08, vB.y)) * (1.0 - smoothstep(1.85, 1.95, ax));
-      // Definición muscular (abdominales, pecho y oblicuos) dibujada según la posición en la malla base
-      float fr = smoothstep(0.6, 1.0, vB.z), y = vB.y;
-      float abz = fr * (1.0 - smoothstep(0.72, 0.95, ax)) * smoothstep(1.25, 1.55, y) * (1.0 - smoothstep(3.25, 3.45, y));
-      float osc = gs(ax, 0.07) * abz;
-      osc += (gs(y - 2.25 - 0.06 * ax, 0.075) + gs(y - 2.78 - 0.05 * ax, 0.075) + gs(y - 3.22 - 0.04 * ax, 0.07)) * abz * (1.0 - smoothstep(0.62, 0.8, ax));
-      float pc = uHombre * fr * smoothstep(0.12, 0.3, ax) * (1.0 - smoothstep(1.35, 1.6, ax));
-      osc += gs(y - (3.36 + 0.22 * pow(max(ax - 0.2, 0.0), 2.0)), 0.075) * pc;
-      osc += gs(seg(vec2(ax, y), vec2(1.02, 1.75), vec2(0.42, 0.55)), 0.07) * fr;
-      float luz = abz * (1.0 - smoothstep(0.62, 0.8, ax)) * smoothstep(0.08, 0.2, ax) * (gs(y - 2.0, .16) + gs(y - 2.52, .16) + gs(y - 3.0, .15));
-      diffuseColor.rgb *= 1.0 - uDef * (0.3 + 0.08 * (1.0 - uHombre)) * clamp(osc, 0.0, 1.0);
-      diffuseColor.rgb *= 1.0 + uDef * 0.16 * luz;
-      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.03, 0.045, 0.06), bajo);
+      // Surcos entre músculos: un poco más oscuros (el relieve lo da la normal, más abajo)
+      diffuseColor.rgb *= 1.0 - uDef * 0.13 * clamp(surcos(vB), 0.0, 1.0) * (1.0 - bajo);
+      // Short de tela mate, con elástico arriba
+      float elast = smoothstep(0.78, 0.8, vB.y) * bajo;
+      vec3 tela = mix(vec3(0.045, 0.05, 0.058), vec3(0.09, 0.095, 0.105), elast);
+      tela *= 0.94 + 0.06 * sin(vB.y * 140.0) * sin(vB.x * 120.0);
+      diffuseColor.rgb = mix(diffuseColor.rgb, tela, bajo);
       diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.05, 0.11, 0.2), arriba);`);
+    sh.fragmentShader = sh.fragmentShader.replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n roughnessFactor = mix(roughnessFactor, 0.97, smoothstep(-3.05, -2.97, vB.y) * (1.0 - smoothstep(0.95, 1.03, vB.y)) * (1.0 - smoothstep(2.2, 2.3, abs(vB.x))));')
+      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+      { float h = uDef * 0.06 * relieve(vB); vec2 dh = vec2(dFdx(h), dFdy(h)); normal = perturbar(-vViewPosition, normal, dh, faceDirection); }`);
     sh.uniforms.uMujer = {value: 0}; sh.uniforms.uDef = {value: d.def || 0}; sh.uniforms.uHombre = {value: sexo === 'h' ? 1 : 0};
   };
   const tela = new THREE.MeshStandardMaterial({color:0x2b3540, roughness:.85});
   const tela2 = new THREE.MeshStandardMaterial({map: sexo === 'm' ? await tex('top.png') : null, normalMap: sexo === 'm' ? await tex('top_n.png', false) : null, roughness:.8, side:THREE.DoubleSide, polygonOffset:true, polygonOffsetFactor:-2});
   const pelo = new THREE.MeshStandardMaterial({map:hair, transparent:true, alphaTest:.35, side:THREE.DoubleSide, roughness:.7, color:0x5a4030});
   const alfa = t => new THREE.MeshStandardMaterial({map:t, transparent:true, alphaTest:.3, side:THREE.DoubleSide, roughness:.8});
-  const add = (k, m) => { if(d[k] && d[k].idx.length) S.add(new THREE.Mesh(geo(d[k]), m)); };
+  const add = (k, m) => { if(d[k] && d[k].idx.length){ const me = new THREE.Mesh(geo(d[k]), m); me.castShadow = me.receiveShadow = k !== 'eyes' && k !== 'lashes'; S.add(me); } };
   add('body', piel); add('shorts', tela); add('top', tela2); add('eyes', new THREE.MeshStandardMaterial({map:eye, roughness:.3})); add('brows', alfa(brows)); add('lashes', alfa(lashes)); add('hair', pelo);
   // Luz de estudio: clave lateral alta que marca el relieve del músculo, relleno suave y contraluz
-  S.add(new THREE.HemisphereLight(0xffffff, 0x6d625a, .62));
-  const k = new THREE.DirectionalLight(0xfff1e4, 2.4); k.position.set(-7, 9, 8); S.add(k);
+  S.add(new THREE.HemisphereLight(0xffffff, 0x6d625a, .8));
+  const k = new THREE.DirectionalLight(0xfff1e4, 2.4); k.position.set(-4, 8, 13); k.castShadow = true;
+  k.shadow.mapSize.set(2048, 2048); Object.assign(k.shadow.camera, {left:-7, right:7, top:11, bottom:-11, near:1, far:40}); k.shadow.bias = -.0004; k.shadow.normalBias = .03; k.shadow.radius = 4; S.add(k);
   const f = new THREE.DirectionalLight(0xe8f0ff, .7); f.position.set(9, 2, 7); S.add(f);
   const b1 = new THREE.DirectionalLight(0xffffff, 1.6); b1.position.set(6, 6, -9); S.add(b1);
   const b2 = new THREE.DirectionalLight(0xffffff, 1.2); b2.position.set(-6, 4, -9); S.add(b2);
