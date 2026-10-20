@@ -7,6 +7,7 @@ import {RenderPass} from './pp/RenderPass.js';
 import {UnrealBloomPass} from './pp/UnrealBloomPass.js';
 import {OutputPass} from './pp/OutputPass.js';
 import {ShaderPass} from './pp/ShaderPass.js';
+import {RoomEnvironment} from './pp/RoomEnvironment.js';
 
 export const tiene3D = id => !!EJ3D[id];
 
@@ -194,10 +195,43 @@ function fondo(){
   x.fillStyle = gr; x.fillRect(0, 0, 256, 256);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
+// Piso de goma de gimnasio (baldosas) y paredes con paneles y tiras de luz LED
+function pisoGoma(){
+  const c = document.createElement('canvas'); c.width = c.height = 512; const x = c.getContext('2d');
+  x.fillStyle = '#15171b'; x.fillRect(0, 0, 512, 512);
+  for(let i = 0; i < 4000; i++){ x.fillStyle = `rgba(255,255,255,${Math.random() * .035})`; x.fillRect(Math.random() * 512, Math.random() * 512, 2, 2); }
+  x.strokeStyle = '#0a0b0d'; x.lineWidth = 6; x.strokeRect(0, 0, 512, 512);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(16, 16); t.anisotropy = 8;
+  return new THREE.MeshStandardMaterial({map:t, color:0x6a6f78, roughness:.8, metalness:0});
+}
+function gimnasio(S, y0, rad = 36){
+  const c = document.createElement('canvas'); c.width = 1024; c.height = 256; const x = c.getContext('2d');
+  x.fillStyle = '#1f232a'; x.fillRect(0, 0, 1024, 256);
+  for(let i = 0; i < 16; i++){ x.fillStyle = i % 2 ? '#252a32' : '#1c2026'; x.fillRect(i * 64, 0, 62, 256); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = THREE.RepeatWrapping; t.repeat.set(5, 1);
+  const pared = new THREE.Mesh(new THREE.CylinderGeometry(rad, rad, 34, 72, 1, true), new THREE.MeshStandardMaterial({map:t, roughness:.85, side:THREE.BackSide}));
+  pared.position.y = y0 + 17; S.add(pared);
+  const led = new THREE.MeshBasicMaterial({color:0x5f7fbf});
+  const tiras = new THREE.Group(); tiras.userData.brilla = true;
+  for(let i = 0; i < 20; i++){ const a = i / 20 * Math.PI * 2, b = new THREE.Mesh(new THREE.BoxGeometry(.12, 16, .12), led); b.position.set(Math.sin(a) * (rad - .4), y0 + 10, Math.cos(a) * (rad - .4)); tiras.add(b); }
+  S.add(tiras);
+  // Rack de sentadillas y soporte de discos al fondo
+  const metal = new THREE.MeshStandardMaterial({color:0x2b2f36, roughness:.4, metalness:.7});
+  const rack = new THREE.Group();
+  [[-1.6, -1.2], [1.6, -1.2], [-1.6, 1.2], [1.6, 1.2]].forEach(([px, pz]) => { const p = new THREE.Mesh(new THREE.BoxGeometry(.3, 11, .3), metal); p.position.set(px, 5.5, pz); rack.add(p); });
+  [[0, 11, -1.2], [0, 11, 1.2]].forEach(([px, py, pz]) => { const p = new THREE.Mesh(new THREE.BoxGeometry(3.5, .3, .3), metal); p.position.set(px, py, pz); rack.add(p); });
+  const barra = new THREE.Mesh(new THREE.CylinderGeometry(.1, .1, 7, 12), metal); barra.rotation.z = Math.PI / 2; barra.position.set(0, 6.5, -1.2); rack.add(barra);
+  rack.position.set(-rad * .4, y0, -rad * .5); rack.rotation.y = .5; S.add(rack);
+  const discos = new THREE.Group(), negro = new THREE.MeshStandardMaterial({color:0x111214, roughness:.6});
+  const poste = new THREE.Mesh(new THREE.CylinderGeometry(.12, .12, 4, 10), metal); poste.position.y = 2; discos.add(poste);
+  [1.6, 1.4, 1.2, 1].forEach((r, i) => { const d = new THREE.Mesh(new THREE.CylinderGeometry(r, r, .3, 32), negro); d.rotation.x = Math.PI / 2; d.position.set(0, r, .35 + i * .32); discos.add(d); });
+  discos.position.set(rad * .4, y0, -rad * .5); discos.rotation.y = -.6; S.add(discos);
+  [rack, discos].forEach(g => g.traverse(m => { if(m.isMesh){ m.castShadow = true; m.receiveShadow = true; } }));
+}
 const lerp3 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 const suave = t => t * t * (3 - 2 * t);
 
-export async function crearDemo3D(el, id){
+export async function crearDemo3D(el, id, opts = {}){
   const E = EJ3D[id];
   el.innerHTML = `<div class="d3"><canvas></canvas><svg class="d3-flechas" aria-hidden="true"></svg>
     <span class="d3-sello"></span><p class="d3-txt"></p><span class="d3-cargando">Cargando 3D…</span></div>
@@ -223,7 +257,7 @@ export async function crearDemo3D(el, id){
   comp.addPass(new OutputPass());
   const negro = new THREE.Color(0);
   function dibujar(){
-    const fondoS = S.background, ocultos = S.children.filter(o => o !== cuerpo && o.visible && !o.isLight);
+    const fondoS = S.background, ocultos = S.children.filter(o => o !== cuerpo && o.visible && !o.isLight && !o.userData.brilla);
     S.background = negro; ocultos.forEach(o => { o.visible = false; }); u.uSolo.value = 1;
     compB.render();
     S.background = fondoS; ocultos.forEach(o => { o.visible = true; }); u.uSolo.value = 0;
@@ -234,9 +268,19 @@ export async function crearDemo3D(el, id){
   const k2 = new THREE.DirectionalLight(0xffffff, .8); k2.position.set(-6, 2, 9); S.add(k2);
   const r1 = new THREE.DirectionalLight(0x6f9bff, 1.6); r1.position.set(-9, 5, -8); S.add(r1);
   const r2 = new THREE.DirectionalLight(0xffb070, .9); r2.position.set(9, 3, -6); S.add(r2);
-  const piso = new THREE.Mesh(new THREE.CircleGeometry(40, 64), new THREE.MeshStandardMaterial({color:0x0f1115, roughness:1}));
+  const piso = new THREE.Mesh(new THREE.CircleGeometry(90, 72), new THREE.MeshStandardMaterial({color:0x0f1115, roughness:1}));
   piso.rotation.x = -Math.PI / 2; S.add(piso);
   let minY = 0; for(let i = 1; i < D.pos.length; i += 3) minY = Math.min(minY, D.pos[i]); piso.position.y = minY - .02;
+  // Calidad de video: reflejos de estudio, sombras suaves y un gimnasio alrededor
+  if(opts.video){
+    R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap;
+    k.castShadow = true; k.shadow.mapSize.set(2048, 2048); k.shadow.bias = -.0004; k.shadow.normalBias = .02;
+    Object.assign(k.shadow.camera, {left:-13, right:13, top:15, bottom:-13, near:1, far:45}); k.shadow.camera.updateProjectionMatrix();
+    piso.receiveShadow = true; piso.material = pisoGoma();
+    const pm = new THREE.PMREMGenerator(R); S.environment = pm.fromScene(new RoomEnvironment(R), .04).texture; pm.dispose();
+    S.fog = new THREE.Fog(0x0b0d10, 30, 75);
+    const rad = Math.max(30, E.cam.dist * 1.9); gimnasio(S, minY, rad); S.fog.near = rad * .8; S.fog.far = rad * 2.1;
+  }
 
   // Cuerpo con esqueleto
   const {meta} = D, g = new THREE.BufferGeometry();
@@ -252,7 +296,7 @@ export async function crearDemo3D(el, id){
   const cuerpo = new THREE.SkinnedMesh(g, mat);
   huesos.filter((b, i) => meta.bones[i].p < 0).forEach(r => cuerpo.add(r));
   cuerpo.bind(new THREE.Skeleton(huesos)); cuerpo.frustumCulled = false;
-  S.add(cuerpo);
+  cuerpo.castShadow = !!opts.video; S.add(cuerpo);
   const B = Object.fromEntries(huesos.map(b => [b.name, b]));
   const REST = {}, prof = {}, LARGO = {};
   meta.bones.forEach(b => { REST[b.n] = new THREE.Vector3(b.t[0] - b.h[0], b.t[1] - b.h[1], b.t[2] - b.h[2]).normalize(); });
@@ -276,6 +320,10 @@ export async function crearDemo3D(el, id){
   if(tipoObj === 'barraJalon') objs.push(barra(9, false));
   objs.forEach(o => S.add(o));
   const escena = (E.props || []).map(p => { const o = prop(p); S.add(o); return {p, o}; });
+  if(opts.video){
+    [...objs, ...escena.map(x => x.o)].forEach(o => o.traverse(m => { if(m.isMesh){ m.castShadow = true; m.receiveShadow = true; } }));
+    S.traverse(o => { if(o.material && 'envMapIntensity' in o.material) o.material.envMapIntensity = o === cuerpo ? .5 : .35; });
+  }
 
   const q = new THREE.Quaternion(), v = new THREE.Vector3();
   function apuntar(n, d){
