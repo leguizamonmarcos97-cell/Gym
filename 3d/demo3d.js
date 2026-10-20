@@ -389,7 +389,13 @@ export async function crearDemo3D(el, id, opts = {}){
   function aplicar(A, Bp, t, conAnim = false){
     huesos.forEach(b => b.quaternion.identity());
     raiz.position.copy(raiz0);
-    if(conAnim && ANIM){ contraccion = aplicarGrabado(t); A = Bp = {}; }
+    if(conAnim && ANIM){
+      contraccion = aplicarGrabado(t);
+      // En un error se usa el mismo movimiento grabado y solo cambian las piernas (por ejemplo, talones levantados)
+      if(conAnim === 'error') Object.entries(Bp.dirs || {}).filter(([n]) => /^(upperleg01|lowerleg01|foot)\./.test(n)).sort((a, b) => prof[a[0]] - prof[b[0]])
+        .forEach(([n, d]) => apuntar(n, girarHacia(dirActual(n), d, contraccion)));
+      A = Bp = {};
+    }
     const rot = conAnim && ANIM ? null : mezcla(A.rot, Bp.rot, t);
     if(rot) raiz.quaternion.setFromEuler(new THREE.Euler(...rot.map(x => x * Math.PI / 180), 'YXZ'));
     const pos = mezcla(A.pos, Bp.pos, t);
@@ -594,7 +600,7 @@ export async function crearDemo3D(el, id, opts = {}){
   const ro = new ResizeObserver(medir); ro.observe(caja);
 
   // Modos: forma correcta y errores
-  const modos = [{n:'Bien', A:E.A, B:E.B, musc:E.musc, txt:E.txt, anim:!!ANIM}].concat((E.errores || []).map(x => Object.assign({mal:true}, x, {A:x.A || E.A, B:x.B || E.B})));
+  const modos = [{n:'Bien', A:E.A, B:E.B, musc:E.musc, txt:E.txt, anim:!!ANIM}].concat((E.errores || []).map(x => Object.assign({mal:true}, x, {A:x.A || E.A, B:x.B || E.B, anim:ANIM ? 'error' : false})));
   let modo = 0, t0 = performance.now(), trazo = [];
   const bt = el.querySelector('.d3-modos');
   bt.innerHTML = modos.map((x, i) => `<button type="button" data-d3m="${i}" aria-pressed="${i === 0}" class="${x.mal ? 'mal' : 'bien'}">${x.mal ? '✗' : '✓'} ${x.n}</button>`).join('');
@@ -648,6 +654,6 @@ export async function crearDemo3D(el, id, opts = {}){
   raf = requestAnimationFrame(cuadro);
   // Para pruebas: dibuja un cuadro fijo (t de 0 a 1) de un modo
   function fijar(t, i = modo){ if(i !== modo) elegir(i); cancelAnimationFrame(raf); raf = 0; visible = false; aplicar(modos[i].A, modos[i].B, t, modos[i].anim); u.uPulso.value = modos[i].anim ? contraccion : t; dibujar(); dibujarFlecha(); }
-  return {anim:() => ANIM ? {dur:durAnim, pico} : null, contr:() => contraccion, dbg:(t, i, ns) => { aplicar(modos[i].A, modos[i].B, t, modos[i].anim); return Object.fromEntries(ns.map(n => [n, punto(n).toArray().map(x => +x.toFixed(2))])); }, fijar, girar:a => { az = a; ubicarCam(); }, camara:o => { camO = o || {}; if(o && o.az != null) az = o.az; ubicarCam(); }, hueso:n => punto(n).toArray(), cam0:() => ({az:E.cam.az, el:E.cam.el || .08, dist:E.cam.dist, mira:mira.toArray()}), modos:() => modos.map(x => ({n:x.n, mal:!!x.mal, txt:x.txt || '', musc:x.musc || E.musc, malMusc:x.malMusc || {}})),
+  return {anim:() => ANIM ? {dur:durAnim, pico} : null, contr:() => contraccion, dbg:(t, i, ns) => { aplicar(modos[i].A, modos[i].B, t, modos[i].anim); return Object.fromEntries(ns.map(n => [n, punto(n).toArray().map(x => +x.toFixed(2))])); }, fijar, girar:a => { az = a; ubicarCam(); }, camara:o => { camO = o || {}; if(o && o.az != null) az = o.az; ubicarCam(); }, hueso:n => punto(n).toArray(), cam0:() => ({az:E.cam.az, el:E.cam.el || .08, dist:E.cam.dist, mira:mira.toArray()}), modos:() => modos.map(x => ({n:x.n, mal:!!x.mal, anim:!!x.anim, txt:x.txt || '', musc:x.musc || E.musc, malMusc:x.malMusc || {}})),
     destruir(){ cancelAnimationFrame(raf); io.disconnect(); ro.disconnect(); comp.dispose(); compB.dispose(); R.dispose(); g.dispose(); mat.dispose(); cabeza.geometry.dispose(); matCab.dispose(); negroCab.dispose(); }};
 }
