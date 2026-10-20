@@ -1,0 +1,39 @@
+<!doctype html><html><body style="margin:0;background:transparent"><canvas id="c" width="440" height="1000"></canvas>
+<script type="module">
+import * as THREE from './three.module.js';
+const R = new THREE.WebGLRenderer({canvas:document.getElementById('c'), antialias:true, alpha:true, preserveDrawingBuffer:true});
+R.outputColorSpace = THREE.SRGBColorSpace; R.toneMapping = THREE.ACESFilmicToneMapping; R.toneMappingExposure = 1.05;
+const L = new THREE.TextureLoader();
+const tex = (f, srgb = true) => new Promise(ok => L.load('tex/' + f, t => { if(srgb) t.colorSpace = THREE.SRGBColorSpace; t.flipY = true; t.anisotropy = 8; ok(t); }));
+function geo(d){ const g = new THREE.BufferGeometry(); if(d.b) g.setAttribute('b', new THREE.Float32BufferAttribute(d.b, 3)); g.setAttribute('position', new THREE.Float32BufferAttribute(d.pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(d.uv, 2)); g.setIndex(d.idx); g.computeVertexNormals(); return g; }
+window.render = async (name, sexo) => {
+  const d = await (await fetch('data/' + name + '.json')).json();
+  const S = new THREE.Scene();
+  const [skin, hair, brows, lashes, eye] = await Promise.all([tex('skin_' + sexo + '.png'), tex('hair_' + sexo + '.png'), tex('brows.png'), tex('lashes.png'), tex('eye.png')]);
+  const piel = new THREE.MeshStandardMaterial({map:skin, roughness:.62, metalness:0});
+  piel.onBeforeCompile = sh => {
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec3 b; varying vec3 vB;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvB = b;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vB;\nuniform float uMujer;').replace('#include <map_fragment>', `#include <map_fragment>
+      float ax = abs(vB.x);
+      float bajo = smoothstep(-3.05, -2.97, vB.y) * (1.0 - smoothstep(0.95, 1.03, vB.y)) * (1.0 - smoothstep(2.2, 2.3, ax));
+      float arriba = uMujer * smoothstep(3.25, 3.33, vB.y) * (1.0 - smoothstep(5.0, 5.08, vB.y)) * (1.0 - smoothstep(1.85, 1.95, ax));
+      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.03, 0.045, 0.06), bajo);
+      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.05, 0.11, 0.2), arriba);`);
+    sh.uniforms.uMujer = {value: 0};
+  };
+  const tela = new THREE.MeshStandardMaterial({color:0x2b3540, roughness:.85});
+  const tela2 = new THREE.MeshStandardMaterial({map: sexo === 'm' ? await tex('top.png') : null, normalMap: sexo === 'm' ? await tex('top_n.png', false) : null, roughness:.8, side:THREE.DoubleSide, polygonOffset:true, polygonOffsetFactor:-2});
+  const pelo = new THREE.MeshStandardMaterial({map:hair, transparent:true, alphaTest:.35, side:THREE.DoubleSide, roughness:.7, color:0x5a4030});
+  const alfa = t => new THREE.MeshStandardMaterial({map:t, transparent:true, alphaTest:.3, side:THREE.DoubleSide, roughness:.8});
+  const add = (k, m) => { if(d[k] && d[k].idx.length) S.add(new THREE.Mesh(geo(d[k]), m)); };
+  add('body', piel); add('shorts', tela); add('top', tela2); add('eyes', new THREE.MeshStandardMaterial({map:eye, roughness:.3})); add('brows', alfa(brows)); add('lashes', alfa(lashes)); add('hair', pelo);
+  S.add(new THREE.HemisphereLight(0xffffff, 0x8a7a70, 1.1));
+  const k = new THREE.DirectionalLight(0xffffff, 2.2); k.position.set(4, 8, 12); S.add(k);
+  const f = new THREE.DirectionalLight(0xffeedd, .9); f.position.set(-8, 3, 6); S.add(f);
+  const b = new THREE.DirectionalLight(0xffffff, 1.2); b.position.set(0, 6, -10); S.add(b);
+  const cam = new THREE.OrthographicCamera(-5.6, 5.6, 12.7, -12.7, .1, 100); cam.position.set(0, .2, 30); cam.lookAt(0, .2, 0);
+  R.setClearColor(0x000000, 0); R.render(S, cam);
+  return R.domElement.toDataURL('image/png');
+};
+window.ready = true;
+</script></body></html>
