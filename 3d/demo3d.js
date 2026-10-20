@@ -26,39 +26,32 @@ async function cargar(){
   // Posición y normal en la malla base (para dibujar el relieve, el short y las fibras) y dirección de las fibras de cada zona
   const bpos = Float32Array.from(new Int16Array(buf, o, n * 3), v => v / 3000); o += n * 6;
   const nbase = Float32Array.from(new Int8Array(buf, o, n * 3), v => v / 127); o += n * 3;
-  const fibra = Float32Array.from(new Int8Array(buf, o, n * 3), v => v / 127);
+  const fibra = Float32Array.from(new Int8Array(buf, o, n * 3), v => v / 127); o += n * 3;
+  // Cavidad (surcos entre músculos): hace que se noten los músculos con sombras suaves
+  const cav = buf.byteLength >= o + n ? Float32Array.from(new Int8Array(buf, o, n), v => v / 127) : new Float32Array(n);
   const idxM = cabezaManiqui(meta, pos, si, sw, idx);
-  DATOS = {meta, pos, idx:idxM, si, sw, zona, base:bpos, nbase, fibra, dborde:distBorde(n, idx, zona, bpos)};
+  DATOS = {meta, pos, idx:idxM, si, sw, zona, base:bpos, nbase, fibra, cav, dborde:distBorde(n, idx, zona, bpos)};
   return DATOS;
 }
 
-// Cabeza de maniquí (lisa, sin cara ni orejas): los vértices de la cabeza se llevan a la superficie de un huevo
+// Cabeza de maniquí: se quitan los triángulos de la cabeza original (cara, orejas, boca) y se pone una cabeza lisa aparte
 function cabezaManiqui(meta, pos, si, sw, idx){
   const cab = new Set(), pila = [meta.bones.findIndex(b => b.n === 'head')];
   while(pila.length){ const i = pila.pop(); cab.add(i); meta.bones.forEach((b, j) => { if(b.p === i) pila.push(j); }); }
-  const cx = 0, cy = 8.32, cz = .5, rx = .78, ry = 1.02, rz = .94;
-  for(let v = 0; v < pos.length / 3; v++){
-    let w = 0; for(let k = 0; k < 4; k++) if(cab.has(si[v * 4 + k])) w += sw[v * 4 + k] / 255;
-    if(w < .01) continue;
-    const x = pos[v * 3], y = pos[v * 3 + 1], z = pos[v * 3 + 2];
-    let qx = (x - cx) / rx, qy = (y - cy) / ry, qz = (z - cz) / rz; const l = Math.hypot(qx, qy, qz) || 1; qx /= l; qy /= l; qz /= l;
-    const abajo = Math.max(0, -qy), fx = 1 - .25 * abajo, fz = 1 - .12 * abajo;
-    const a = w * w * (3 - 2 * w);
-    pos[v * 3] = x + (cx + qx * rx * fx - x) * a; pos[v * 3 + 1] = y + (cy + qy * ry - y) * a; pos[v * 3 + 2] = z + (cz + qz * rz * fz - z) * a;
-  }
-  // Se quitan los triángulos que quedaron mirando hacia adentro (boca, párpados) o aplastados
-  const P = i => [pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]], quedan = [];
-  for(let i = 0; i < idx.length; i += 3){
-    const a = P(idx[i]), b = P(idx[i + 1]), c = P(idx[i + 2]);
-    const m = [(a[0] + b[0] + c[0]) / 3, (a[1] + b[1] + c[1]) / 3, (a[2] + b[2] + c[2]) / 3];
-    if(m[1] > 7.35){
-      const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], w = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
-      const nx = u[1] * w[2] - u[2] * w[1], ny = u[2] * w[0] - u[0] * w[2], nz = u[0] * w[1] - u[1] * w[0];
-      if(nx * (m[0] - cx) + ny * (m[1] - cy) + nz * (m[2] - cz) <= 0) continue;
-    }
-    quedan.push(idx[i], idx[i + 1], idx[i + 2]);
-  }
+  const w = v => { let s = 0; for(let k = 0; k < 4; k++) if(cab.has(si[v * 4 + k])) s += sw[v * 4 + k] / 255; return s; };
+  const quedan = [];
+  const fuera = v => w(v) > .3 || pos[v * 3 + 1] > 7.55;   // cabeza y parte alta del cuello: los tapan la cabeza y el cuello lisos
+  for(let i = 0; i < idx.length; i += 3) if(!(fuera(idx[i]) || fuera(idx[i + 1]) || fuera(idx[i + 2]))) quedan.push(idx[i], idx[i + 1], idx[i + 2]);
   return Uint16Array.from(quedan);
+}
+// Huevo liso (un poco más angosto abajo, como la mandíbula)
+function huevo(){
+  const g = new THREE.SphereGeometry(1, 64, 40), p = g.attributes.position;
+  for(let i = 0; i < p.count; i++){
+    const y = p.getY(i), f = y < 0 ? 1 - .2 * Math.pow(-y, 1.4) : 1;
+    p.setXYZ(i, p.getX(i) * .8 * f, y * 1.12, p.getZ(i) * .93 * (y < 0 ? 1 - .08 * -y : 1));
+  }
+  g.computeVertexNormals(); return g;
 }
 // Distancia (sobre la piel) de cada vértice al borde de su zona muscular: para dibujar el contorno de luz del músculo
 function distBorde(n, idx, zona, b){
@@ -107,12 +100,12 @@ function materialCuerpo(){
   m.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, u);
     sh.vertexShader = sh.vertexShader.replace('#include <common>', `#include <common>
-      attribute float zona; attribute vec3 bpos; attribute vec3 bnor; attribute vec3 fibra; attribute float dborde; varying float vDB;
+      attribute float zona; attribute vec3 bpos; attribute vec3 bnor; attribute vec3 fibra; attribute float dborde; varying float vDB; attribute float cav; varying float vCav;
       uniform float uAct[${ZONAS_MAX}]; uniform float uMal[${ZONAS_MAX}]; varying float vAct; varying float vMal; varying vec3 vB; varying vec3 vNB; varying vec3 vFD;`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
-      int zi = int(zona + .5); vAct = uAct[zi]; vMal = uMal[zi]; vB = bpos; vNB = bnor; vFD = fibra; vDB = dborde;`);
+      int zi = int(zona + .5); vAct = uAct[zi]; vMal = uMal[zi]; vB = bpos; vNB = bnor; vFD = fibra; vDB = dborde; vCav = cav;`);
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
-      varying float vAct; varying float vMal; varying vec3 vB; varying vec3 vNB; varying vec3 vFD; varying float vDB; uniform float uPulso; uniform float uSolo;
+      varying float vAct; varying float vMal; varying vec3 vB; varying vec3 vNB; varying vec3 vFD; varying float vDB; varying float vCav; uniform float uPulso; uniform float uSolo;
       ${RELIEVE}`)
       .replace('#include <color_fragment>', `#include <color_fragment>
       float act = max(vAct, vMal), lleno = smoothstep(.12, .28, act), neon = smoothstep(.12, .3, act) * (1. - smoothstep(.02, .085, vDB)), centro = smoothstep(.12, .6, vDB), fuerza = .55 + .45 * smoothstep(.4, 1., act);
@@ -126,6 +119,10 @@ function materialCuerpo(){
       vec3 malo = mix(vec3(.6, .0, .0), vec3(1., .22, .1), tiras);
       vec3 colM = mix(musculo, malo, step(vAct, vMal)) * fuerza * (1. + .5 * (1. - smoothstep(.04, .3, vDB)));
       diffuseColor.rgb = mix(diffuseColor.rgb, colM, lleno * (1. - shorts));
+      // Surcos más oscuros y relieves más claros: así se marcan los músculos
+      float sinCara = 1. - smoothstep(7.15, 7.45, vB.y);   // la cabeza de maniquí queda lisa
+      float hondo = smoothstep(.04, .7, vCav) * sinCara, alto = smoothstep(.08, .75, -vCav) * sinCara;
+      diffuseColor.rgb *= (1. - .7 * hondo + .16 * alto);
       diffuseColor.rgb = mix(diffuseColor.rgb, vec3(.025, .028, .032), shorts);
       vec3 colNeon = mix(vec3(.12, .38, 1.), vec3(1., .15, .1), step(vAct, vMal));
       diffuseColor.rgb = mix(diffuseColor.rgb, colNeon, neon * (1. - shorts));`)
@@ -271,9 +268,9 @@ export async function crearDemo3D(el, id, opts = {}){
   const negro = new THREE.Color(0);
   function dibujar(){
     const fondoS = S.background, ocultos = S.children.filter(o => o !== cuerpo && o.visible && !o.isLight && !o.userData.brilla);
-    S.background = negro; ocultos.forEach(o => { o.visible = false; }); u.uSolo.value = 1;
+    S.background = negro; ocultos.forEach(o => { o.visible = false; }); u.uSolo.value = 1; cabeza.material = cuello.material = negroCab;
     compB.render();
-    S.background = fondoS; ocultos.forEach(o => { o.visible = true; }); u.uSolo.value = 0;
+    S.background = fondoS; ocultos.forEach(o => { o.visible = true; }); u.uSolo.value = 0; cabeza.material = cuello.material = matCab;
     comp.render();
   }
   S.add(new THREE.HemisphereLight(0xdfe8ff, 0x16181c, .5));
@@ -301,7 +298,7 @@ export async function crearDemo3D(el, id, opts = {}){
   g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(Uint16Array.from(D.si), 4));
   g.setAttribute('skinWeight', new THREE.BufferAttribute(Float32Array.from(D.sw, v => v / 255), 4));
   g.setAttribute('zona', new THREE.BufferAttribute(Float32Array.from(D.zona), 1));
-  g.setAttribute('bpos', new THREE.BufferAttribute(D.base, 3)); g.setAttribute('bnor', new THREE.BufferAttribute(D.nbase, 3)); g.setAttribute('fibra', new THREE.BufferAttribute(D.fibra, 3)); g.setAttribute('dborde', new THREE.BufferAttribute(D.dborde, 1));
+  g.setAttribute('bpos', new THREE.BufferAttribute(D.base, 3)); g.setAttribute('bnor', new THREE.BufferAttribute(D.nbase, 3)); g.setAttribute('fibra', new THREE.BufferAttribute(D.fibra, 3)); g.setAttribute('dborde', new THREE.BufferAttribute(D.dborde, 1)); g.setAttribute('cav', new THREE.BufferAttribute(D.cav, 1));
   g.computeVertexNormals();
   const huesos = meta.bones.map(b => { const x = new THREE.Bone(); x.name = b.n; return x; });
   meta.bones.forEach((b, i) => { const h = new THREE.Vector3(...b.h); if(b.p >= 0){ huesos[b.p].add(huesos[i]); h.sub(new THREE.Vector3(...meta.bones[b.p].h)); } huesos[i].position.copy(h); });
@@ -309,6 +306,15 @@ export async function crearDemo3D(el, id, opts = {}){
   const cuerpo = new THREE.SkinnedMesh(g, mat);
   huesos.filter((b, i) => meta.bones[i].p < 0).forEach(r => cuerpo.add(r));
   cuerpo.bind(new THREE.Skeleton(huesos)); cuerpo.frustumCulled = false;
+  // Cabeza de maniquí lisa, pegada al hueso de la cabeza
+  const matCab = new THREE.MeshPhysicalMaterial({color:0xcfd4db, roughness:.36, metalness:0, clearcoat:.5, clearcoatRoughness:.35}), negroCab = new THREE.MeshBasicMaterial({color:0});
+  const cabeza = new THREE.Mesh(huevo(), matCab), bCab = meta.bones.find(b => b.n === 'head');
+  cabeza.position.set(0 - bCab.h[0], 8.18 - bCab.h[1], .42 - bCab.h[2]); cabeza.castShadow = !!opts.video;
+  huesos.find(b => b.name === 'head').add(cabeza);
+  // Cuello liso que une la cabeza con el cuerpo (tapa la garganta y la nuca)
+  const cuello = new THREE.Mesh(new THREE.CylinderGeometry(.46, .56, 1.5, 40, 1, true), matCab), bCue = meta.bones.find(b => b.n === 'neck02');
+  cuello.scale.z = .92; cuello.rotation.x = -.12; cuello.position.set(0 - bCue.h[0], 7.35 - bCue.h[1], .3 - bCue.h[2]); cuello.castShadow = !!opts.video;
+  huesos.find(b => b.name === 'neck02').add(cuello);
   cuerpo.castShadow = !!opts.video; S.add(cuerpo);
   const B = Object.fromEntries(huesos.map(b => [b.name, b]));
   const REST = {}, prof = {}, LARGO = {};
@@ -643,5 +649,5 @@ export async function crearDemo3D(el, id, opts = {}){
   // Para pruebas: dibuja un cuadro fijo (t de 0 a 1) de un modo
   function fijar(t, i = modo){ if(i !== modo) elegir(i); cancelAnimationFrame(raf); raf = 0; visible = false; aplicar(modos[i].A, modos[i].B, t, modos[i].anim); u.uPulso.value = modos[i].anim ? contraccion : t; dibujar(); dibujarFlecha(); }
   return {anim:() => ANIM ? {dur:durAnim, pico} : null, contr:() => contraccion, dbg:(t, i, ns) => { aplicar(modos[i].A, modos[i].B, t, modos[i].anim); return Object.fromEntries(ns.map(n => [n, punto(n).toArray().map(x => +x.toFixed(2))])); }, fijar, girar:a => { az = a; ubicarCam(); }, camara:o => { camO = o || {}; if(o && o.az != null) az = o.az; ubicarCam(); }, hueso:n => punto(n).toArray(), cam0:() => ({az:E.cam.az, el:E.cam.el || .08, dist:E.cam.dist, mira:mira.toArray()}), modos:() => modos.map(x => ({n:x.n, mal:!!x.mal, txt:x.txt || '', musc:x.musc || E.musc, malMusc:x.malMusc || {}})),
-    destruir(){ cancelAnimationFrame(raf); io.disconnect(); ro.disconnect(); comp.dispose(); compB.dispose(); R.dispose(); g.dispose(); mat.dispose(); }};
+    destruir(){ cancelAnimationFrame(raf); io.disconnect(); ro.disconnect(); comp.dispose(); compB.dispose(); R.dispose(); g.dispose(); mat.dispose(); cabeza.geometry.dispose(); matCab.dispose(); negroCab.dispose(); }};
 }
