@@ -637,3 +637,30 @@ EJ3D['calent:circulos'] = {
   txt:'Brazos abiertos a la altura de los hombros. Hacé círculos chicos que se van agrandando, hacia adelante y hacia atrás.',
   A:{dirs:sim({'upperarm01':[.97, -.05, .18], 'lowerarm01':[.96, .02, .25]})},
   B:{dirs:sim({'upperarm01':[.95, .2, -.15], 'lowerarm01':[.94, .25, -.1]})}, errores:[]};
+
+// Estiramientos (poses quietas, para guías e imágenes)
+const quieto = (cam, musc, A, props) => ({obj:'', cam, musc, txt:'', A, B:A, props:props || [], errores:[], tempo:[1, 1, 1, 1], sinFlecha:true});
+EJ3D['estir:pecho'] = quieto({az:-.9, y:3, dist:34, el:.1}, {pecho:1, hombros:.4},
+  {dirs:conj(espalda(.12), {'upperarm01.R':[-1, .02, -.2], 'lowerarm01.R':[-.05, 1, -.05]})},
+  [{t:'caja', s:[.5, 18, 1.2], p:[-6.3, 1, -.9], m:'banco'}]);
+EJ3D['estir:hombro'] = quieto({az:.25, y:3.5, dist:30, el:.1}, {hombros:1, trapecio:.3},
+  {dirs:{'upperarm01.R':[.92, -.05, .4], 'lowerarm01.R':[.98, -.05, .2], 'upperarm01.L':[.35, -.55, .76], 'lowerarm01.L':[-.75, .35, .55]}});
+EJ3D['estir:triceps'] = quieto({az:.6, y:4, dist:30, el:.1}, {triceps:1},
+  {dirs:{'upperarm01.R':[-.12, .97, -.15], 'lowerarm01.R':[.35, -.9, -.25], 'upperarm01.L':[.3, .75, .35], 'lowerarm01.L':[-.9, .35, -.2]}});
+EJ3D['estir:biceps'] = quieto({az:.9, y:3.5, dist:30, el:.1}, {biceps:1, antebrazos:.8},
+  {dirs:{'upperarm01.R':[-.15, -.05, 1], 'lowerarm01.R':[-.1, -.05, 1], 'wrist.R':[-.1, -.9, .4], 'upperarm01.L':[.1, -.45, .9], 'lowerarm01.L':[-.45, .1, .9]}, giros:{'lowerarm01.R':1.5}});
+EJ3D['estir:cuadriceps'] = quieto({az:1.25, y:-1, dist:38, el:.08}, {cuadriceps:1},
+  {dirs:{'upperleg01.R':[0, -1, -.12], 'lowerleg01.R':[0, .85, -.5], 'upperarm01.R':[-.1, -.85, -.5], 'lowerarm01.R':[-.05, -.45, -.9]}});
+EJ3D['estir:isquios'] = quieto({az:1.35, y:-1, dist:40, el:.1}, {isquios:1, pantorrillas:.3},
+  {pos:[0, -1.25, -1.2], pies:{L:[1.25, TOBILLO, -.9]}, poloPies:[0, 0, 1], dirs:conj(inclinado(.62, .78), {'upperleg01.R':[0, -.42, .9], 'lowerleg01.R':[0, -.4, .92], 'upperarm01.L':[.05, -.55, .85], 'lowerarm01.L':[0, -.5, .85], 'upperarm01.R':[-.05, -.55, .85], 'lowerarm01.R':[0, -.5, .85]})},
+  [{t:'caja', s:[2.4, 2.85, 2.4], p:[-1.1, -6.75, 7.2], m:'banco'}]);
+EJ3D['estir:gluteo'] = quieto({az:1.0, y:-4, dist:34, el:.25}, {gluteos:1},
+  {pos:[0, -6.45, -.58], dirs:conj(inclinado(.85, .5), {'upperleg01.L':[.15, -.05, 1], 'lowerleg01.L':[.1, -1, .05], 'upperleg01.R':[-.75, .2, .62], 'lowerleg01.R':[.97, .05, .2],
+    'upperarm01.L':[.25, -.8, .5], 'lowerarm01.L':[0, -.3, .95], 'upperarm01.R':[-.2, -.8, .55], 'lowerarm01.R':[.2, -.4, .9]})},
+  [{t:'caja', s:[4, 2.3, 4], p:[0, PISO + 1.15, -.6], m:'banco'}]);
+EJ3D['estir:pantorrilla'] = quieto({az:1.35, y:-.5, dist:40, el:.08}, {pantorrillas:1},
+  {dirs:conj(inclinado(.88, .45), {'upperleg01.R':[0, -.93, -.38], 'lowerleg01.R':[0, -.93, -.38], 'foot.R':[0, -.25, 1], 'upperleg01.L':[0, -.9, .45], 'lowerleg01.L':[0, -1, -.05],
+    'upperarm01.L':[.1, .35, .94], 'lowerarm01.L':[.05, .4, .92], 'upperarm01.R':[-.1, .35, .94], 'lowerarm01.R':[-.05, .4, .92]})},
+  [{t:'caja', s:[8, 18, .5], p:[0, 1, 7.6], m:'banco'}]);
+EJ3D['estir:mariposa'] = quieto({az:.35, y:-4.5, dist:30, el:.2}, {aductores:1},
+  {pos:[0, -7.35, -.9], dirs:conj(espalda(.1), sim({'upperleg01':[.78, -.18, .6], 'lowerleg01':[-.62, -.22, .75], 'upperarm01':[.12, -.95, .28], 'lowerarm01':[-.1, -.5, .85]}))});
