@@ -623,3 +623,17 @@ EJ3D['rotacion:banda'] = {
   B:{dirs:sim({'upperarm01':[.12, -1, .02], 'lowerarm01':[.85, -.05, .5]}), giros:{'lowerarm01.L':-1.2, 'lowerarm01.R':1.2}, agarre:.8},
   errores:[{n:'Despegar los codos', malMusc:{trapecio:.6}, musc:{hombros:.5}, txt:'Si los codos se separan del cuerpo, el movimiento lo hace el hombro entero. Dejalos pegados, como sosteniendo una toalla.',
     B:{dirs:sim({'upperarm01':[.6, -.8, .02], 'lowerarm01':[.9, .2, .35]}), giros:{'lowerarm01.L':-1.2, 'lowerarm01.R':1.2}, agarre:.8}}]};
+
+// Calentamiento (para guías e imágenes; no son ejercicios del plan)
+EJ3D['calent:separacion'] = {
+  obj:'', props:[{t:'cable', banda:true, de:'L', a:'R'}], cam:{az:.35, y:3, dist:32, el:.12}, tempo:[.9, .4, 1.4, .4], flecha:'finger3-1.L', flechaDesp:0,
+  musc:{trapecio:1, hombros:.6, dorsales:.3},
+  txt:'Brazos estirados al frente a la altura del pecho. Abrí la banda hacia los costados juntando los omóplatos y volvé lento.',
+  A:{dirs:sim({'upperarm01':[.12, -.05, 1], 'lowerarm01':[.12, -.05, 1]}), agarre:.8},
+  B:{dirs:sim({'upperarm01':[1, -.05, .12], 'lowerarm01':[1, -.05, .1]}), agarre:.8}, errores:[]};
+EJ3D['calent:circulos'] = {
+  obj:'', cam:{az:.3, y:2.5, dist:38, el:.08}, tempo:[1, .2, 1, .2], flecha:'finger3-1.L', flechaDesp:0,
+  musc:{hombros:1},
+  txt:'Brazos abiertos a la altura de los hombros. Hacé círculos chicos que se van agrandando, hacia adelante y hacia atrás.',
+  A:{dirs:sim({'upperarm01':[.97, -.05, .18], 'lowerarm01':[.96, .02, .25]})},
+  B:{dirs:sim({'upperarm01':[.95, .2, -.15], 'lowerarm01':[.94, .25, -.1]})}, errores:[]};
