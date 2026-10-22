@@ -14,3 +14,11 @@ Archivos que hacen falta (no se suben al repo, `*.fbx`/`*.glb` están en .gitign
 
 Opciones del JSON: `musculos` (zona → intensidad), `brazos_frente`, `maniqui` (cabeza lisa), cámara (`az`, `dist`, `mira`, `alto_cam`, `lente`),
 tamaño de la zapatilla (`largo_zapa`, `ancho_zapa`, `alto_zapa_k`), `muestras`, `ancho`/`altoimg`, `cuadros`.
+
+## Fotos de ejercicios (inicio y final)
+1. `tools/blender/app/exportar.mjs` abre cada ejercicio de la app (con una copia de `3d/demo3d.js` que agrega `exportar()`)
+   y guarda la pose de inicio y de final: posiciones de los huesos, las barras/bancos/poleas y los músculos.
+2. `escena.py` con `pose_json` + `pose_mh` (pose_mh.py) pone el cuerpo de Mixamo en esa pose, arma los aparatos
+   y renderiza `<salida>0.png` y `<salida>1.png`. Ajustes por ejercicio en `ik` (p. ej. `{"tipo": "press_banca"}`),
+   cámara (`az`, `el`, `zoom`).
+3. `componer.py` arma la imagen con el título, los músculos y los dos pasos.

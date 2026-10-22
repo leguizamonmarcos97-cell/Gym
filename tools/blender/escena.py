@@ -10,18 +10,20 @@ arm=[o for o in bpy.data.objects if o.type=='ARMATURE'][0]; arm.name='Atlas_rig'
 body=[o for o in bpy.data.objects if o.type=='MESH'][0]
 # 2) animación (mismo esqueleto de Mixamo: los huesos se llaman igual)
 antes=set(bpy.data.objects); acc_antes=set(bpy.data.actions)
-bpy.ops.import_scene.fbx(filepath=cfg['anim'])
-accion=[x for x in bpy.data.actions if x not in acc_antes][0]
+if cfg.get('anim'): bpy.ops.import_scene.fbx(filepath=cfg['anim'])
+accion=([x for x in bpy.data.actions if x not in acc_antes] or [None])[0]
 for o in set(bpy.data.objects)-antes: bpy.data.objects.remove(o,do_unlink=True)
-arm.animation_data_create(); arm.animation_data.action=accion
-f0,f1=[int(x) for x in accion.frame_range]; sc.frame_start=f0; sc.frame_end=f1; sc.render.fps=30
+arm.animation_data_create()
+if accion: arm.animation_data.action=accion
+else: arm.animation_data.action=None
+f0,f1=[int(x) for x in accion.frame_range] if accion else (1,1); sc.frame_start=f0; sc.frame_end=f1; sc.render.fps=30
 # maniquí: sin ojos y la cabeza alisada (sin cara)
 import bmesh
 ojos={i for i,m in enumerate(body.material_slots) if m.name!='Body_Low_SP_blinn1SG1'}
 bm=bmesh.new(); bm.from_mesh(body.data)
 bmesh.ops.delete(bm,geom=[v for v in bm.verts if v.link_faces and all(f.material_index in ojos for f in v.link_faces)],context='VERTS')
 bm.to_mesh(body.data); bm.free()
-if cfg.get('brazos_frente'):
+if cfg.get('brazos_frente') and accion:
     pbs=arm.pose.bones
     for f in range(f0,f1+1):
         sc.frame_set(f)
@@ -34,6 +36,22 @@ if cfg.get('brazos_frente'):
                 pb.matrix=M; bpy.context.view_layer.update()
                 pb.keyframe_insert('rotation_quaternion' if pb.rotation_mode=='QUATERNION' else 'rotation_euler',frame=f)
     sc.frame_set(f0)
+# pies anclados: quedan fijos en el piso donde arrancan (la animación los arrastra un poco); las piernas se acomodan con IK
+def medir_pies(tag):
+    for f in (f0,(f0+f1)//2,f1):
+        sc.frame_set(f)
+        print('PIES',tag,f,[tuple(round(x,3) for x in (arm.matrix_world@arm.pose.bones[f'mixamorig:{l}Foot'].head)) for l in ('Left','Right')])
+if accion: medir_pies('antes')
+if cfg.get('pies_fijos',True) and accion:
+    sc.frame_set(f0); bpy.context.view_layer.update()
+    for l in ('Left','Right'):
+        pf=arm.pose.bones[f'mixamorig:{l}Foot']
+        e=bpy.data.objects.new(f'ancla_{l}',None); sc.collection.objects.link(e)
+        e.matrix_world=arm.matrix_world@pf.matrix
+        ik=arm.pose.bones[f'mixamorig:{l}Leg'].constraints.new('IK'); ik.target=e; ik.chain_count=2; ik.use_tail=True
+        cr=pf.constraints.new('COPY_ROTATION'); cr.target=e
+    bpy.context.view_layer.update()
+    medir_pies('despues')
 # 3) zonas musculares: del cuerpo de la app (mismo modelo, mismo orden de vértices en el original) por vecino más cercano
 Z=np.load(cfg['zonas_npz']); Pz=Z['P']; zona=Z['zona']; short=Z['short']
 mw=body.matrix_world; V=np.array([mw@v.co for v in body.data.vertices])
@@ -58,7 +76,13 @@ sh=((Vn[:,2]>cfg.get('short_bajo',.43))&(Vn[:,2]<cfg.get('short_alto',.585))&~br
 sh[(zona[I]==0)&(np.abs(Vn[:,0])>.13)]=0
 media=np.clip((cfg.get('media_alto',.075)-Vn[:,2])/.006,0,1)  # medias deportivas sobre el tobillo
 sh=np.maximum(sh,media)
-inten=inten*(1-sh)  # lo que tapa el short no brilla
+for _ in range(4): sh=np.array([(sh[i]*2+sum(sh[j] for j in vec[i]))/(2+len(vec[i])) for i in range(len(Vn))])
+inten=inten*(1-np.clip((sh-.35)/.3,0,1))  # lo que tapa el short no brilla
+brz=np.isin(zona[I],[nombres.index(z) for z in ('biceps','triceps','antebrazos','hombros')])|((zona[I]==0)&(np.abs(Vn[:,0])>.13))
+fz=np.isin(zona[I],[nombres.index(z) for z in ('pecho','dorsales')]).astype(float)
+for _ in range(3): fz=np.array([(fz[i]*2+sum(fz[j] for j in vec[i]))/(2+len(vec[i])) for i in range(len(Vn))])
+for nm,val in (('brz',brz.astype(float)),('fz',fz)):
+    at=body.data.attributes.new(nm,'FLOAT','POINT'); at.data.foreach_set('value',val.astype(np.float32))
 for nm,val in (('musc',inten),('short',sh)):
     at=body.data.attributes.new(nm,'FLOAT','POINT'); at.data.foreach_set('value',val.astype(np.float32))
 if cfg.get('maniqui'):
@@ -141,13 +165,29 @@ def mat_cuerpo():
     # fibras: líneas finas a lo largo del músculo
     tc=N.new('ShaderNodeTexCoord'); wv=N.new('ShaderNodeTexWave'); wv.wave_type='BANDS'; wv.bands_direction='X'; wv.inputs['Scale'].default_value=cfg.get('fibras',9); wv.inputs['Distortion'].default_value=3; wv.inputs['Detail'].default_value=1
     L.new(tc.outputs['Object'],wv.inputs['Vector'])
+    wv2=N.new('ShaderNodeTexWave'); wv2.wave_type='BANDS'; wv2.bands_direction='Z'; wv2.inputs['Scale'].default_value=cfg.get('fibras',9); wv2.inputs['Distortion'].default_value=3; wv2.inputs['Detail'].default_value=1
+    L.new(tc.outputs['Object'],wv2.inputs['Vector'])
+    afz=N.new('ShaderNodeAttribute'); afz.attribute_name='fz'
+    mf=N.new('ShaderNodeMix'); mf.data_type='FLOAT'; L.new(afz.outputs['Fac'],mf.inputs['Factor']); L.new(wv.outputs['Fac'],mf.inputs[2]); L.new(wv2.outputs['Fac'],mf.inputs[3])
     rojo=N.new('ShaderNodeMix'); rojo.data_type='RGBA'; rojo.inputs[6].default_value=(.55,.02,.015,1); rojo.inputs[7].default_value=(1,.32,.22,1)
     rmp=N.new('ShaderNodeMapRange'); rmp.inputs['From Min'].default_value=.55; rmp.inputs['From Max'].default_value=.9
-    L.new(wv.outputs['Fac'],rmp.inputs['Value']); L.new(rmp.outputs['Result'],rojo.inputs['Factor'])
+    L.new(mf.outputs[0],rmp.inputs['Value']); L.new(rmp.outputs['Result'],rojo.inputs['Factor'])
     base=N.new('ShaderNodeMix'); base.data_type='RGBA'; base.inputs[6].default_value=(.82,.82,.84,1)
     L.new(am.outputs['Fac'],base.inputs['Factor']); L.new(rojo.outputs[2],base.inputs[7])
     negro=N.new('ShaderNodeMix'); negro.data_type='RGBA'; negro.inputs[7].default_value=(.012,.012,.014,1)
-    L.new(ash.outputs['Fac'],negro.inputs['Factor']); L.new(base.outputs[2],negro.inputs[6])
+    sep=N.new('ShaderNodeSeparateXYZ'); L.new(tc.outputs['Generated'],sep.inputs[0])
+    def rango(a,b,inv=False):
+        m_=N.new('ShaderNodeMapRange'); m_.inputs['From Min'].default_value=a; m_.inputs['From Max'].default_value=b
+        if inv: m_.inputs['To Min'].default_value=1; m_.inputs['To Max'].default_value=0
+        L.new(sep.outputs['Z'],m_.inputs['Value']); return m_.outputs['Result']
+    abajo=rango(cfg.get('short_bajo',.43)-.002,cfg.get('short_bajo',.43)+.002); arriba=rango(cfg.get('short_alto',.585)-.002,cfg.get('short_alto',.585)+.002,True)
+    ab=N.new('ShaderNodeAttribute'); ab.attribute_name='brz'
+    m1=N.new('ShaderNodeMath'); m1.operation='MULTIPLY'; L.new(abajo,m1.inputs[0]); L.new(arriba,m1.inputs[1])
+    nb=N.new('ShaderNodeMath'); nb.operation='SUBTRACT'; nb.inputs[0].default_value=1; L.new(ab.outputs['Fac'],nb.inputs[1])
+    m2=N.new('ShaderNodeMath'); m2.operation='MULTIPLY'; L.new(m1.outputs[0],m2.inputs[0]); L.new(nb.outputs[0],m2.inputs[1])
+    medias=rango(cfg.get('media_alto',.075)-.002,cfg.get('media_alto',.075)+.002,True)
+    mx2=N.new('ShaderNodeMath'); mx2.operation='MAXIMUM'; L.new(m2.outputs[0],mx2.inputs[0]); L.new(medias,mx2.inputs[1])
+    L.new(mx2.outputs[0],negro.inputs['Factor']); L.new(base.outputs[2],negro.inputs[6])
     L.new(negro.outputs[2],bs.inputs['Base Color'])
     bs.inputs['Roughness'].default_value=.45; bs.inputs['Subsurface Weight'].default_value=.15; bs.inputs['Subsurface Scale'].default_value=.02
     # brillo: rojo suave en el músculo + borde azul (como el video de referencia)
@@ -203,3 +243,24 @@ ct.links.new(rl.outputs['Image'],g.inputs['Image']); ct.links.new(g.outputs['Ima
 bpy.ops.wm.save_as_mainfile(filepath=cfg['blend'])
 for f in cfg.get('cuadros',[]):
     sc.frame_set(f); sc.render.filepath=f"{cfg['salida']}{f:04d}.png"; bpy.ops.render.render(write_still=True)
+# ---- fotos de ejercicios: pose de la app (inicio y final) ----
+if cfg.get('pose_json'):
+    exec(open(cfg['pose_mh']).read())
+    PJ=json.load(open(cfg['pose_json']))
+    col=bpy.data.collections.new('aparatos'); sc.collection.children.link(col)
+    escala=hh/17.42
+    cfg_ik[0]=cfg.get('ik'); cfg_dbg.update(cfg.get('dbg',{}))
+    for i,pz in enumerate(PJ['poses']):
+        pz['t']=i
+        for pb in arm.pose.bones:
+            for c_ in list(pb.constraints):
+                if c_.name=='IKX': pb.constraints.remove(c_)
+        mp=ajustar_pose(arm,pz,escala,zpiso,zapas); aparatos(pz,mp,arm,col)
+        c=PJ['cam']; m3=c['mira']; d=c['dist']*cfg.get('zoom',1.0); el=cfg.get('el',c['el']); az=cfg.get('az',c['az']+cfg.get('giro',0))
+        p3=[m3[0]+math.sin(az)*d, m3[1]+d*math.sin(el), m3[2]+math.cos(az)*d]
+        cam.location=mp(p3); mira_b=mp(m3)
+        if cfg.get('mira_hueso'):
+            mira_b=arm.matrix_world@arm.pose.bones[cfg['mira_hueso']].head; cam.location=mira_b+(cam.location-mp(m3)).normalized()*cfg.get('dist_hueso',.6)
+        cam.rotation_euler=(mira_b-cam.location).to_track_quat('-Z','Y').to_euler()
+        cam.data.sensor_fit='VERTICAL'; cam.data.angle_y=math.radians(32)
+        sc.render.filepath=f"{cfg['salida']}{i}.png"; bpy.ops.render.render(write_still=True)

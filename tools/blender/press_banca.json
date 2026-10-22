@@ -1,0 +1,37 @@
+{
+ "cuerpo": "<cuerpo>",
+ "anim": null,
+ "zonas_npz": "<zonas_npz>",
+ "musculos": {
+  "pecho": 1,
+  "triceps": 0.6,
+  "hombros": 0.5
+ },
+ "blend": "<blend>",
+ "salida": "<salida>",
+ "cuadros": [],
+ "muestras": 32,
+ "dist": 4.7,
+ "mira": 0.86,
+ "ancho": 900,
+ "altoimg": 1200,
+ "brazos_frente": true,
+ "corte_cabeza": 0.868,
+ "maniqui": false,
+ "zapa": "<zapa>",
+ "variante_zapa": "phong1SG",
+ "largo_zapa": 1.16,
+ "bajo_suela": 0.018,
+ "borrar_pie": 0.05,
+ "alto_zapa_k": 1.18,
+ "ancho_zapa": 1.12,
+ "media_alto": 0.088,
+ "pose_json": "<pose_json>",
+ "pose_mh": "<pose_mh>",
+ "zoom": 0.95,
+ "ik": {
+  "tipo": "press_banca"
+ },
+ "az": 0.75,
+ "el": 0.5
+}
