@@ -24,13 +24,15 @@ async function cargar(){
   const sw = new Uint8Array(buf, o, n * 4); o += n * 4;
   const zona = new Uint8Array(buf, o, n); o += n;
   // Posición y normal en la malla base (para dibujar el relieve, el short y las fibras) y dirección de las fibras de cada zona
-  const bpos = Float32Array.from(new Int16Array(buf, o, n * 3), v => v / 3000); o += n * 6;
+  const bpos = Float32Array.from(new Int16Array(buf.slice(o, o + n * 6)), v => v / 3000); o += n * 6;
   const nbase = Float32Array.from(new Int8Array(buf, o, n * 3), v => v / 127); o += n * 3;
   const fibra = Float32Array.from(new Int8Array(buf, o, n * 3), v => v / 127); o += n * 3;
   // Cavidad (surcos entre músculos): hace que se noten los músculos con sombras suaves
-  const cav = buf.byteLength >= o + n ? Float32Array.from(new Int8Array(buf, o, n), v => v / 127) : new Float32Array(n);
+  const cav = buf.byteLength >= o + n ? Float32Array.from(new Int8Array(buf, o, n), v => v / 127) : new Float32Array(n); o += n;
+  // Coordenadas de textura (cuerpo esculpido con mapa de relieve)
+  const uv = meta.uv && buf.byteLength >= o + n * 4 ? Float32Array.from(new Uint16Array(buf.slice(o, o + n * 4)), v => v / 65535) : null;
   const idxM = cabezaManiqui(meta, pos, si, sw, idx);
-  DATOS = {meta, pos, idx:idxM, si, sw, zona, base:bpos, nbase, fibra, cav, dborde:distBorde(n, idx, zona, bpos)};
+  DATOS = {meta, pos, idx:idxM, si, sw, zona, base:bpos, nbase, fibra, cav, uv, dborde:distBorde(n, idx, zona, bpos)};
   return DATOS;
 }
 
@@ -94,9 +96,16 @@ vec3 perturbar(vec3 p, vec3 n, vec2 dh, float fd){
   float det = dot(sx, r1) * fd; vec3 g = sign(det) * (dh.x * r1 + dh.y * r2);
   return normalize(abs(det) * n - g);
 }`;
-function materialCuerpo(){
+function materialCuerpo(meta = {}){
   const u = {uAct:{value:new Float32Array(ZONAS_MAX)}, uMal:{value:new Float32Array(ZONAS_MAX)}, uPulso:{value:0}, uSolo:{value:0}};
   const m = new THREE.MeshPhysicalMaterial({color:0xcfd4db, roughness:.36, metalness:0, clearcoat:.5, clearcoatRoughness:.35});
+  // Cuerpo esculpido: mapa de relieve (músculos, venas) y sombra de oclusión, en vez del relieve dibujado por fórmulas
+  if(meta.texturas){
+    const base = new URL('.', import.meta.url), tl = new THREE.TextureLoader();
+    const tex = (f, fn) => tl.load(new URL(f, base).href, t => { t.flipY = false; t.needsUpdate = true; fn(t); m.needsUpdate = true; });
+    tex('cuerpo_normal.jpg', t => { m.normalMap = t; m.normalScale = new THREE.Vector2(1.1, 1.1); });
+    tex('cuerpo_ao.jpg', t => { m.aoMap = t; m.aoMapIntensity = .9; });
+  }
   m.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, u);
     sh.vertexShader = sh.vertexShader.replace('#include <common>', `#include <common>
@@ -109,7 +118,7 @@ function materialCuerpo(){
       ${RELIEVE}`)
       .replace('#include <color_fragment>', `#include <color_fragment>
       float act = max(vAct, vMal), lleno = smoothstep(.12, .28, act), neon = smoothstep(.12, .3, act) * (1. - smoothstep(.02, .085, vDB)), centro = smoothstep(.12, .6, vDB), fuerza = .55 + .45 * smoothstep(.4, 1., act);
-      float shorts = smoothstep(-3.05, -2.97, vB.y) * (1. - smoothstep(.95, 1.03, vB.y)) * (1. - smoothstep(2.2, 2.3, abs(vB.x)));
+      float shorts = smoothstep(-3.05, -2.97, vB.y) * (1. - smoothstep(1.3, 1.38, vB.y)) * (1. - smoothstep(2.9, 3.0, abs(vB.x)));
       vec3 fd = normalize(vFD + 1e-4);
       vec3 perp = normalize(cross(fd, abs(fd.z) > .8 ? vec3(0., 1., 0.) : vec3(0., 0., 1.)));
       vec3 perp2 = normalize(cross(fd, perp));
@@ -127,7 +136,7 @@ function materialCuerpo(){
       vec3 colNeon = mix(vec3(.12, .38, 1.), vec3(1., .15, .1), step(vAct, vMal));
       diffuseColor.rgb = mix(diffuseColor.rgb, colNeon, neon * (1. - shorts));`)
       .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
-      { float h = .07 * relieve(vB) * (1. - shorts); vec2 dh = vec2(dFdx(h), dFdy(h)); normal = perturbar(-vViewPosition, normal, dh, faceDirection); }`)
+      ${meta.sinRelieve ? '' : '{ float h = .07 * relieve(vB) * (1. - shorts); vec2 dh = vec2(dFdx(h), dFdy(h)); normal = perturbar(-vViewPosition, normal, dh, faceDirection); }'}`)
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
       roughnessFactor = mix(roughnessFactor, .85, shorts);`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
@@ -241,7 +250,7 @@ export async function crearDemo3D(el, id, opts = {}){
   el.innerHTML = `<div class="d3"><canvas></canvas><svg class="d3-flechas" aria-hidden="true"></svg>
     <span class="d3-sello"></span><p class="d3-txt"></p><span class="d3-cargando">Cargando 3D…</span></div>
     <div class="d3-modos" role="group" aria-label="Forma correcta o error"></div>
-    <p class="d3-ayuda">Arrastrá para girar el cuerpo.</p>`;
+    <p class="d3-ayuda">Arrastrá para girar el cuerpo.<span class="d3-cred"></span></p>`;
   const caja = el.querySelector('.d3'), cv = el.querySelector('canvas'), svg = el.querySelector('.d3-flechas');
   const D = await cargar();
   const ANIM = E.anim ? await fetch(new URL(`anim/${E.anim}.json`, import.meta.url)).then(r => r.json()).catch(() => null) : null;
@@ -250,6 +259,8 @@ export async function crearDemo3D(el, id, opts = {}){
   const durAnim = ANIM ? ANIM.dur * (E.animLento || 1.5) : 1;
   const pico = ANIM ? ANIM.cuadros.reduce((m, c, i, a) => c.contraccion > a[m].contraccion ? i : m, 0) / (ANIM.cuadros.length - 1) : 1;
   el.querySelector('.d3-cargando').remove();
+  // Crédito del modelo 3D (licencia CC BY: hay que nombrar al autor)
+  if(D.meta.autor) el.querySelector('.d3-cred').innerHTML = ` Cuerpo 3D: <a href="${D.meta.fuente}" target="_blank" rel="noopener">${D.meta.autor}</a> (${D.meta.licencia}, modificado).`;
   const cam0 = new THREE.PerspectiveCamera(32, 3 / 4, .1, 200);
   const R = new THREE.WebGLRenderer({canvas:cv, antialias:true, alpha:true});
   R.outputColorSpace = THREE.SRGBColorSpace; R.toneMapping = THREE.ACESFilmicToneMapping; R.setPixelRatio(Math.min(2, devicePixelRatio || 1));
@@ -299,10 +310,11 @@ export async function crearDemo3D(el, id, opts = {}){
   g.setAttribute('skinWeight', new THREE.BufferAttribute(Float32Array.from(D.sw, v => v / 255), 4));
   g.setAttribute('zona', new THREE.BufferAttribute(Float32Array.from(D.zona), 1));
   g.setAttribute('bpos', new THREE.BufferAttribute(D.base, 3)); g.setAttribute('bnor', new THREE.BufferAttribute(D.nbase, 3)); g.setAttribute('fibra', new THREE.BufferAttribute(D.fibra, 3)); g.setAttribute('dborde', new THREE.BufferAttribute(D.dborde, 1)); g.setAttribute('cav', new THREE.BufferAttribute(D.cav, 1));
+  if(D.uv) g.setAttribute('uv', new THREE.BufferAttribute(D.uv, 2));
   g.computeVertexNormals();
   const huesos = meta.bones.map(b => { const x = new THREE.Bone(); x.name = b.n; return x; });
   meta.bones.forEach((b, i) => { const h = new THREE.Vector3(...b.h); if(b.p >= 0){ huesos[b.p].add(huesos[i]); h.sub(new THREE.Vector3(...meta.bones[b.p].h)); } huesos[i].position.copy(h); });
-  const {m:mat, u} = materialCuerpo();
+  const {m:mat, u} = materialCuerpo(D.meta);
   const cuerpo = new THREE.SkinnedMesh(g, mat);
   huesos.filter((b, i) => meta.bones[i].p < 0).forEach(r => cuerpo.add(r));
   cuerpo.bind(new THREE.Skeleton(huesos)); cuerpo.frustumCulled = false;
@@ -312,8 +324,8 @@ export async function crearDemo3D(el, id, opts = {}){
   cabeza.position.set(0 - bCab.h[0], 8.18 - bCab.h[1], .42 - bCab.h[2]); cabeza.castShadow = !!opts.video;
   huesos.find(b => b.name === 'head').add(cabeza);
   // Cuello liso que une la cabeza con el cuerpo (tapa la garganta y la nuca)
-  const cuello = new THREE.Mesh(new THREE.CylinderGeometry(.46, .56, 1.5, 40, 1, true), matCab), bCue = meta.bones.find(b => b.n === 'neck02');
-  cuello.scale.z = .92; cuello.rotation.x = -.12; cuello.position.set(0 - bCue.h[0], 7.35 - bCue.h[1], .3 - bCue.h[2]); cuello.castShadow = !!opts.video;
+  const cuello = new THREE.Mesh(new THREE.CylinderGeometry(.5, .66, 1.9, 40, 1, true), matCab), bCue = meta.bones.find(b => b.n === 'neck02');
+  cuello.scale.z = .92; cuello.rotation.x = -.12; cuello.position.set(0 - bCue.h[0], 7.2 - bCue.h[1], .28 - bCue.h[2]); cuello.castShadow = !!opts.video;
   huesos.find(b => b.name === 'neck02').add(cuello);
   cuerpo.castShadow = !!opts.video; S.add(cuerpo);
   const B = Object.fromEntries(huesos.map(b => [b.name, b]));
