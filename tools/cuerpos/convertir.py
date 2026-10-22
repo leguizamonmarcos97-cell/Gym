@@ -85,7 +85,65 @@ bp=Pn; nbn=Nn
 ZN=M['zonas']; brazo=np.isin(zn,[ZN.index(z) for z in ('hombros','biceps','triceps','antebrazos')])
 fdn=fdn.astype(np.float64); fdn[brazo]=np.c_[np.sign(Pn[brazo,0]),np.zeros(brazo.sum()),np.zeros(brazo.sum())]
 q8=lambda a: np.round(np.clip(a,-1,1)*127).astype(np.int8).tobytes()
-UV=N['UV']; uv16=np.round(np.clip(UV,0,1)*65535).astype(np.uint16)
+# Manos: las del cuerpo de la app (sus dedos coinciden con los huesos y pueden agarrar). Se quitan las del cuerpo nuevo
+# desde la muñeca y se agregan las de la app desde un poco antes (en el antebrazo, donde la textura es lisa), para que se superpongan y no quede hueco.
+UV=N['UV']
+mano_b=[i for i,x in enumerate(nombres) if x.split('.')[0] in ('wrist',) or x.startswith('metacarpal') or x.startswith('finger')]
+wm=np.zeros(len(pos))
+for c in range(4): wm+=np.isin(si[:,c],mano_b)*sw[:,c]
+cortes={}
+for l,sx in (('L',1),('R',-1)): cortes[sx]=abs(HT[bi['wrist.'+l]][0])
+print('cortes',cortes)
+xs=np.abs(Pn[:,0]); lado=np.sign(Pn[:,0])
+quitar=np.array([xs[v]>cortes[lado[v] if lado[v]!=0 else 1]-.2 for v in range(nn)])
+agreg=np.where(np.abs(PT[:,0])>np.array([cortes[1 if x>=0 else -1] for x in PT[:,0]])-.45)[0]
+print('vértices de mano: se quitan',quitar.sum(),'se agregan',len(agreg))
+mapa=-np.ones(len(pos),int); mapa[agreg]=np.arange(len(agreg))+nn
+Fk=F[~quitar[F].any(1)]
+ta=idx[np.isin(idx,agreg).all(1)].astype(int); Fm=mapa[ta]
+# UV de las manos agregadas: la del punto de la muñeca del cuerpo nuevo más cercano (zona lisa)
+# el antebrazo nuevo queda un poco más abajo que la muñeca de la app: se lo corre de a poco (desde el codo) para que llegue justo a la mano
+for sx in (1,-1):
+    c0=cortes[sx]; codo=abs(HT[bi['lowerarm01.'+('L' if sx>0 else 'R')]][0])
+    sl=lambda P: P[(np.sign(P[:,0])==sx)&(np.abs(P[:,0])>c0-.6)&(np.abs(P[:,0])<c0-.05)]
+    d=sl(PT)[:,1:].mean(0)-sl(Pn)[:,1:].mean(0); print('corrimiento muñeca',sx,d.round(3))
+    m=(np.sign(Pn[:,0])==sx)&(np.abs(Pn[:,0])>codo)
+    a=np.clip((np.abs(Pn[m,0])-codo)/(c0-.5-codo),0,1); a=a*a*(3-2*a)
+    Pn[np.where(m)[0],1:]+=a[:,None]*d
+# muñeca del cuerpo nuevo: sin pesos de dedos (si no, se estira en jirones al cerrar la mano)
+dedo=np.array([x.startswith('metacarpal') or x.startswith('finger') for x in nombres])
+corteV=np.array([cortes[l if l!=0 else 1] for l in lado])
+for v in np.where((xs>corteV-.6)&~quitar)[0]:
+    w=tw[v]*~dedo[top[v]]
+    if w.sum()<1e-6: top[v]=[bi['wrist.'+('L' if lado[v]>0 else 'R')],0,0,0]; w=np.array([1.,0,0,0])
+    tw[v]=w/w.sum()
+# la punta del antebrazo nuevo pasa de a poco a la superficie y a los pesos de la muñeca de la app:
+# así acompaña a la mano cuando la muñeca se dobla (sin hueco, sin escalón, sin borde serruchado)
+rampa=np.where(~quitar&(xs>corteV-.75))[0]
+t=np.clip((xs[rampa]-(corteV[rampa]-.75))/.55,0,1); t=t*t*(3-2*t)
+CAV[rampa]*=1-t  # la sombra de surco de la muñeca vieja ya no corresponde
+for sx in (1,-1):
+    m=lado[rampa]==sx; r=rampa[m]; tt=t[m]
+    cand=np.where((np.sign(PT[:,0])==sx)&(np.abs(PT[:,0])>cortes[sx]-.9)&(np.abs(PT[:,0])<cortes[sx]-.1))[0]
+    ej=HT[bi['wrist.'+('L' if sx>0 else 'R')]]
+    # vecino en la misma sección del brazo (misma x) y en la misma dirección alrededor del eje
+    ang=lambda P: np.c_[np.abs(P[:,0])*4, (P[:,1:]-ej[1:])/(np.linalg.norm(P[:,1:]-ej[1:],axis=1,keepdims=True)+1e-6)]
+    Ir,_=vecinos(ang(Pn[r]),ang(PT[cand]),1); j=cand[Ir[:,0]]
+    eje=np.tile(ej,(len(r),1)); eje[:,0]=Pn[r,0]
+    rn=np.linalg.norm((Pn[r]-eje)[:,1:],axis=1)+1e-6; rm=np.linalg.norm((PT[j]-eje)[:,1:],axis=1)*1.07  # un poco más ancho: tapa el borde de la mano
+    Pn[r]=eje+(Pn[r]-eje)*(1+tt*(rm/rn-1))[:,None]
+    for v,jj,a in zip(r,j,tt):
+        Wv={}
+        for c in range(4):
+            Wv[top[v][c]]=Wv.get(top[v][c],0)+(1-a)*tw[v][c]; Wv[int(si[jj][c])]=Wv.get(int(si[jj][c]),0)+a*sw[jj][c]
+        k=sorted(Wv,key=lambda b:-Wv[b])[:4]; k+= [0]*(4-len(k)); w=np.array([Wv.get(b,0) for b in k])
+        top[v]=k; tw[v]=w/w.sum()
+# manos agregadas: UV en una zona lisa de las texturas (sin poros ni sombras), con un poco de variación para no degenerar la tangente
+uvm=np.array([.5977,.539])+PT[agreg][:,[0,1]]*.0015
+Pn=np.r_[Pn,PT[agreg]]; F=np.r_[Fk,Fm]; UV=np.r_[UV,uvm]
+top=np.r_[top,si[agreg].astype(int)]; tw=np.r_[tw,sw[agreg]]; zn=np.r_[zn,zona[agreg]]
+bp=np.r_[bp,PT[agreg]]; nbn=np.r_[nbn,np.tile([0,0,1.],(len(agreg),1))]; fdn=np.r_[fdn,fd[agreg]]; CAV=np.r_[CAV,np.zeros(len(agreg))]
+nn=len(Pn); uv16=np.round(np.clip(UV,0,1)*65535).astype(np.uint16)
 binout=b''.join([np.round(Pn*3000).astype(np.int16).tobytes(), F.astype(np.uint16).tobytes(), top.astype(np.uint8).tobytes(), (tw*255).round().astype(np.uint8).tobytes(),
   zn.astype(np.uint8).tobytes(), np.round(bp*3000).astype(np.int16).tobytes(), q8(nbn), q8(fdn), q8(CAV), uv16.tobytes()])
 bones=[{'n':b['n'],'p':b['p'],'h':HT[i].round(4).tolist(),'t':TT[i].round(4).tolist()} for i,b in enumerate(B)]
