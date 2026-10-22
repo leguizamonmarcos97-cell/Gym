@@ -3113,7 +3113,35 @@ const rangoReps = esq => { const m = esq.match(/×\s*(\d+)(?:–(\d+))?$/); retu
 const e1rm = (kg, r) => kg * (1 + r / 30);
 const redondearKg = kg => kg < 20 ? Math.round(kg) : Math.round(kg / 2.5) * 2.5;
 const mejorE1 = series => Math.max(0, ...series.filter(x => x.kg && x.r).map(x => e1rm(x.kg, x.r)));
-function recomendacion(esq, prev, seriesHoy){
+/* Peso inicial según el peso corporal (cuando todavía no hay registros del ejercicio).
+   Multiplicadores del peso corporal para las series de trabajo: [recién empiezo, 6 meses a 2 años]; avanzado = ×1,2 del segundo.
+   c: por mancuerna. Para mujeres se usa ×0,65 en tren superior y ×0,8 en piernas. Son una guía: se ajusta con la primera serie. */
+const PESO_INICIAL = [
+  [/press de banca|press plano/i, .55, .8], [/press inclinado.*barra/i, .45, .7], [/press inclinado|press con mancuernas/i, .14, .22, 'c'],
+  [/press militar.*mancuerna|press de hombros.*mancuerna|press con mancuernas sentado/i, .12, .19, 'c'], [/press militar|press de hombros/i, .35, .5],
+  [/remo con barra/i, .5, .7], [/remo a una mano|remo con mancuerna/i, .22, .35, 'c'], [/remo.*polea/i, .45, .65],
+  [/jal[oó]n|dominada/i, .5, .7], [/elevaciones laterales|lateral/i, .06, .1, 'c'], [/face pull/i, .15, .25], [/p[aá]jaros/i, .05, .08, 'c'],
+  [/curl martillo/i, .1, .15, 'c'], [/curl con mancuerna/i, .1, .15, 'c'], [/curl con barra|curl.*barra/i, .22, .32], [/curl en polea/i, .2, .3],
+  [/extensi[oó]n sobre la cabeza/i, .15, .22], [/extensi[oó]n en polea|tr[ií]ceps en polea/i, .22, .35], [/press franc[eé]s/i, .2, .3],
+  [/sentadilla b[uú]lgara/i, .06, .18, 'c', 1], [/sentadilla goblet/i, .2, .32, '', 1], [/sentadilla/i, .7, 1.1, '', 1],
+  [/peso muerto rumano.*mancuerna|rumano con mancuernas/i, .25, .4, 'c', 1], [/peso muerto rumano/i, .6, 1, '', 1], [/peso muerto/i, .8, 1.3, '', 1],
+  [/prensa/i, 1.3, 2, '', 1], [/hip thrust/i, .7, 1.3, '', 1], [/zancada/i, .1, .2, 'c', 1], [/sill[oó]n de cu[aá]driceps|extensi[oó]n de piernas/i, .35, .55, '', 1],
+  [/curl femoral acostado/i, .25, .4, '', 1], [/curl femoral sentado|curl femoral/i, .3, .45, '', 1], [/aductor/i, .4, .7, '', 1], [/abducci[oó]n/i, .4, .7, '', 1],
+  [/talones de pie|pantorrillas de pie/i, .6, 1, '', 1], [/talones sentado|pantorrillas sentado/i, .4, .7, '', 1], [/encogimientos/i, .5, .8]
+];
+const pesoCorporal = () => (store.get('atlas.cuerpo', []).filter(x => x.peso).pop() || {}).peso || (PERFIL && PERFIL.peso) || null;
+function pesoInicial(nombre, rg){
+  const pc = pesoCorporal(), fila = PESO_INICIAL.find(([re]) => re.test(nombre || ''));
+  if(!pc || !fila) return null;
+  const [, nuevo, medio, c, pierna] = fila, nivel = PERFIL && PERFIL.nivel;
+  let f = nivel === 'nuevo' ? nuevo : nivel === 'avanzado' ? medio * 1.2 : medio;
+  if(PERFIL && PERFIL.sexo === 'm') f *= pierna ? .8 : .65;
+  // Los multiplicadores son para unas 6 repeticiones (básicos pesados) o 10 (el resto); se ajustan a las repeticiones que toca hoy
+  const ref = medio >= .45 && c !== 'c' ? 6 : 10, obj = rg ? rg[0] : ref;
+  f *= (1 + (ref + 2) / 30) / (1 + (obj + 2) / 30);
+  return {kg:Math.max(1, redondearKg(pc * f)), c:c === 'c', pc};
+}
+function recomendacion(esq, prev, seriesHoy, nombre){
   const rg = rangoReps(esq);
   if(!rg) return null;
   const B = bloque(), rir = B.descarga ? 4 : RIR_NUM[B.sem - 1];
@@ -3121,16 +3149,21 @@ function recomendacion(esq, prev, seriesHoy){
   let base = e1Prev, fuente = 'prev';
   // Las series de hoy mandan si no llegaste al mínimo (bajar) o si rendiste más que la vez pasada (subir)
   if(hechas.length && (hechas.some(x => x.r < rg[0]) || e1Hoy > e1Prev || !e1Prev)){ base = e1Hoy; fuente = 'hoy'; }
-  if(!base) return null;
+  if(!base){
+    // Sin registros: peso inicial según el peso corporal
+    const ini = !(prev && prev.s.some(x => x.r != null)) && pesoInicial(nombre, rg);
+    return ini ? {kg:ini.kg, fuente:'cuerpo', rg, c:ini.c, pc:ini.pc} : null;
+  }
   let kg = base / (1 + (rg[0] + rir) / 30);
   if(B.descarga) kg *= .9;
   return {kg:Math.max(1, redondearKg(kg)), fuente, rg};
 }
-function recHTML(esq, prev, seriesHoy){
-  const r = recomendacion(esq, prev, seriesHoy), B = bloque();
+function recHTML(esq, prev, seriesHoy, nombre){
+  const r = recomendacion(esq, prev, seriesHoy, nombre), B = bloque();
   if(!r){
-    return rangoReps(esq) && !(prev && prev.s.some(x => x.r != null)) ? `<p class="ex-rec">Primera vez: elegí un peso que podrías levantar unas 15 veces y hacé la primera serie. Anotala y te calculo el peso para las siguientes.</p>` : '';
+    return rangoReps(esq) && !(prev && prev.s.some(x => x.r != null)) ? `<p class="ex-rec">Primera vez: elegí un peso que podrías levantar unas 15 veces y hacé la primera serie. Anotala y te calculo el peso para las siguientes.${pesoCorporal() ? '' : ' <small>(Si cargás tu peso en Perfil, te sugiero uno.)</small>'}</p>` : '';
   }
+  if(r.fuente === 'cuerpo') return `<p class="ex-rec">Para empezar: <b>${fmtNum(r.kg)} kg</b>${r.c ? ' por mancuerna' : ''}, buscando ${r.rg[0] === r.rg[1] ? r.rg[0] : `${r.rg[0]} a ${r.rg[1]}`} repeticiones <small>(según tu peso corporal, ${fmtNum(r.pc)} kg, y tu nivel). Si te sobran 3 o más repeticiones, subí; si no llegás, bajá. Después lo calculo con lo que anotes.</small></p>`;
   const kgPrev = prev ? Math.max(0, ...prev.s.filter(x => x.r != null && x.kg).map(x => x.kg)) : 0;
   const por = r.fuente === 'hoy' ? 'calculado con tu serie de hoy' : `calculado con tu última vez, el ${fmtFecha(prev.f)}`;
   const nota = B.descarga ? ' Semana liviana: sin llegar al límite.'
@@ -3195,7 +3228,7 @@ const discosHTML = (nombre, kg) => esBarra(nombre) ? `<details class="discos"${S
 function logHTML(e, k){
   const [nombre, esq] = e, seg = enSegundos(esq), n = nSeries(esq);
   const prev = anterior(nombre), hoy = deHoy(nombre), B = bloque();
-  const rec = recomendacion(esq, prev, hoy && hoy.s);
+  const rec = recomendacion(esq, prev, hoy && hoy.s, nombre);
   const filas = Array.from({length:n}, (_, i) => {
     const h = (hoy && hoy.s[i]) || {}, p = (prev && prev.s[i]) || {};
     const phKg = rec ? fmtNum(rec.kg) : (p.kg ? fmtNum(p.kg) : '');
@@ -3207,7 +3240,7 @@ function logHTML(e, k){
   }).join('');
   const hechas = hoy ? hoy.s.filter(x => x.ok).length : 0;
   return (prev ? `<p class="ex-last">La vez pasada · ${fmtFecha(prev.f)}: <b>${resumen(prev, seg)}</b></p>` : '') +
-    `<div class="ex-rec-box">${recHTML(esq, prev, hoy && hoy.s)}</div>` + discosHTML(nombre, rec && rec.kg) +
+    `<div class="ex-rec-box">${recHTML(esq, prev, hoy && hoy.s, nombre)}</div>` + discosHTML(nombre, rec && rec.kg) +
     (!B.descarga && estancado(nombre) ? `<p class="ex-alerta"><b>Sin progreso en 3 sesiones.</b> Bajá ~10% el peso y volvé a subir de a poco, o probá otra variante con “⇄ Cambiar”. Revisá también descanso y sueño.</p>` : '') +
     `<details class="log" data-k="${k}" open><summary>Anotar series <span class="cnt${hechas>=n?' full':''}">${hechas}/${n}</span></summary><div class="sets">${filas}</div></details>`;
 }
@@ -3247,8 +3280,8 @@ function guardarSerie(det){
   guardarRegistro(nombre, s);
   const hechas = s.filter(x => x.ok).length, cnt = det.querySelector('.cnt');
   cnt.textContent = `${hechas}/${s.length}`; cnt.classList.toggle('full', hechas >= s.length);
-  const esq = ejerciciosDe(S.plan, S.dia)[Number(det.dataset.k)][1], prev = anterior(nombre), r = recomendacion(esq, prev, s);
-  const box = det.closest('li').querySelector('.ex-rec-box'); if(box) box.innerHTML = recHTML(esq, prev, s);
+  const esq = ejerciciosDe(S.plan, S.dia)[Number(det.dataset.k)][1], prev = anterior(nombre), r = recomendacion(esq, prev, s, nombre);
+  const box = det.closest('li').querySelector('.ex-rec-box'); if(box) box.innerHTML = recHTML(esq, prev, s, nombre);
   if(r) det.querySelectorAll('.kg').forEach(i => { if(!i.value) i.placeholder = fmtNum(r.kg); });
   const dz = det.closest('li').querySelector('.discos-in'); if(dz && r){ dz.dataset.discos = r.kg; dz.innerHTML = discosIn(r.kg); }
   return {nombre, s};
@@ -3325,7 +3358,7 @@ function irModo(i, j = 0){
 function sigueHTML(ej, i, grande, titulo = 'Lo que sigue · preparalo mientras descansás'){
   const sig = ej[i + 1];
   if(!sig) return grande ? `<div class="modo-sigue"><span>Lo que sigue</span><b>Estiramientos</b><small>5 minutos y terminaste.</small></div>` : `<p class="modo-sig">Después: <b>estiramientos</b></p>`;
-  const [n, esq] = sig, h = deHoy(n), rec = recomendacion(esq, anterior(n), h && h.s);
+  const [n, esq] = sig, h = deHoy(n), rec = recomendacion(esq, anterior(n), h && h.s, n);
   const det = `${esq}${rec ? ` · ${fmtNum(rec.kg)} kg` : ''}`;
   return grande ? `<div class="modo-sigue"><span>${titulo}</span><b>${esc(n)}</b><small>${det}</small><div class="acts">${demoBtn(n, 'sm', 'Ver cómo se hace')}</div></div>`
     : `<p class="modo-sig">Después: <b>${esc(n)}</b> · ${det}</p>`;
@@ -3356,13 +3389,13 @@ function renderModo(){
   const [nombre, esq, nota] = ej[i], seg = enSegundos(esq), n = nSeriesModo(nombre, esq), prev = anterior(nombre);
   const s = seriesHoy(nombre, n), hechas = s.filter(x => x.ok).length;
   let j = MODO.j; if(j >= s.length || (s[j] && s[j].ok && MODO.auto !== false)) j = s.findIndex(x => !x.ok);
-  const rec = recomendacion(esq, prev, s), p = (prev && prev.s[Math.max(0, j)]) || {};
+  const rec = recomendacion(esq, prev, s, nombre), p = (prev && prev.s[Math.max(0, j)]) || {};
   const phKg = rec ? fmtNum(rec.kg) : (p.kg ? fmtNum(p.kg) : ''), phR = p.r != null ? p.r : (repsTope(esq) || (esq.match(/(\d+)\s*s$/) || [])[1] || '');
   const cur = j >= 0 ? s[j] : null;
   body.innerHTML = `${vistaSel()}<h2 class="modo-ej">${nombre}</h2>
     <p class="modo-sub"><b>${esq}</b>${nota ? ` ${nota}` : ''} · descanso ${fmtDur(descansoDe(esq) * 1000)}</p>
     <div class="acts">${demoBtn(nombre, 'sm', 'Ver cómo se hace')}</div>
-    <div class="modo-rec">${recHTML(esq, prev, s)}${prev ? `<p class="ex-last">La vez pasada · ${fmtFecha(prev.f)}: <b>${resumen(prev, seg)}</b></p>` : ''}</div>
+    <div class="modo-rec">${recHTML(esq, prev, s, nombre)}${prev ? `<p class="ex-last">La vez pasada · ${fmtFecha(prev.f)}: <b>${resumen(prev, seg)}</b></p>` : ''}</div>
     <div class="modo-desc" id="modo-desc"${REST.id ? '' : ' hidden'}><span>Descansá</span><b id="modo-desc-t">${$('#rest-t').textContent}</b><small>${j >= 0 ? `Después: serie ${j + 1} de ${s.length}` : `Después: ${i + 1 < N ? esc(ej[i + 1][0]) : 'estiramientos'}`}</small></div>
     ${j >= 0 ? `<div class="modo-serie">
       <p class="modo-sn">Serie ${j + 1} de ${s.length}</p>
@@ -3388,7 +3421,7 @@ const vistaSel = () => `<div class="seg vista-sel" role="group" aria-label="Cóm
 const borrador = (nombre, k) => ((MODO.borr || {})[nombre] || {})[k] || {};
 function tablaSeries(ej, i){
   const [nombre, esq] = ej[i], seg = enSegundos(esq), n = nSeriesModo(nombre, esq), prev = anterior(nombre);
-  const s = seriesHoy(nombre, n), rec = recomendacion(esq, prev, s), wu = ((MODO.wu || {})[nombre]) || [];
+  const s = seriesHoy(nombre, n), rec = recomendacion(esq, prev, s, nombre), wu = ((MODO.wu || {})[nombre]) || [];
   const tope = repsTope(esq) || (esq.match(/(\d+)\s*s$/) || [])[1] || '';
   const val = v => v != null && v !== '' ? (typeof v === 'number' ? fmtNum(v) : esc(String(v))) : '';
   const fila = (k, x, w) => {
@@ -3415,7 +3448,7 @@ function tablaModo(ej, i){
   return `${vistaSel()}<h2 class="modo-ej">${esc(nombre)}</h2>
     <p class="modo-sub"><b>${esq}</b>${nota ? ` ${nota}` : ''} · descanso ${fmtDur(descansoDe(esq) * 1000)}</p>
     <div class="acts">${demoBtn(nombre, 'sm', 'Ver cómo se hace')}</div>
-    <div class="modo-rec">${recHTML(esq, prev, s)}</div>
+    <div class="modo-rec">${recHTML(esq, prev, s, nombre)}</div>
     <div class="modo-desc" id="modo-desc"${REST.id ? '' : ' hidden'}><span>Descansá</span><b id="modo-desc-t">${$('#rest-t').textContent}</b><small>${hechas < s.length ? `Después: serie ${hechas + 1} de ${s.length}` : `Después: ${i + 1 < N ? esc(ej[i + 1][0]) : 'estiramientos'}`}</small></div>
     ${tablaSeries(ej, i)}
     <p class="modo-ayuda">En gris está lo sugerido: si hiciste eso, tocá ✓ sin escribir nada. Las series W no cuentan para tu progreso.</p>
@@ -3436,7 +3469,7 @@ function listaModo(ej){
         <div class="lista-cab"><h2 class="modo-ej">${i + 1}. ${esc(nombre)}</h2><span class="lista-cuenta">${h}/${s.length}</span></div>
         <p class="modo-sub"><b>${esq}</b>${nota ? ` ${nota}` : ''} · descanso ${fmtDur(descansoDe(esq) * 1000)}</p>
         <div class="acts">${demoBtn(nombre, 'sm', 'Ver cómo se hace')}</div>
-        <div class="modo-rec">${recHTML(esq, prev, s)}</div>
+        <div class="modo-rec">${recHTML(esq, prev, s, nombre)}</div>
         ${tablaSeries(ej, i)}
       </section>`; }).join('')}
     <div class="modo-nav"><button class="modo-ok" data-mir="${N}">Estiramientos y terminar ›</button></div>`;
@@ -4246,7 +4279,7 @@ function renderPlan(){
         <p class="cal-intro">Unos 10 minutos. Hacelo en este orden y marcá cada paso al terminarlo.</p>
         ${pasosHTML(d.cal)}</details>
       <h3 class="h3">Ejercicios</h3>${nota}${ayuda}
-      <ol class="exlist">${ejerciciosDe(S.plan, S.dia).map((e, k) => { const r = recomendacion(e[1], anterior(e[0]), (deHoy(e[0]) || {}).s), hoyReg = deHoy(e[0]);
+      <ol class="exlist">${ejerciciosDe(S.plan, S.dia).map((e, k) => { const r = recomendacion(e[1], anterior(e[0]), (deHoy(e[0]) || {}).s, e[0]), hoyReg = deHoy(e[0]);
         return `<li><div class="row"><span class="n">${e[0]}${e[3]?`<small class="ex-orig">En lugar de ${e[3]}${e[4]?`, ${e[4]}`:''}</small>`:''}<small class="ex-kg">${r ? `Recomendado: ${fmtNum(r.kg)} kg` : rangoReps(e[1]) && !enSegundos(e[1]) ? 'Primera vez: hacé una serie de prueba' : ''}</small><span class="acts">${demoBtn(e[0], 'sm', 'Ver cómo se hace')}</span></span><span class="s"><b>${e[1]}</b>${e[2]?`<small>${e[2]}</small>`:''}</span></div>
           <details class="ex-mas"${hoyReg || S.entrenar ? ' open' : ''}><summary>${hoyReg ? `Anotado hoy: ${hoyReg.s.filter(x => x.ok).length} series` : 'Anotar series y más opciones'}</summary>
             <div class="acts ex-mas-acts">${vid(e[0] + ' técnica', 'Video', 'sm')}${swapHTML(e, k)}</div>${logHTML(e, k)}</details></li>`; }).join('')}</ol>
