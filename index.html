@@ -321,6 +321,20 @@ body.en-modo{overflow:hidden}
 .modo-reloj{font:700 18px/1 var(--display);font-variant-numeric:tabular-nums;color:var(--muted)}
 .modo-barra{height:4px;background:var(--sunk)}
 .modo-barra span{display:block;height:100%;width:0;background:var(--green);transition:width .3s}
+.vista-sel{margin:0 0 10px}
+.tabla-s{display:grid;gap:6px;margin:12px 0 8px}
+.tf{display:grid;grid-template-columns:34px minmax(0,1fr) 74px 62px 44px;align-items:center;gap:6px;padding:5px 6px;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
+.tf-h{background:none;border:0;padding:0 6px;font:700 11px/1 var(--text);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.tf-h span:nth-child(n+3){text-align:center}
+.tf .n{font:800 16px/1 var(--text);text-align:center}
+.tf.w .n{color:var(--yellow)}
+.tf .ant{font:500 13px/1.2 var(--text);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tf input{width:100%;min-width:0;height:42px;box-sizing:border-box;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);text-align:center;font:700 17px var(--text);padding:0 4px}
+.tf input::placeholder{color:var(--muted);opacity:.75;font-weight:500}
+.t-ok{width:42px;height:42px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--muted);font:800 18px/1 var(--text);cursor:pointer}
+.tf.ok{background:color-mix(in srgb,var(--green) 16%,var(--surface));border-color:var(--green)}
+.tf.ok .t-ok{background:var(--green);border-color:var(--green);color:#fff}
+.tabla-mas{margin:4px 0 6px}
 .modo-body{flex:1;overflow-y:auto;padding:16px 16px 120px;max-width:720px;width:100%;margin:0 auto;box-sizing:border-box}
 .modo-ej{font:800 clamp(34px,10vw,52px)/.95 var(--display);margin:4px 0 8px}
 .modo-sub{color:var(--muted);margin:0 0 10px;font-size:15px}
@@ -3326,13 +3340,14 @@ function renderModo(){
     return;
   }
   if(i > N){ body.innerHTML = resumenModo(ej); return; }
+  if(vistaModo() === 'tabla'){ body.innerHTML = tablaModo(ej, i); return; }
   const [nombre, esq, nota] = ej[i], seg = enSegundos(esq), n = nSeriesModo(nombre, esq), prev = anterior(nombre);
   const s = seriesHoy(nombre, n), hechas = s.filter(x => x.ok).length;
   let j = MODO.j; if(j >= s.length || (s[j] && s[j].ok && MODO.auto !== false)) j = s.findIndex(x => !x.ok);
   const rec = recomendacion(esq, prev, s), p = (prev && prev.s[Math.max(0, j)]) || {};
   const phKg = rec ? fmtNum(rec.kg) : (p.kg ? fmtNum(p.kg) : ''), phR = p.r != null ? p.r : (repsTope(esq) || (esq.match(/(\d+)\s*s$/) || [])[1] || '');
   const cur = j >= 0 ? s[j] : null;
-  body.innerHTML = `<h2 class="modo-ej">${nombre}</h2>
+  body.innerHTML = `${vistaSel()}<h2 class="modo-ej">${nombre}</h2>
     <p class="modo-sub"><b>${esq}</b>${nota ? ` ${nota}` : ''} · descanso ${fmtDur(descansoDe(esq) * 1000)}</p>
     <div class="acts">${demoBtn(nombre, 'sm', 'Ver cómo se hace')}</div>
     <div class="modo-rec">${recHTML(esq, prev, s)}${prev ? `<p class="ex-last">La vez pasada · ${fmtFecha(prev.f)}: <b>${resumen(prev, seg)}</b></p>` : ''}</div>
@@ -3353,6 +3368,77 @@ function renderModo(){
       <button class="mchip-s mas" data-mmas aria-label="Agregar una serie">+ serie</button></div>
     <div class="modo-nav"><button class="plain" data-mir="${i - 1}">‹ Anterior</button>
       <button class="${j < 0 ? 'modo-ok' : 'plain'}" data-mir="${i + 1}">${i + 1 >= N ? (j < 0 ? 'Estiramientos ›' : 'Saltar ›') : j < 0 ? 'Siguiente ejercicio ›' : 'Saltar ›'}</button></div>`;
+}
+/* Vista en tabla: todas las series del ejercicio a la vista (serie, la vez anterior, kg, reps, ✓),
+   con series de aproximación (W) que no cuentan para el progreso. atlas.vistaModo = 'tabla' | 'guiada' */
+const vistaModo = () => store.get('atlas.vistaModo', 'tabla');
+const vistaSel = () => `<div class="seg vista-sel" role="group" aria-label="Cómo ver las series"><button data-mvista="tabla" aria-pressed="${vistaModo() === 'tabla'}">Tabla</button><button data-mvista="guiada" aria-pressed="${vistaModo() === 'guiada'}">Paso a paso</button></div>`;
+const borrador = (nombre, k) => ((MODO.borr || {})[nombre] || {})[k] || {};
+function tablaModo(ej, i){
+  const N = ej.length, [nombre, esq, nota] = ej[i], seg = enSegundos(esq), n = nSeriesModo(nombre, esq), prev = anterior(nombre);
+  const s = seriesHoy(nombre, n), rec = recomendacion(esq, prev, s), wu = ((MODO.wu || {})[nombre]) || [];
+  const tope = repsTope(esq) || (esq.match(/(\d+)\s*s$/) || [])[1] || '';
+  const val = v => v != null && v !== '' ? (typeof v === 'number' ? fmtNum(v) : esc(String(v))) : '';
+  const fila = (k, x, w) => {
+    const b = borrador(nombre, (w ? 'w' : '') + k), p = w ? {} : (prev && prev.s[k]) || {};
+    const phKg = w ? (rec ? fmtNum(Math.round(rec.kg * (k ? .7 : .5) / 2.5) * 2.5) : '') : rec ? fmtNum(rec.kg) : p.kg ? fmtNum(p.kg) : '';
+    const phR = w ? (k ? 4 : 8) : p.r != null ? p.r : tope;
+    const ant = !w && p.r != null ? `${p.kg ? fmtNum(p.kg) + ' × ' : ''}${p.r}` : '—';
+    return `<div class="tf${x.ok ? ' ok' : ''}${w ? ' w' : ''}" data-fila="${w ? 'w' : ''}${k}">
+      <span class="n">${w ? 'W' : k + 1}</span><span class="ant">${ant}</span>
+      <input class="t-kg" inputmode="decimal" placeholder="${phKg || '—'}" value="${val(x.kg != null ? x.kg : b.kg)}" aria-label="Kilos, serie ${w ? 'de aproximación' : k + 1}">
+      <input class="t-r" inputmode="numeric" placeholder="${phR}" value="${val(x.r != null ? x.r : b.r)}" aria-label="${seg ? 'Segundos' : 'Repeticiones'}, serie ${w ? 'de aproximación' : k + 1}">
+      <button class="t-ok" ${w ? 'data-twok' : 'data-tok'}="${k}" aria-pressed="${!!x.ok}" aria-label="Serie ${w ? 'de aproximación' : k + 1} hecha">✓</button></div>`;
+  };
+  const hechas = s.filter(x => x.ok).length;
+  return `${vistaSel()}<h2 class="modo-ej">${esc(nombre)}</h2>
+    <p class="modo-sub"><b>${esq}</b>${nota ? ` ${nota}` : ''} · descanso ${fmtDur(descansoDe(esq) * 1000)}</p>
+    <div class="acts">${demoBtn(nombre, 'sm', 'Ver cómo se hace')}</div>
+    <div class="modo-rec">${recHTML(esq, prev, s)}</div>
+    <div class="modo-desc" id="modo-desc"${REST.id ? '' : ' hidden'}><span>Descansá</span><b id="modo-desc-t">${$('#rest-t').textContent}</b><small>${hechas < s.length ? `Después: serie ${hechas + 1} de ${s.length}` : `Después: ${i + 1 < N ? esc(ej[i + 1][0]) : 'estiramientos'}`}</small></div>
+    <div class="tabla-s">
+      <div class="tf tf-h" aria-hidden="true"><span>Serie</span><span>Anterior</span><span>kg</span><span>${seg ? 'seg' : 'reps'}</span><span>✓</span></div>
+      ${wu.map((x, k) => fila(k, x, true)).join('')}
+      ${s.map((x, k) => fila(k, x, false)).join('')}
+    </div>
+    <div class="acts tabla-mas"><button class="plain" data-mmas>+ Serie</button><button class="plain" data-mmasw>+ Aproximación (W)</button></div>
+    <p class="modo-ayuda">En gris está lo sugerido: si hiciste eso, tocá ✓ sin escribir nada. Las series W no cuentan para tu progreso.</p>
+    ${hechas === s.length ? sigueHTML(ej, i, true) : sigueHTML(ej, i, false)}
+    <div class="modo-nav"><button class="plain" data-mir="${i - 1}">‹ Anterior</button>
+      <button class="${hechas === s.length ? 'modo-ok' : 'plain'}" data-mir="${i + 1}">${i + 1 >= N ? 'Estiramientos ›' : hechas === s.length ? 'Siguiente ejercicio ›' : 'Saltar ›'}</button></div>`;
+}
+// ✓ de una fila de la tabla: anota la serie (o la desmarca) y arranca el descanso
+function tildarFila(btn){
+  const ej = ejerciciosDe(MODO.plan, MODO.dia), [nombre, esq] = ej[MODO.i], fila = btn.closest('.tf');
+  const kgI = fila.querySelector('.t-kg'), rI = fila.querySelector('.t-r');
+  const kg = numero(kgI.value || kgI.placeholder), r = numero(rI.value || rI.placeholder);
+  if(btn.dataset.twok != null){
+    const k = Number(btn.dataset.twok), wu = (MODO.wu = MODO.wu || {})[nombre] = ((MODO.wu || {})[nombre] || []).slice();
+    wu[k] = wu[k] && wu[k].ok ? {} : Object.assign({}, kg != null ? {kg} : {}, r != null ? {r} : {}, {ok:true});
+    store.set('atlas.modo', MODO); renderModo(); return;
+  }
+  const k = Number(btn.dataset.tok), s = seriesHoy(nombre, nSeriesModo(nombre, esq));
+  if(s[k] && s[k].ok){ s[k] = Object.assign({}, s[k].kg != null ? {kg:s[k].kg} : {}, s[k].r != null ? {r:s[k].r} : {}); guardarRegistro(nombre, s); renderModo(); return; }
+  if(r == null){ rI.focus(); return; }
+  s[k] = Object.assign({}, kg != null ? {kg} : {}, {r, ok:true});
+  guardarRegistro(nombre, s);
+  chequearRecord(nombre, s, k);
+  iniciarDescanso(descansoDe(esq));
+  renderModo();
+}
+// Lo escrito en una fila sin tildar se guarda como borrador (no se pierde al redibujar); si ya estaba tildada, se corrige el registro
+function editarFila(inp){
+  const ej = ejerciciosDe(MODO.plan, MODO.dia), [nombre, esq] = ej[MODO.i], fila = inp.closest('.tf'), id = fila.dataset.fila;
+  const campo = inp.classList.contains('t-kg') ? 'kg' : 'r', v = numero(inp.value);
+  if(fila.classList.contains('ok')){
+    if(id.startsWith('w')){ const wu = MODO.wu[nombre]; wu[Number(id.slice(1))][campo] = v; store.set('atlas.modo', MODO); return; }
+    const s = seriesHoy(nombre, nSeriesModo(nombre, esq)), k = Number(id);
+    if(v == null && campo === 'r') return;
+    s[k] = Object.assign({}, s[k]); if(v == null) delete s[k][campo]; else s[k][campo] = v;
+    guardarRegistro(nombre, s); return;
+  }
+  MODO.borr = MODO.borr || {}; MODO.borr[nombre] = MODO.borr[nombre] || {}; MODO.borr[nombre][id] = Object.assign({}, MODO.borr[nombre][id], {[campo]:inp.value});
+  store.set('atlas.modo', MODO);
 }
 function serieHecha(){
   const ej = ejerciciosDe(MODO.plan, MODO.dia), [nombre, esq] = ej[MODO.i], n = nSeriesModo(nombre, esq), s = seriesHoy(nombre, n);
@@ -4682,6 +4768,15 @@ $('#modo-body').addEventListener('click', e => {
   const cs = e.target.closest('[data-cal-seg]');
   if(cs){ iniciarDescanso(Number(cs.dataset.calSeg), cs.dataset.calT); return; }
   if(e.target.closest('#m-ok')){ serieHecha(); return; }
+  const tok = e.target.closest('[data-tok],[data-twok]');
+  if(tok){ tildarFila(tok); return; }
+  const vs = e.target.closest('[data-mvista]');
+  if(vs){ store.set('atlas.vistaModo', vs.dataset.mvista); renderModo(); return; }
+  if(e.target.closest('[data-mmasw]')){
+    const [nombre] = ejerciciosDe(MODO.plan, MODO.dia)[MODO.i];
+    MODO.wu = Object.assign({}, MODO.wu, {[nombre]:((MODO.wu || {})[nombre] || []).concat({})});
+    store.set('atlas.modo', MODO); renderModo(); return;
+  }
   const ir = e.target.closest('[data-mir]');
   if(ir){ irModo(Number(ir.dataset.mir)); return; }
   const ms = e.target.closest('[data-mserie]');
@@ -4695,7 +4790,9 @@ $('#modo-body').addEventListener('click', e => {
   }
   if(e.target.closest('[data-mterminar]')){ const m = store.get('atlas.modo', {}); m.fin = true; store.set('atlas.modo', m); cerrarModo(false); }
 });
+$('#modo-body').addEventListener('change', e => { if(e.target.matches('.t-kg, .t-r')) editarFila(e.target); });
 $('#modo-body').addEventListener('input', e => {
+  if(e.target.matches('.t-kg, .t-r') && !e.target.closest('.tf.ok')) editarFila(e.target);
   if(e.target.id !== 'm-kg') return;
   const dz = $('#modo-body .discos-in'); if(dz) dz.innerHTML = discosIn(numero(e.target.value || e.target.placeholder));
 });
@@ -4707,7 +4804,10 @@ document.addEventListener('click', e => {
   const dz = b.closest('.discos-in'), kgI = dz.closest('#modo-body') && $('#m-kg');
   dz.innerHTML = discosIn(kgI ? numero(kgI.value || kgI.placeholder) : numero(dz.dataset.discos));
 });
-$('#modo-body').addEventListener('keydown', e => { if(e.key === 'Enter' && (e.target.id === 'm-kg' || e.target.id === 'm-r')){ e.preventDefault(); serieHecha(); } });
+$('#modo-body').addEventListener('keydown', e => {
+  if(e.key === 'Enter' && (e.target.id === 'm-kg' || e.target.id === 'm-r')){ e.preventDefault(); serieHecha(); }
+  if(e.key === 'Enter' && e.target.matches('.t-kg, .t-r')){ e.preventDefault(); const f = e.target.closest('.tf'); if(e.target.classList.contains('t-kg')) f.querySelector('.t-r').focus(); else tildarFila(f.querySelector('.t-ok')); }
+});
 $('#day').addEventListener('toggle', e => { if(e.target.id === 'cal') S.calAbierto = e.target.open; if(e.target.id === 'est') S.estAbierto = e.target.open; }, true);
 $('#entrenador').addEventListener('toggle', e => { S.coach = e.target.open; }, true);
 $('#perfil-btn').addEventListener('click', () => { setTab('perfil'); window.scrollTo({top:0}); });
