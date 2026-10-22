@@ -46,6 +46,19 @@ Pn[:,0]-= (Pn[:,0].max()+Pn[:,0].min())/2
 banda=lambda P: P[(P[:,1]>2)&(P[:,1]<5)&(np.abs(P[:,0])<1.2)]
 Pn[:,2]+= banda(PT)[:,2].mean()-banda(Pn)[:,2].mean()
 print('escala',round(s,2),'alto',round(alto,2),'envergadura app',PT[:,0].min().round(2),PT[:,0].max().round(2),'nuevo',Pn[:,0].min().round(2),Pn[:,0].max().round(2))
+# brazos: el del cuerpo nuevo queda un poco más abajo y adelante que los huesos; se lo lleva al eje de los huesos
+# (de a poco desde el hombro), así el codo y la muñeca giran en su centro
+for sx in (1,-1):
+    xg=np.arange(2.6,7.5,.2); dl=[]
+    for x in xg:
+        a_=Pn[(sx*Pn[:,0]>=x)&(sx*Pn[:,0]<x+.3)&(Pn[:,1]>3.5)]; b_=PT[(sx*PT[:,0]>=x)&(sx*PT[:,0]<x+.3)&(PT[:,1]>3.5)]
+        dl.append([(b_[:,1].min()+b_[:,1].max()-a_[:,1].min()-a_[:,1].max())/2,(b_[:,2].min()+b_[:,2].max()-a_[:,2].min()-a_[:,2].max())/2])
+    dl=np.array(dl); dl=np.array([dl[max(0,i-2):i+3].mean(0) for i in range(len(dl))])
+    m=sx*Pn[:,0]>1.8; xa=sx*Pn[m,0]
+    dd=np.c_[np.interp(xa,xg+.15,dl[:,0]),np.interp(xa,xg+.15,dl[:,1])]
+    r=np.clip((xa-1.8)/1.2,0,1); r=r*r*(3-2*r)
+    Pn[np.where(m)[0],1:]+=r[:,None]*dd
+    print('brazo',sx,'corrimiento y/z en el codo',dl[len(dl)//2].round(2),'en la muñeca',dl[-1].round(2))
 # vecinos más cercanos (en bloques)
 def vecinos(Q,P,k):
     I=np.zeros((len(Q),k),int); D=np.zeros((len(Q),k))
@@ -85,64 +98,88 @@ bp=Pn; nbn=Nn
 ZN=M['zonas']; brazo=np.isin(zn,[ZN.index(z) for z in ('hombros','biceps','triceps','antebrazos')])
 fdn=fdn.astype(np.float64); fdn[brazo]=np.c_[np.sign(Pn[brazo,0]),np.zeros(brazo.sum()),np.zeros(brazo.sum())]
 q8=lambda a: np.round(np.clip(a,-1,1)*127).astype(np.int8).tobytes()
-# Manos: las del cuerpo de la app (sus dedos coinciden con los huesos y pueden agarrar). Se quitan las del cuerpo nuevo
-# desde la muñeca y se agregan las de la app desde un poco antes (en el antebrazo, donde la textura es lisa), para que se superpongan y no quede hueco.
+# Manos: las propias del cuerpo nuevo. Sus dedos son más largos y están abiertos, así que se mueven los huesos
+# de la mano (nudillos, falanges, pulgar) al centro de cada dedo y se pesa cada dedo sólo con sus huesos.
 UV=N['UV']
-mano_b=[i for i,x in enumerate(nombres) if x.split('.')[0] in ('wrist',) or x.startswith('metacarpal') or x.startswith('finger')]
-wm=np.zeros(len(pos))
-for c in range(4): wm+=np.isin(si[:,c],mano_b)*sw[:,c]
-cortes={}
-for l,sx in (('L',1),('R',-1)): cortes[sx]=abs(HT[bi['wrist.'+l]][0])
-print('cortes',cortes)
-xs=np.abs(Pn[:,0]); lado=np.sign(Pn[:,0])
-quitar=np.array([xs[v]>cortes[lado[v] if lado[v]!=0 else 1]-.2 for v in range(nn)])
-agreg=np.where(np.abs(PT[:,0])>np.array([cortes[1 if x>=0 else -1] for x in PT[:,0]])-.45)[0]
-print('vértices de mano: se quitan',quitar.sum(),'se agregan',len(agreg))
-mapa=-np.ones(len(pos),int); mapa[agreg]=np.arange(len(agreg))+nn
-Fk=F[~quitar[F].any(1)]
-ta=idx[np.isin(idx,agreg).all(1)].astype(int); Fm=mapa[ta]
-# UV de las manos agregadas: la del punto de la muñeca del cuerpo nuevo más cercano (zona lisa)
-# el antebrazo nuevo queda un poco más abajo que la muñeca de la app: se lo corre de a poco (desde el codo) para que llegue justo a la mano
-for sx in (1,-1):
-    c0=cortes[sx]; codo=abs(HT[bi['lowerarm01.'+('L' if sx>0 else 'R')]][0])
-    sl=lambda P: P[(np.sign(P[:,0])==sx)&(np.abs(P[:,0])>c0-.6)&(np.abs(P[:,0])<c0-.05)]
-    d=sl(PT)[:,1:].mean(0)-sl(Pn)[:,1:].mean(0); print('corrimiento muñeca',sx,d.round(3))
-    m=(np.sign(Pn[:,0])==sx)&(np.abs(Pn[:,0])>codo)
-    a=np.clip((np.abs(Pn[m,0])-codo)/(c0-.5-codo),0,1); a=a*a*(3-2*a)
-    Pn[np.where(m)[0],1:]+=a[:,None]*d
-# muñeca del cuerpo nuevo: sin pesos de dedos (si no, se estira en jirones al cerrar la mano)
-dedo=np.array([x.startswith('metacarpal') or x.startswith('finger') for x in nombres])
-corteV=np.array([cortes[l if l!=0 else 1] for l in lado])
-for v in np.where((xs>corteV-.6)&~quitar)[0]:
-    w=tw[v]*~dedo[top[v]]
-    if w.sum()<1e-6: top[v]=[bi['wrist.'+('L' if lado[v]>0 else 'R')],0,0,0]; w=np.array([1.,0,0,0])
-    tw[v]=w/w.sum()
-# la punta del antebrazo nuevo pasa de a poco a la superficie y a los pesos de la muñeca de la app:
-# así acompaña a la mano cuando la muñeca se dobla (sin hueco, sin escalón, sin borde serruchado)
-rampa=np.where(~quitar&(xs>corteV-.75))[0]
-t=np.clip((xs[rampa]-(corteV[rampa]-.75))/.55,0,1); t=t*t*(3-2*t)
-CAV[rampa]*=1-t  # la sombra de surco de la muñeca vieja ya no corresponde
-for sx in (1,-1):
-    m=lado[rampa]==sx; r=rampa[m]; tt=t[m]
-    cand=np.where((np.sign(PT[:,0])==sx)&(np.abs(PT[:,0])>cortes[sx]-.9)&(np.abs(PT[:,0])<cortes[sx]-.1))[0]
-    ej=HT[bi['wrist.'+('L' if sx>0 else 'R')]]
-    # vecino en la misma sección del brazo (misma x) y en la misma dirección alrededor del eje
-    ang=lambda P: np.c_[np.abs(P[:,0])*4, (P[:,1:]-ej[1:])/(np.linalg.norm(P[:,1:]-ej[1:],axis=1,keepdims=True)+1e-6)]
-    Ir,_=vecinos(ang(Pn[r]),ang(PT[cand]),1); j=cand[Ir[:,0]]
-    eje=np.tile(ej,(len(r),1)); eje[:,0]=Pn[r,0]
-    rn=np.linalg.norm((Pn[r]-eje)[:,1:],axis=1)+1e-6; rm=np.linalg.norm((PT[j]-eje)[:,1:],axis=1)*1.07  # un poco más ancho: tapa el borde de la mano
-    Pn[r]=eje+(Pn[r]-eje)*(1+tt*(rm/rn-1))[:,None]
-    for v,jj,a in zip(r,j,tt):
+ss=lambda t: (lambda c: c*c*(3-2*c))(np.clip(t,0,1))
+def segdist(P,a,b):
+    ab=b-a; t=np.clip(((P-a)@ab)/(ab@ab+1e-9),0,1); return np.linalg.norm(P-(a+t[:,None]*ab),axis=1)
+for l,sx in (('L',1),('R',-1)):
+    Q=Pn.copy(); Q[:,0]*=sx
+    wr=bi['wrist.'+l]; W0=HT[wr]*[sx,1,1]; wx=W0[0]
+    lado=(Pn[:,0]*sx)>wx-.6
+    # 1) dedos largos: cuatro bandas separadas en z (de meñique a índice) en la zona de las falanges
+    s=Q[lado&(Q[:,0]>9.0)&(Q[:,0]<9.3)]; z=np.sort(s[:,2]); g=np.diff(z)
+    cz=sorted((z[i]+z[i+1])/2 for i in np.argsort(-g)[:3]); lim=[-9]+cz+[9]
+    zmax_dedos=z.max()
+    # donde se separan los dedos
+    xsep=9.0
+    def huecos(x):
+        t_=Q[lado&(Q[:,0]>=x)&(Q[:,0]<x+.06)&(Q[:,2]<zmax_dedos+.05)]
+        return sum(((t_[:,2]>c-.05)&(t_[:,2]<c+.05)).sum()==0 for c in cz)
+    for x in np.arange(8.3,9.2,.025):
+        if all(huecos(x+d)>=3 for d in (0,.06,.12)): xsep=x; break
+    print(l,'dedos se separan en x',round(xsep,2),'límites z',np.round(cz,2))
+    def centro(sel,x,ancho=.06):
+        t_=Q[sel&(np.abs(Q[:,0]-x)<ancho)]
+        return np.array([x,(t_[:,1].min()+t_[:,1].max())/2,(t_[:,2].min()+t_[:,2].max())/2]) if len(t_)>2 else None
+    banda={}
+    for k,f in enumerate((5,4,3,2)):
+        sel=lado&(Q[:,2]>lim[k])&(Q[:,2]<=lim[k+1])&(Q[:,0]>xsep-.02)
+        punta=Q[sel,0].max()-.04; mcp=xsep-.25
+        c0=centro(sel,xsep+.04)
+        L_=punta-mcp; js=[mcp,mcp+.38*L_,mcp+.68*L_,punta]
+        pts=[]
+        for x in js:
+            c=centro(sel,min(max(x,xsep+.04),punta-.03))
+            pts.append(np.array([x,c[1],c[2]]))
+        banda[f]=(lim[k],lim[k+1],mcp)
+        for sgm in range(3):
+            n=f'finger{f}-{sgm+1}.{l}'; HT[bi[n]]=pts[sgm]*[sx,1,1]; TT[bi[n]]=pts[sgm+1]*[sx,1,1]
+        mc=bi[f'metacarpal{f-1}.{l}']; TT[mc]=pts[0]*[sx,1,1]
+    # 2) pulgar: lo que queda por delante del índice
+    selp=lado&(Q[:,2]>lim[4-1]+.0)&(Q[:,2]>zmax_dedos+.12)&(Q[:,0]>wx+.3)
+    tp=Q[selp]; punta=tp[np.argmax(tp[:,0])].copy(); punta[0]-=.04
+    cp=centro(selp,punta[0]-.08,.05); punta[1:]=cp[1:]
+    escala=(Q[lado,0].max()-wx)/(9.42-7.4)
+    base=W0+(HT[bi['finger1-1.'+l]]*[sx,1,1]-W0)*escala
+    j1=base+(punta-base)*.4; j2=base+(punta-base)*.72
+    for j in (j1,j2):
+        c=centro(selp,j[0],.05)
+        if c is not None: j[1:]=c[1:]
+    for sgm,(p0,p1) in enumerate(((base,j1),(j1,j2),(j2,punta))):
+        n=f'finger1-{sgm+1}.{l}'; HT[bi[n]]=p0*[sx,1,1]; TT[bi[n]]=p1*[sx,1,1]
+    # 3) metacarpianos: salen de la muñeca (en la misma proporción que antes) hasta el nudillo de su dedo
+    for m in range(1,5):
+        mc=bi[f'metacarpal{m}.{l}']; HT[mc]=(W0+(HT[mc]*[sx,1,1]-W0)*escala)*[sx,1,1]
+    TT[wr]=(W0+(TT[wr]*[sx,1,1]-W0)*escala)*[sx,1,1]
+    # 4) pesos de la mano por distancia a cada hueso, sin mezclar dedos vecinos
+    v=np.where(lado&(Q[:,0]>wx-.3))[0]; P=Q[v]
+    cand=['lowerarm02','wrist']+[f'metacarpal{m}' for m in range(1,5)]+[f'finger{f}-{s_}' for f in range(1,6) for s_ in (1,2,3)]
+    ids=[bi[c+'.'+l] for c in cand]
+    D=np.stack([segdist(P,HT[i]*[sx,1,1],TT[i]*[sx,1,1]) for i in ids],1)
+    perm=np.ones_like(D,bool)
+    dedo_de=np.zeros(len(v),int)
+    for f,(z0,z1,mcp) in banda.items():
+        m_=(P[:,2]>z0)&(P[:,2]<=z1)&(P[:,0]>mcp+.08)&(P[:,2]<=zmax_dedos+.05); dedo_de[m_]=f
+    pul=(P[:,2]>zmax_dedos+.12)&(P[:,0]>wx+.3); dedo_de[pul]=1
+    for k,c in enumerate(cand):
+        if c.startswith('finger'):
+            f=int(c[6]); perm[:,k]&=(dedo_de==f)|((dedo_de==0)&(c.endswith('-1')))
+        elif c.startswith('metacarpal'):
+            f=int(c[10])+1; perm[:,k]&=(dedo_de==0)|(dedo_de==f)
+        elif c=='lowerarm02': perm[:,k]&=dedo_de==0
+    Wd=np.where(perm,1/(D+.03)**4,0)
+    top4=np.argsort(-Wd,1)[:,:4]; w4=np.take_along_axis(Wd,top4,1); w4/=w4.sum(1,keepdims=True)
+    a_=ss((P[:,0]-(wx-.3))/.4)[:,None]   # en el antebrazo se mezcla con los pesos que ya tenía
+    for i_,vv in enumerate(v):
         Wv={}
         for c in range(4):
-            Wv[top[v][c]]=Wv.get(top[v][c],0)+(1-a)*tw[v][c]; Wv[int(si[jj][c])]=Wv.get(int(si[jj][c]),0)+a*sw[jj][c]
-        k=sorted(Wv,key=lambda b:-Wv[b])[:4]; k+= [0]*(4-len(k)); w=np.array([Wv.get(b,0) for b in k])
-        top[v]=k; tw[v]=w/w.sum()
-# manos agregadas: UV en una zona lisa de las texturas (sin poros ni sombras), con un poco de variación para no degenerar la tangente
-uvm=np.array([.5977,.539])+PT[agreg][:,[0,1]]*.0015
-Pn=np.r_[Pn,PT[agreg]]; F=np.r_[Fk,Fm]; UV=np.r_[UV,uvm]
-top=np.r_[top,si[agreg].astype(int)]; tw=np.r_[tw,sw[agreg]]; zn=np.r_[zn,zona[agreg]]
-bp=np.r_[bp,PT[agreg]]; nbn=np.r_[nbn,np.tile([0,0,1.],(len(agreg),1))]; fdn=np.r_[fdn,fd[agreg]]; CAV=np.r_[CAV,np.zeros(len(agreg))]
+            Wv[int(top[vv][c])]=Wv.get(int(top[vv][c]),0)+(1-a_[i_,0])*tw[vv][c]
+            Wv[ids[top4[i_,c]]]=Wv.get(ids[top4[i_,c]],0)+a_[i_,0]*w4[i_,c]
+        k=sorted(Wv,key=lambda b_:-Wv[b_])[:4]; k+=[0]*(4-len(k)); w=np.array([Wv.get(b_,0) for b_ in k])
+        top[vv]=k; tw[vv]=w/w.sum()
+    print(l,'mano: vértices',len(v),'pulgar',pul.sum(),'por dedo',[(dedo_de==f).sum() for f in range(1,6)])
 nn=len(Pn); uv16=np.round(np.clip(UV,0,1)*65535).astype(np.uint16)
 binout=b''.join([np.round(Pn*3000).astype(np.int16).tobytes(), F.astype(np.uint16).tobytes(), top.astype(np.uint8).tobytes(), (tw*255).round().astype(np.uint8).tobytes(),
   zn.astype(np.uint8).tobytes(), np.round(bp*3000).astype(np.int16).tobytes(), q8(nbn), q8(fdn), q8(CAV), uv16.tobytes()])
