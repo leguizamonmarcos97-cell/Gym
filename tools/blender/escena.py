@@ -81,7 +81,8 @@ inten=inten*(1-np.clip((sh-.35)/.3,0,1))  # lo que tapa el short no brilla
 brz=np.isin(zona[I],[nombres.index(z) for z in ('biceps','triceps','antebrazos','hombros')])|((zona[I]==0)&(np.abs(Vn[:,0])>.13))
 fz=np.isin(zona[I],[nombres.index(z) for z in ('pecho','dorsales')]).astype(float)
 for _ in range(3): fz=np.array([(fz[i]*2+sum(fz[j] for j in vec[i]))/(2+len(vec[i])) for i in range(len(Vn))])
-for nm,val in (('brz',brz.astype(float)),('fz',fz)):
+esp=np.isin(zona[I],[nombres.index(z) for z in ('dorsales','lumbar','gluteos','trapecio')]).astype(float)
+for nm,val in (('brz',brz.astype(float)),('fz',fz),('esp',esp)):
     at=body.data.attributes.new(nm,'FLOAT','POINT'); at.data.foreach_set('value',val.astype(np.float32))
 for nm,val in (('musc',inten),('short',sh)):
     at=body.data.attributes.new(nm,'FLOAT','POINT'); at.data.foreach_set('value',val.astype(np.float32))
@@ -263,4 +264,39 @@ if cfg.get('pose_json'):
             mira_b=arm.matrix_world@arm.pose.bones[cfg['mira_hueso']].head; cam.location=mira_b+(cam.location-mp(m3)).normalized()*cfg.get('dist_hueso',.6)
         cam.rotation_euler=(mira_b-cam.location).to_track_quat('-Z','Y').to_euler()
         cam.data.sensor_fit='VERTICAL'; cam.data.angle_y=math.radians(32)
+        sc.render.filepath=f"{cfg['salida']}{i}.png"; bpy.ops.render.render(write_still=True)
+
+# ---- fotos con captura de movimiento real (Rokoko) ----
+V3=mathutils.Vector
+if cfg.get('rk_npz'):
+    exec(open(cfg['pose_rk']).read())
+    col=bpy.data.collections.new('aparatos'); sc.collection.children.link(col)
+    for i,fr in enumerate(cfg['rk_cuadros']):
+        BAJAR.clear(); P=pose_rk(arm,fr,cfg.get('rk_escala',1.06),zpiso)
+        gL=agarre(arm,'Left'); gR=agarre(arm,'Right'); cen=(gL+gR)/2; eje=(gL-gR).normalized()
+        if i in cfg.get('toca_pecho',[]) and cfg.get('hacia_pies',0):
+            mw_=arm.matrix_world; pb_=arm.pose.bones; ej_=(mw_@pb_['mixamorig:Head'].head-mw_@pb_['mixamorig:Hips'].head); ej_.z=0; ej_.normalize()
+            for L in ('Left','Right'): BAJAR[L]=-ej_*cfg['hacia_pies']
+            P=pose_rk(arm,fr,cfg.get('rk_escala',1.06),zpiso); gL=agarre(arm,'Left'); gR=agarre(arm,'Right'); cen=(gL+gR)/2; eje=(gL-gR).normalized()
+        if i in cfg.get('toca_pecho',[]):
+            for it in range(3):
+                zp=pecho_bajo_barra(body,cen,eje)
+                if zp is None: break
+                gap=cen.z-(zp+.0145+cfg.get('holgura',.004))
+                print('RKPOSE hueco barra-pecho',round(gap,3))
+                if abs(gap)<.004: break
+                for L in ('Left','Right'): BAJAR[L]=BAJAR.get(L,V3())+V3((0,0,-gap))
+                P=pose_rk(arm,fr,cfg.get('rk_escala',1.06),zpiso)
+                gL=agarre(arm,'Left'); gR=agarre(arm,'Right'); cen=(gL+gR)/2; eje=(gL-gR).normalized()
+        cen,eje=barra(col,gL,gR)
+        banco(col,arm,body,zpiso)
+        mw=arm.matrix_world; pb=arm.pose.bones
+        cab=mw@pb['mixamorig:Head'].head; cad=mw@pb['mixamorig:Hips'].head; ejeb=(cab-cad); ejeb.z=0; ejeb.normalize()
+        lat=V3((0,0,1)).cross(ejeb).normalized()*cfg.get('lado',1)
+        foco=mw@pb['mixamorig:Spine2'].head; foco.z+=cfg.get('foco_z',.15)
+        a=math.radians(cfg.get('cam_ang',35)); d=cfg.get('cam_dist',3.0)
+        cam.location=foco+(lat*math.cos(a)-ejeb*math.sin(a))*d+V3((0,0,cfg.get('cam_alto',1.3)))
+        cam.rotation_euler=(foco-cam.location).to_track_quat('-Z','Y').to_euler()
+        cam.data.sensor_fit='VERTICAL'; cam.data.angle_y=math.radians(cfg.get('fov',32))
+        print('RKPOSE',i,fr,'barra',tuple(round(x,3) for x in cen),'manos sep',round((gL-gR).length,3))
         sc.render.filepath=f"{cfg['salida']}{i}.png"; bpy.ops.render.render(write_still=True)
