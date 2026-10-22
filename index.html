@@ -335,6 +335,17 @@ body.en-modo{overflow:hidden}
 .tf.ok{background:color-mix(in srgb,var(--green) 16%,var(--surface));border-color:var(--green)}
 .tf.ok .t-ok{background:var(--green);border-color:var(--green);color:#fff}
 .tabla-mas{margin:4px 0 6px}
+.lista-ej{margin:14px 0;padding:14px 12px 8px;border:1px solid var(--line);border-radius:16px;background:var(--surface)}
+.lista-ej.listo{border-color:var(--green)}
+.lista-ej .tf{background:var(--bg)}
+.lista-ej .tf.ok{background:color-mix(in srgb,var(--green) 16%,var(--bg))}
+.lista-ej .tf input{background:var(--surface)}
+.lista-cab{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.lista-cab .modo-ej{margin:0;font-size:24px}
+.lista-cuenta{font:800 15px/1 var(--text);color:var(--muted)}
+.lista-ej.listo .lista-cuenta{color:var(--green)}
+.lista-cal{margin:6px 0 2px}
+.vista-sel button{white-space:nowrap}
 .modo-body{flex:1;overflow-y:auto;padding:16px 16px 120px;max-width:720px;width:100%;margin:0 auto;box-sizing:border-box}
 .modo-ej{font:800 clamp(34px,10vw,52px)/.95 var(--display);margin:4px 0 8px}
 .modo-sub{color:var(--muted);margin:0 0 10px;font-size:15px}
@@ -3322,7 +3333,7 @@ function sigueHTML(ej, i, grande, titulo = 'Lo que sigue · preparalo mientras d
 function renderModo(){
   const d = diaDe(MODO.plan, MODO.dia), ej = ejerciciosDe(MODO.plan, MODO.dia), N = ej.length, i = MODO.i;
   $('#modo-dia').textContent = d.titulo;
-  $('#modo-prog').textContent = i < 0 ? 'Calentamiento' : i === N ? 'Estiramientos' : i > N ? 'Resumen' : `Ejercicio ${i + 1} de ${N}`;
+  $('#modo-prog').textContent = i < 0 ? 'Calentamiento' : i === N ? 'Estiramientos' : i > N ? 'Resumen' : vistaModo() === 'lista' ? `${N} ejercicios` : `Ejercicio ${i + 1} de ${N}`;
   $('#modo-reloj').textContent = fmtDur(Date.now() - MODO.ini);
   $('#modo-barra').style.width = `${Math.max(0, Math.min(1, (i + 1) / (N + 2))) * 100}%`;
   const body = $('#modo-body');
@@ -3340,6 +3351,7 @@ function renderModo(){
     return;
   }
   if(i > N){ body.innerHTML = resumenModo(ej); return; }
+  if(vistaModo() === 'lista'){ body.innerHTML = listaModo(ej); return; }
   if(vistaModo() === 'tabla'){ body.innerHTML = tablaModo(ej, i); return; }
   const [nombre, esq, nota] = ej[i], seg = enSegundos(esq), n = nSeriesModo(nombre, esq), prev = anterior(nombre);
   const s = seriesHoy(nombre, n), hechas = s.filter(x => x.ok).length;
@@ -3371,11 +3383,11 @@ function renderModo(){
 }
 /* Vista en tabla: todas las series del ejercicio a la vista (serie, la vez anterior, kg, reps, ✓),
    con series de aproximación (W) que no cuentan para el progreso. atlas.vistaModo = 'tabla' | 'guiada' */
-const vistaModo = () => store.get('atlas.vistaModo', 'tabla');
-const vistaSel = () => `<div class="seg vista-sel" role="group" aria-label="Cómo ver las series"><button data-mvista="tabla" aria-pressed="${vistaModo() === 'tabla'}">Tabla</button><button data-mvista="guiada" aria-pressed="${vistaModo() === 'guiada'}">Paso a paso</button></div>`;
+const vistaModo = () => store.get('atlas.vistaModo', 'lista');
+const vistaSel = () => `<div class="seg vista-sel" role="group" aria-label="Cómo ver la rutina"><button data-mvista="lista" aria-pressed="${vistaModo() === 'lista'}">Toda la rutina</button><button data-mvista="tabla" aria-pressed="${vistaModo() === 'tabla'}">Un ejercicio</button><button data-mvista="guiada" aria-pressed="${vistaModo() === 'guiada'}">Paso a paso</button></div>`;
 const borrador = (nombre, k) => ((MODO.borr || {})[nombre] || {})[k] || {};
-function tablaModo(ej, i){
-  const N = ej.length, [nombre, esq, nota] = ej[i], seg = enSegundos(esq), n = nSeriesModo(nombre, esq), prev = anterior(nombre);
+function tablaSeries(ej, i){
+  const [nombre, esq] = ej[i], seg = enSegundos(esq), n = nSeriesModo(nombre, esq), prev = anterior(nombre);
   const s = seriesHoy(nombre, n), rec = recomendacion(esq, prev, s), wu = ((MODO.wu || {})[nombre]) || [];
   const tope = repsTope(esq) || (esq.match(/(\d+)\s*s$/) || [])[1] || '';
   const val = v => v != null && v !== '' ? (typeof v === 'number' ? fmtNum(v) : esc(String(v))) : '';
@@ -3390,26 +3402,50 @@ function tablaModo(ej, i){
       <input class="t-r" inputmode="numeric" placeholder="${phR}" value="${val(x.r != null ? x.r : b.r)}" aria-label="${seg ? 'Segundos' : 'Repeticiones'}, serie ${w ? 'de aproximación' : k + 1}">
       <button class="t-ok" ${w ? 'data-twok' : 'data-tok'}="${k}" aria-pressed="${!!x.ok}" aria-label="Serie ${w ? 'de aproximación' : k + 1} hecha">✓</button></div>`;
   };
+  return `<div class="tabla-s" data-ej="${i}">
+      <div class="tf tf-h" aria-hidden="true"><span>Serie</span><span>Anterior</span><span>kg</span><span>${seg ? 'seg' : 'reps'}</span><span>✓</span></div>
+      ${wu.map((x, k) => fila(k, x, true)).join('')}
+      ${s.map((x, k) => fila(k, x, false)).join('')}
+    </div>
+    <div class="acts tabla-mas" data-ej="${i}"><button class="plain" data-mmas>+ Serie</button><button class="plain" data-mmasw>+ Aproximación (W)</button></div>`;
+}
+function tablaModo(ej, i){
+  const N = ej.length, [nombre, esq, nota] = ej[i], prev = anterior(nombre), s = seriesHoy(nombre, nSeriesModo(nombre, esq));
   const hechas = s.filter(x => x.ok).length;
   return `${vistaSel()}<h2 class="modo-ej">${esc(nombre)}</h2>
     <p class="modo-sub"><b>${esq}</b>${nota ? ` ${nota}` : ''} · descanso ${fmtDur(descansoDe(esq) * 1000)}</p>
     <div class="acts">${demoBtn(nombre, 'sm', 'Ver cómo se hace')}</div>
     <div class="modo-rec">${recHTML(esq, prev, s)}</div>
     <div class="modo-desc" id="modo-desc"${REST.id ? '' : ' hidden'}><span>Descansá</span><b id="modo-desc-t">${$('#rest-t').textContent}</b><small>${hechas < s.length ? `Después: serie ${hechas + 1} de ${s.length}` : `Después: ${i + 1 < N ? esc(ej[i + 1][0]) : 'estiramientos'}`}</small></div>
-    <div class="tabla-s">
-      <div class="tf tf-h" aria-hidden="true"><span>Serie</span><span>Anterior</span><span>kg</span><span>${seg ? 'seg' : 'reps'}</span><span>✓</span></div>
-      ${wu.map((x, k) => fila(k, x, true)).join('')}
-      ${s.map((x, k) => fila(k, x, false)).join('')}
-    </div>
-    <div class="acts tabla-mas"><button class="plain" data-mmas>+ Serie</button><button class="plain" data-mmasw>+ Aproximación (W)</button></div>
+    ${tablaSeries(ej, i)}
     <p class="modo-ayuda">En gris está lo sugerido: si hiciste eso, tocá ✓ sin escribir nada. Las series W no cuentan para tu progreso.</p>
     ${hechas === s.length ? sigueHTML(ej, i, true) : sigueHTML(ej, i, false)}
     <div class="modo-nav"><button class="plain" data-mir="${i - 1}">‹ Anterior</button>
       <button class="${hechas === s.length ? 'modo-ok' : 'plain'}" data-mir="${i + 1}">${i + 1 >= N ? 'Estiramientos ›' : hechas === s.length ? 'Siguiente ejercicio ›' : 'Saltar ›'}</button></div>`;
 }
+// Toda la rutina en una pantalla: cada ejercicio con su tabla, uno debajo del otro
+function listaModo(ej){
+  const N = ej.length, d = diaDe(MODO.plan, MODO.dia);
+  const hechasDe = ([nombre, esq]) => seriesHoy(nombre, nSeriesModo(nombre, esq)).filter(x => x.ok).length;
+  const total = ej.reduce((a, e) => a + nSeriesModo(e[0], e[1]), 0), listas = ej.reduce((a, e) => a + hechasDe(e), 0);
+  return `${vistaSel()}
+    <p class="modo-sub"><b>${listas} de ${total}</b> series hechas</p>
+    <button class="plain lista-cal" data-mir="-1">Calentamiento</button>
+    ${ej.map(([nombre, esq, nota], i) => { const prev = anterior(nombre), s = seriesHoy(nombre, nSeriesModo(nombre, esq)), h = hechasDe(ej[i]);
+      return `<section class="lista-ej${h === s.length ? ' listo' : ''}">
+        <div class="lista-cab"><h2 class="modo-ej">${i + 1}. ${esc(nombre)}</h2><span class="lista-cuenta">${h}/${s.length}</span></div>
+        <p class="modo-sub"><b>${esq}</b>${nota ? ` ${nota}` : ''} · descanso ${fmtDur(descansoDe(esq) * 1000)}</p>
+        <div class="acts">${demoBtn(nombre, 'sm', 'Ver cómo se hace')}</div>
+        <div class="modo-rec">${recHTML(esq, prev, s)}</div>
+        ${tablaSeries(ej, i)}
+      </section>`; }).join('')}
+    <div class="modo-nav"><button class="modo-ok" data-mir="${N}">Estiramientos y terminar ›</button></div>`;
+}
+// Ejercicio al que pertenece un botón o fila (en "Toda la rutina" hay varios en pantalla)
+const ejDe = el => { const c = el.closest('[data-ej]'); return c ? Number(c.dataset.ej) : MODO.i; };
 // ✓ de una fila de la tabla: anota la serie (o la desmarca) y arranca el descanso
 function tildarFila(btn){
-  const ej = ejerciciosDe(MODO.plan, MODO.dia), [nombre, esq] = ej[MODO.i], fila = btn.closest('.tf');
+  const ej = ejerciciosDe(MODO.plan, MODO.dia), [nombre, esq] = ej[ejDe(btn)], fila = btn.closest('.tf');
   const kgI = fila.querySelector('.t-kg'), rI = fila.querySelector('.t-r');
   const kg = numero(kgI.value || kgI.placeholder), r = numero(rI.value || rI.placeholder);
   if(btn.dataset.twok != null){
@@ -3428,7 +3464,7 @@ function tildarFila(btn){
 }
 // Lo escrito en una fila sin tildar se guarda como borrador (no se pierde al redibujar); si ya estaba tildada, se corrige el registro
 function editarFila(inp){
-  const ej = ejerciciosDe(MODO.plan, MODO.dia), [nombre, esq] = ej[MODO.i], fila = inp.closest('.tf'), id = fila.dataset.fila;
+  const ej = ejerciciosDe(MODO.plan, MODO.dia), [nombre, esq] = ej[ejDe(inp)], fila = inp.closest('.tf'), id = fila.dataset.fila;
   const campo = inp.classList.contains('t-kg') ? 'kg' : 'r', v = numero(inp.value);
   if(fila.classList.contains('ok')){
     if(id.startsWith('w')){ const wu = MODO.wu[nombre]; wu[Number(id.slice(1))][campo] = v; store.set('atlas.modo', MODO); return; }
@@ -4773,7 +4809,7 @@ $('#modo-body').addEventListener('click', e => {
   const vs = e.target.closest('[data-mvista]');
   if(vs){ store.set('atlas.vistaModo', vs.dataset.mvista); renderModo(); return; }
   if(e.target.closest('[data-mmasw]')){
-    const [nombre] = ejerciciosDe(MODO.plan, MODO.dia)[MODO.i];
+    const [nombre] = ejerciciosDe(MODO.plan, MODO.dia)[ejDe(e.target)];
     MODO.wu = Object.assign({}, MODO.wu, {[nombre]:((MODO.wu || {})[nombre] || []).concat({})});
     store.set('atlas.modo', MODO); renderModo(); return;
   }
@@ -4782,8 +4818,8 @@ $('#modo-body').addEventListener('click', e => {
   const ms = e.target.closest('[data-mserie]');
   if(ms){ MODO.j = Number(ms.dataset.mserie); MODO.auto = false; renderModo(); return; }
   if(e.target.closest('[data-mmas]')){
-    // Serie de más: se suma al ejercicio actual y queda seleccionada para anotarla
-    const [nombre, esq] = ejerciciosDe(MODO.plan, MODO.dia)[MODO.i];
+    // Serie de más: se suma al ejercicio (el actual, o el de esa tabla en "Toda la rutina") y queda seleccionada para anotarla
+    const [nombre, esq] = ejerciciosDe(MODO.plan, MODO.dia)[ejDe(e.target)];
     MODO.extra = Object.assign({}, MODO.extra, {[nombre]:((MODO.extra || {})[nombre] || 0) + 1});
     MODO.j = seriesHoy(nombre, nSeriesModo(nombre, esq)).length - 1; MODO.auto = false;
     store.set('atlas.modo', MODO); renderModo(); return;
