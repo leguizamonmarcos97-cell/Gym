@@ -646,7 +646,7 @@ EJ3D['estir:pecho'] = quieto({az:-.9, y:3, dist:34, el:.1}, {pecho:1, hombros:.4
 EJ3D['estir:hombro'] = quieto({az:.25, y:3.5, dist:30, el:.1}, {hombros:1, trapecio:.3},
   {dirs:{'upperarm01.R':[.92, -.05, .4], 'lowerarm01.R':[.98, -.05, .2], 'upperarm01.L':[.35, -.55, .76], 'lowerarm01.L':[-.75, .35, .55]}});
 EJ3D['estir:triceps'] = quieto({az:.6, y:4, dist:30, el:.1}, {triceps:1},
-  {dirs:{'upperarm01.R':[-.12, .97, -.15], 'lowerarm01.R':[.35, -.9, -.25], 'upperarm01.L':[.3, .75, .35], 'lowerarm01.L':[-.9, .35, -.2]}});
+  {dirs:{'upperarm01.R':[-.05, .97, -.2], 'lowerarm01.R':[.08, -.88, -.47], 'upperarm01.L':[-.3, .78, .28], 'lowerarm01.L':[-.92, .3, -.25]}});
 EJ3D['estir:biceps'] = quieto({az:.9, y:3.5, dist:30, el:.1}, {biceps:1, antebrazos:.8},
   {dirs:{'upperarm01.R':[-.15, -.05, 1], 'lowerarm01.R':[-.1, -.05, 1], 'wrist.R':[-.1, -.9, .4], 'upperarm01.L':[.1, -.45, .9], 'lowerarm01.L':[-.45, .1, .9]}, giros:{'lowerarm01.R':1.5}});
 EJ3D['estir:cuadriceps'] = quieto({az:1.25, y:-1, dist:38, el:.08}, {cuadriceps:1},
