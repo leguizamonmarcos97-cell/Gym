@@ -2,6 +2,7 @@
 import bpy, mathutils, math, numpy as np
 V3=mathutils.Vector
 BAJAR={}
+CODO_VERTICAL=[False]
 RK=np.load(cfg['rk_npz']); RKn=list(RK['nombres']); RKt=list(RK['tips']); RKf=list(RK['frames'])
 def pose_rk(arm, fr, escala, zpiso):
     i=RKf.index(min(RKf,key=lambda x:abs(x-fr)))
@@ -43,17 +44,30 @@ def pose_rk(arm, fr, escala, zpiso):
         T_=Sm+(Hr-Sr)*k_+BAJAR.get(L,V3())
         dT=(T_-Sm); dl=min(dT.length,(a_+b_)*.999); u=dT.normalized()
         plano=(Er-Sr)-u*(Er-Sr).dot(u)
+        if CODO_VERTICAL[0]:
+            # antebrazo vertical: el codo va lo más cerca posible de quedar justo debajo de la mano
+            D_=(Sm+u*min(dT.length,(a_+b_)*.999))-V3((0,0,b_))-Sm
+            plano=D_-u*D_.dot(u)
         if plano.length<1e-6: plano=V3((0,0,-1))
         plano.normalize()
         x=(a_*a_-b_*b_+dl*dl)/(2*dl); h=math.sqrt(max(a_*a_-x*x,0)); E_=Sm+u*x+plano*h; T_=Sm+u*dl
         apuntar(L+'Arm',E_-Sm,T_-E_,lambda L=L: Wt(L+'ForeArm')-W(L+'ForeArm'))
         palma=lambda L=L: W(L+'HandIndex1')-W(L+'HandPinky1')
         apuntar(L+'ForeArm',T_-E_,P(L+'Finger2Proximal')-P(L+'Finger5Proximal'),palma)
-        apuntar(L+'Hand',P(L+'Finger3Proximal')-P(L+'Hand'),P(L+'Finger2Proximal')-P(L+'Finger5Proximal'),palma)
+        if CODO_VERTICAL[0]:
+            dfa=(T_-E_).normalized(); apuntar(L+'Hand',dfa,P(L+'Finger2Proximal')-P(L+'Finger5Proximal'),palma)
+        else:
+            apuntar(L+'Hand',P(L+'Finger3Proximal')-P(L+'Hand'),P(L+'Finger2Proximal')-P(L+'Finger5Proximal'),palma)
+        # dedos: la forma de la mano del atleta (relativa a su mano), puesta en la mano del cuerpo nuevo
+        def marco(y,x):
+            y=y.normalized(); x=(x-y*x.dot(y)).normalized(); return mathutils.Matrix((x,y,x.cross(y))).transposed()
+        Mr=marco(P(L+'Finger3Proximal')-P(L+'Hand'),P(L+'Finger2Proximal')-P(L+'Finger5Proximal'))
+        Mm=marco(W(L+'HandMiddle1')-W(L+'Hand'),W(L+'HandIndex1')-W(L+'HandPinky1'))
+        rel=lambda v: Mm@(Mr.transposed()@v)
         for dn,f in dedos.items():
             if dn=='Thumb': cad=[f'{L}Finger1Metacarpal',f'{L}Finger1Proximal',f'{L}Finger1Distal',f'{L}Finger1Tip']
             else: cad=[f'{L}Finger{f}Proximal',f'{L}Finger{f}Medial',f'{L}Finger{f}Distal',f'{L}Finger{f}Tip']
-            for k in range(3): apuntar(f'{L}Hand{dn}{k+1}',P(cad[k+1])-P(cad[k]))
+            for k in range(3): apuntar(f'{L}Hand{dn}{k+1}',rel(P(cad[k+1])-P(cad[k])))
         apuntar(L+'UpLeg',P(L+'Shin')-P(L+'Thigh'))
         apuntar(L+'Leg',P(L+'Foot')-P(L+'Shin'))
         apuntar(L+'Foot',P(L+'Toe')-P(L+'Foot'))

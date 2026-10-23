@@ -272,7 +272,7 @@ if cfg.get('rk_npz'):
     exec(open(cfg['pose_rk']).read())
     col=bpy.data.collections.new('aparatos'); sc.collection.children.link(col)
     for i,fr in enumerate(cfg['rk_cuadros']):
-        BAJAR.clear(); P=pose_rk(arm,fr,cfg.get('rk_escala',1.06),zpiso)
+        BAJAR.clear(); CODO_VERTICAL[0]=i in cfg.get('codo_vertical',[]); P=pose_rk(arm,fr,cfg.get('rk_escala',1.06),zpiso)
         gL=agarre(arm,'Left'); gR=agarre(arm,'Right'); cen=(gL+gR)/2; eje=(gL-gR).normalized()
         if i in cfg.get('toca_pecho',[]) and cfg.get('hacia_pies',0):
             mw_=arm.matrix_world; pb_=arm.pose.bones; ej_=(mw_@pb_['mixamorig:Head'].head-mw_@pb_['mixamorig:Hips'].head); ej_.z=0; ej_.normalize()
