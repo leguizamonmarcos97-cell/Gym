@@ -274,9 +274,16 @@ if cfg.get('rk_npz'):
     for i,fr in enumerate(cfg['rk_cuadros']):
         BAJAR.clear(); CODO_VERTICAL[0]=i in cfg.get('codo_vertical',[]); P=pose_rk(arm,fr,cfg.get('rk_escala',1.06),zpiso)
         gL=agarre(arm,'Left'); gR=agarre(arm,'Right'); cen=(gL+gR)/2; eje=(gL-gR).normalized()
+        if cfg.get('ancho_agarre'):
+            for it in range(3):
+                d_=(cfg['ancho_agarre']-(gL-gR).length)/2
+                if abs(d_)<.005: break
+                BAJAR['Left']=BAJAR.get('Left',V3())+eje*d_; BAJAR['Right']=BAJAR.get('Right',V3())-eje*d_
+                P=pose_rk(arm,fr,cfg.get('rk_escala',1.06),zpiso); gL=agarre(arm,'Left'); gR=agarre(arm,'Right'); cen=(gL+gR)/2; eje=(gL-gR).normalized()
+            print('RKPOSE agarre',round((gL-gR).length,3))
         if i in cfg.get('toca_pecho',[]) and cfg.get('hacia_pies',0):
             mw_=arm.matrix_world; pb_=arm.pose.bones; ej_=(mw_@pb_['mixamorig:Head'].head-mw_@pb_['mixamorig:Hips'].head); ej_.z=0; ej_.normalize()
-            for L in ('Left','Right'): BAJAR[L]=-ej_*cfg['hacia_pies']
+            for L in ('Left','Right'): BAJAR[L]=BAJAR.get(L,V3())-ej_*cfg['hacia_pies']
             P=pose_rk(arm,fr,cfg.get('rk_escala',1.06),zpiso); gL=agarre(arm,'Left'); gR=agarre(arm,'Right'); cen=(gL+gR)/2; eje=(gL-gR).normalized()
         if i in cfg.get('toca_pecho',[]):
             for it in range(3):
@@ -293,7 +300,7 @@ if cfg.get('rk_npz'):
         mw=arm.matrix_world; pb=arm.pose.bones
         cab=mw@pb['mixamorig:Head'].head; cad=mw@pb['mixamorig:Hips'].head; ejeb=(cab-cad); ejeb.z=0; ejeb.normalize()
         lat=V3((0,0,1)).cross(ejeb).normalized()*cfg.get('lado',1)
-        foco=mw@pb['mixamorig:Spine2'].head; foco.z+=cfg.get('foco_z',.15)
+        foco=(mw@pb['mixamorig:Spine2'].head).lerp(mw@pb['mixamorig:LeftLeg'].head,cfg.get('foco_pies',0)); foco.z+=cfg.get('foco_z',.15)
         a=math.radians(cfg.get('cam_ang',35)); d=cfg.get('cam_dist',3.0)
         cam.location=foco+(lat*math.cos(a)-ejeb*math.sin(a))*d+V3((0,0,cfg.get('cam_alto',1.3)))
         cam.rotation_euler=(foco-cam.location).to_track_quat('-Z','Y').to_euler()
