@@ -1,4 +1,4 @@
-const CACHE = 'atlas-v26';
+const CACHE = 'atlas-v27';
 const SHELL = ['./', './index.html', './cuestionario.js?v=26', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png', './favicon-32.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));

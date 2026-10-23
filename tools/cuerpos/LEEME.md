@@ -13,3 +13,9 @@ Se hacen con el modelo humano de [MakeHuman](http://www.makehumancommunity.org) 
 
 `python3 rig.py h` exporta el cuerpo con el esqueleto de MakeHuman (`rigs/default.mhskel` y sus pesos), las zonas musculares y la forma atlética a `3d/cuerpo_h.json` + `3d/cuerpo_h.bin`.
 `3d/demo3d.js` lo anima con three.js; cada ejercicio se define en `3d/ejercicios3d.js` con la pose de inicio y la final (direcciones de los huesos), los músculos que trabajan y los errores comunes.
+
+## Render en Blender (versión actual de img/cuerpos)
+`blender -b -P figura_blender.py -- r/data/<nombre>.json r/tex salida.png <h|m> 640 64` renderiza cada figura con Cycles:
+piel con textura de MakeHuman y subsurface, luz de estudio (clave, relleno y dos contraluces), fondo transparente.
+El short, el top y el marcado de abdominales y pecho se calculan por píxel en nodos de Blender (mismas fórmulas que `render.html`).
+Después se recortan todas con el mismo marco a 320 × 867 en WebP.
